@@ -110,9 +110,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', lang: 'bn' },
   ];
 
-  const CARTESIA_API_KEY = 'sk_car_Hamdih147oPiXJqLhbNs9w';
-
-  // Play text using Cartesia TTS
+  // Play text using Cartesia TTS via serverless proxy
   const playVoice = async (text, questionId = null) => {
     if (isPlayingVoice) {
       // Stop current playback
@@ -130,24 +128,27 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
     try {
       const voice = PREVIEW_VOICES.find(v => v.id === selectedPreviewVoice);
-      const resp = await fetch('https://api.cartesia.ai/tts/bytes', {
+      const resp = await fetch('/api/tts', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${CARTESIA_API_KEY}`,
-          'Cartesia-Version': '2024-06-10',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model_id: 'sonic-3',
-          transcript: text,
-          voice: { mode: 'id', id: selectedPreviewVoice },
+          text: text,
+          voiceId: selectedPreviewVoice,
           language: voice?.lang || 'hi',
-          output_format: { container: 'wav', encoding: 'pcm_f32le', sample_rate: 44100 },
         }),
       });
 
       if (resp.ok) {
-        const blob = await resp.blob();
+        const data = await resp.json();
+        const byteCharacters = atob(data.audio);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'audio/mp3' });
         const url = URL.createObjectURL(blob);
 
         if (!audioPreviewRef.current) {
@@ -1273,8 +1274,6 @@ export default function VoxBharat() {
   const [activeLang, setActiveLang] = useState(0);
   const [demoActive, setDemoActive] = useState(false);
   const [demoStep, setDemoStep] = useState(0);
-  const [apiKey, setApiKey] = useState('sk_car_Hamdih147oPiXJqLhbNs9w');
-  const [showApiModal, setShowApiModal] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('7e8cb11d-37af-476b-ab8f-25da99b18644');
   const [showTranscript, setShowTranscript] = useState(false);
@@ -1500,7 +1499,7 @@ export default function VoxBharat() {
 
   // Complete the call and extract data
   const completeCall = () => {
-    const conversation = getSelectedLanguage() === 'bn' ? bengaliConversation : hindiConversation;
+    const conversation = getConversation();
     const result = extractSurveyData(conversation);
     setSurveyResults(prev => [...prev, result]);
     setCallComplete(true);
@@ -1523,7 +1522,7 @@ export default function VoxBharat() {
     setDemoStep(0);
     setCallComplete(false);
 
-    const conversation = getSelectedLanguage() === 'bn' ? bengaliConversation : hindiConversation;
+    const conversation = getConversation();
     const gaps = [500, 1800, 1500, 1800, 1500, 1200, 1500];
     let elapsed = 0;
     for (let i = 0; i < conversation.length; i++) {
@@ -1584,53 +1583,52 @@ export default function VoxBharat() {
 
     const respondentVoiceId = getRespondentVoice();
     const language = getSelectedLanguage();
-    const conversation = language === 'bn' ? bengaliConversation : hindiConversation;
+    const conversation = getConversation();
 
     for (let i = 0; i < conversation.length; i++) {
       if (abortRef.current) break;
       setDemoStep(i + 1);
       const msg = conversation[i];
 
-      if (apiKey) {
         setIsSpeaking(true);
-        // Use selected voice for AI, contrasting voice for user responses
-        const voiceId = msg.speaker === 'ai' ? selectedVoice : respondentVoiceId;
-        try {
-          const resp = await fetch('https://api.cartesia.ai/tts/bytes', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Cartesia-Version': '2024-06-10',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model_id: 'sonic-3',
-              transcript: msg.text,
-              voice: { mode: 'id', id: voiceId },
-              language: language,
-              output_format: { container: 'wav', encoding: 'pcm_f32le', sample_rate: 44100 },
-            }),
-          });
-          if (resp.ok && audioRef.current && !abortRef.current) {
-            const blob = await resp.blob();
-            const url = URL.createObjectURL(blob);
-            audioRef.current.src = url;
-            await new Promise((resolve) => {
-              audioRef.current.onended = () => { URL.revokeObjectURL(url); resolve(); };
-              audioRef.current.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-              audioRef.current.play().catch(() => resolve());
-            });
-          } else {
-            await new Promise(r => setTimeout(r, 2000));
+      // Use selected voice for AI, contrasting voice for user responses
+      const voiceId = msg.speaker === 'ai' ? selectedVoice : respondentVoiceId;
+      try {
+        const resp = await fetch('/api/tts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: msg.text,
+            voiceId: voiceId,
+            language: language,
+          }),
+        });
+        if (resp.ok && audioRef.current && !abortRef.current) {
+          const data = await resp.json();
+          const byteCharacters = atob(data.audio);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
           }
-        } catch (e) {
-          console.error('Cartesia:', e);
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'audio/mp3' });
+          const url = URL.createObjectURL(blob);
+          audioRef.current.src = url;
+          await new Promise((resolve) => {
+            audioRef.current.onended = () => { URL.revokeObjectURL(url); resolve(); };
+            audioRef.current.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+            audioRef.current.play().catch(() => resolve());
+          });
+        } else {
           await new Promise(r => setTimeout(r, 2000));
         }
-        setIsSpeaking(false);
-      } else {
-        await new Promise(r => setTimeout(r, msg.speaker === 'user' ? 1200 : 1800));
+      } catch (e) {
+        console.error('TTS Error:', e);
+        await new Promise(r => setTimeout(r, 2000));
       }
+      setIsSpeaking(false);
       if (abortRef.current) break;
       await new Promise(r => setTimeout(r, 300));
     }
@@ -1945,36 +1943,16 @@ export default function VoxBharat() {
                 It understands context, handles interruptions, and captures nuanced responses.
               </p>
               
-              {/* Cartesia API Key + Voice Picker */}
+              {/* Voice Picker */}
               <div className="bg-white rounded-xl p-4 border mb-6 space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="font-body text-sm font-medium text-gray-700">
-                      🔊 Cartesia API Key
+                      🔊 Select Voice
                     </label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs bg-[#0d6e6e]/10 text-[#0d6e6e] px-2 py-0.5 rounded-full font-medium">Sonic 3</span>
-                      <a 
-                        href="https://cartesia.ai" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs text-[#0d6e6e] hover:underline"
-                      >
-                        Get key →
-                      </a>
-                    </div>
+                    <span className="text-xs bg-[#0d6e6e]/10 text-[#0d6e6e] px-2 py-0.5 rounded-full font-medium">Cartesia Sonic 3</span>
                   </div>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="sk_car_..."
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-body text-xs text-gray-600 mb-2 block">Voice</label>
+                  <label className="font-body text-xs text-gray-600 mb-2 block">Choose AI interviewer voice</label>
                   <div className="flex gap-2">
                     {CARTESIA_VOICES.map(v => (
                       <button
@@ -1993,13 +1971,13 @@ export default function VoxBharat() {
                 </div>
 
                 <p className="text-xs text-gray-400">
-                  {apiKey ? '✓ Voice enabled · Sonic 3 · Hindi · 40ms latency' : 'Add key to hear AI voice in Hindi'}
+                  ✓ Voice enabled · Cartesia Sonic 3 · 40ms latency
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={apiKey ? runVoiceDemo : runTextDemo}
+                  onClick={runVoiceDemo}
                   disabled={demoActive}
                   className="px-6 py-3 bg-[#0d6e6e] text-white rounded-full font-body font-medium hover:bg-[#1e6f5c] disabled:opacity-50 flex items-center gap-2"
                 >
@@ -2012,7 +1990,7 @@ export default function VoxBharat() {
                       {isSpeaking ? 'Speaking...' : 'Playing...'}
                     </>
                   ) : (
-                    <>▶ {apiKey ? 'Play with Cartesia Voice' : 'Play Demo'}</>
+                    <>▶ Play Voice Demo</>
                   )}
                 </button>
                 {demoActive && (
@@ -2074,9 +2052,9 @@ export default function VoxBharat() {
                     <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                       <span className="text-4xl">📞</span>
                     </div>
-                    <p>Click "Play Demo" to see a conversation</p>
+                    <p>Click "Play Voice Demo" to hear a conversation</p>
                     <p className="text-sm mt-1">
-                      {apiKey ? '🔊 Cartesia Sonic 3 · Hindi' : 'Add API key for voice'}
+                      🔊 Powered by Cartesia Sonic 3
                     </p>
                   </div>
                 )}
@@ -2115,13 +2093,11 @@ export default function VoxBharat() {
         <audio ref={audioRef} />
         
         {/* Powered by */}
-        {apiKey && (
-          <div className="text-center mt-8">
-            <span className="font-body text-xs text-gray-400">
-              Voice powered by <a href="https://cartesia.ai" target="_blank" rel="noopener noreferrer" className="text-[#0d6e6e] hover:underline">Cartesia Sonic 3</a> · 40ms latency · 9 Indian languages
-            </span>
-          </div>
-        )}
+        <div className="text-center mt-8">
+          <span className="font-body text-xs text-gray-400">
+            Voice powered by <a href="https://cartesia.ai" target="_blank" rel="noopener noreferrer" className="text-[#0d6e6e] hover:underline">Cartesia Sonic 3</a> · 40ms latency · 9 Indian languages
+          </span>
+        </div>
       </section>
 
       {/* Features */}
