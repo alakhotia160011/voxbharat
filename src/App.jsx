@@ -1940,7 +1940,7 @@ export default function VoxBharat() {
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={apiKey ? runVoiceDemo : runTextDemo}
                   disabled={demoActive}
@@ -1966,6 +1966,12 @@ export default function VoxBharat() {
                     ■ Stop
                   </button>
                 )}
+                <button
+                  onClick={() => setShowSampleReport(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-[#ff6b2c] to-[#e85d04] text-white rounded-full font-body font-medium hover:opacity-90 flex items-center gap-2"
+                >
+                  📊 View Sample Report
+                </button>
               </div>
             </div>
 
