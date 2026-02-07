@@ -146,49 +146,39 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
   const [questions, setQuestions] = useState([]);
 
-  // Generate questions based on config (mock - would use Claude API)
+  // Generate questions dynamically using Claude API
   const generateQuestions = async () => {
     setIsGenerating(true);
-    await new Promise(r => setTimeout(r, 2000));
 
-    let generated = [];
+    try {
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config }),
+      });
 
-    if (config.type === 'political') {
-      generated = [
-        { id: 1, type: 'open', text: '\u0906\u092A\u0915\u0947 \u0915\u094D\u0937\u0947\u0924\u094D\u0930 \u092E\u0947\u0902 \u0938\u092C\u0938\u0947 \u092C\u0921\u093C\u0940 \u0938\u092E\u0938\u094D\u092F\u093E \u0915\u094D\u092F\u093E \u0939\u0948?', textEn: 'What is the biggest problem in your area?', required: true, category: 'Issues' },
-        { id: 2, type: 'single', text: '\u0905\u0917\u0930 \u0906\u091C \u091A\u0941\u0928\u093E\u0935 \u0939\u094B\u0902, \u0924\u094B \u0906\u092A \u0915\u093F\u0938 \u092A\u093E\u0930\u094D\u091F\u0940 \u0915\u094B \u0935\u094B\u091F \u0926\u0947\u0902\u0917\u0947?', textEn: 'If elections were held today, which party would you vote for?', options: ['BJP', 'Congress', 'AAP', 'Regional Party', 'Other', 'Won\'t vote', 'Can\'t say'], required: true, category: 'Vote Intent' },
-        { id: 3, type: 'likert', text: '\u0906\u092A \u0935\u0930\u094D\u0924\u092E\u093E\u0928 \u0938\u0930\u0915\u093E\u0930 \u0915\u0947 \u0915\u093E\u092E \u0938\u0947 \u0915\u093F\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094D\u091F \u0939\u0948\u0902?', textEn: 'How satisfied are you with the current government\'s work?', options: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied'], required: true, category: 'Satisfaction' },
-        { id: 4, type: 'single', text: '\u0915\u094D\u092F\u093E \u0906\u092A\u0915\u094B \u0932\u0917\u0924\u093E \u0939\u0948 \u0915\u093F \u0926\u0947\u0936 \u0938\u0939\u0940 \u0926\u093F\u0936\u093E \u092E\u0947\u0902 \u091C\u093E \u0930\u0939\u093E \u0939\u0948?', textEn: 'Do you think the country is going in the right direction?', options: ['Right direction', 'Wrong direction', 'Can\'t say'], required: true, category: 'Direction' },
-        { id: 5, type: 'rating', text: '\u092A\u094D\u0930\u0927\u093E\u0928\u092E\u0902\u0924\u094D\u0930\u0940 \u0915\u0947 \u0915\u093E\u092E \u0915\u094B 1 \u0938\u0947 10 \u092E\u0947\u0902 \u0915\u093F\u0924\u0928\u0947 \u0905\u0902\u0915 \u0926\u0947\u0902\u0917\u0947?', textEn: 'Rate the Prime Minister\'s work from 1-10', min: 1, max: 10, required: true, category: 'Leader Rating' },
-      ];
-    } else if (config.type === 'customer') {
-      generated = [
-        { id: 1, type: 'nps', text: '\u0906\u092A \u0939\u092E\u0947\u0902 \u0905\u092A\u0928\u0947 \u0926\u094B\u0938\u094D\u0924\u094B\u0902 \u0915\u094B \u0915\u093F\u0924\u0928\u093E recommend \u0915\u0930\u0947\u0902\u0917\u0947?', textEn: 'How likely are you to recommend us?', min: 0, max: 10, required: true, category: 'NPS' },
-        { id: 2, type: 'likert', text: '\u0906\u092A \u0939\u092E\u093E\u0930\u0940 \u0938\u0947\u0935\u093E \u0938\u0947 \u0915\u093F\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094D\u091F \u0939\u0948\u0902?', textEn: 'How satisfied are you with our service?', options: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied'], required: true, category: 'CSAT' },
-        { id: 3, type: 'open', text: '\u0939\u092E \u0905\u092A\u0928\u0940 \u0938\u0947\u0935\u093E \u0915\u0948\u0938\u0947 \u092C\u0947\u0939\u0924\u0930 \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902?', textEn: 'How can we improve?', required: false, category: 'Feedback' },
-      ];
-    } else if (config.type === 'market') {
-      const brands = config.brandNames ? config.brandNames.split(',').map(b => b.trim()) : ['Brand A', 'Brand B', 'Brand C'];
-      generated = [
-        { id: 1, type: 'multiple', text: '\u0906\u092A \u0915\u094C\u0928 \u0938\u0947 brands \u091C\u093E\u0928\u0924\u0947 \u0939\u0948\u0902?', textEn: 'Which brands are you aware of?', options: [...brands, 'None'], required: true, category: 'Awareness' },
-        { id: 2, type: 'single', text: '\u092A\u093F\u091B\u0932\u0947 3 \u092E\u0939\u0940\u0928\u0947 \u092E\u0947\u0902 \u0906\u092A\u0928\u0947 \u0915\u094C\u0928 \u0938\u093E brand \u0907\u0938\u094D\u0924\u0947\u092E\u093E\u0932 \u0915\u093F\u092F\u093E?', textEn: 'Which brand did you use in the last 3 months?', options: [...brands, 'None', 'Don\'t remember'], required: true, category: 'Usage' },
-        { id: 3, type: 'likert', text: '\u0907\u0938 product \u0915\u094B \u0916\u0930\u0940\u0926\u0928\u0947 \u0915\u0940 \u0915\u093F\u0924\u0928\u0940 \u0938\u0902\u092D\u093E\u0935\u0928\u093E \u0939\u0948?', textEn: 'How likely are you to purchase?', options: ['Very Unlikely', 'Unlikely', 'Neutral', 'Likely', 'Very Likely'], required: true, category: 'Purchase Intent' },
-      ];
-    } else {
-      generated = [
-        { id: 1, type: 'open', text: '\u0915\u0943\u092A\u092F\u093E \u0905\u092A\u0928\u093E \u092B\u0940\u0921\u092C\u0948\u0915 \u0938\u093E\u091D\u093E \u0915\u0930\u0947\u0902', textEn: 'Please share your feedback', required: true, category: 'General' },
-      ];
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to generate questions');
+      }
+
+      const data = await response.json();
+      let generated = data.questions;
+
+      // Add demographics at end
+      generated.push(
+        { id: generated.length + 1, type: 'single', text: '\u0906\u092A\u0915\u0940 \u0909\u092E\u094D\u0930 \u0915\u094D\u092F\u093E \u0939\u0948?', textEn: 'What is your age?', options: ['18-25', '26-35', '36-45', '46-55', '55+'], required: true, category: 'Demographics', isDemographic: true },
+        { id: generated.length + 2, type: 'single', text: '\u0906\u092A\u0915\u093E \u0932\u093F\u0902\u0917 \u0915\u094D\u092F\u093E \u0939\u0948?', textEn: 'What is your gender?', options: ['Male', 'Female', 'Other', 'Prefer not to say'], required: true, category: 'Demographics', isDemographic: true }
+      );
+
+      setQuestions(generated);
+      setStep(5);
+    } catch (error) {
+      console.error('Question generation error:', error);
+      alert('Failed to generate questions: ' + error.message);
+    } finally {
+      setIsGenerating(false);
     }
-
-    // Add demographics at end
-    generated.push(
-      { id: generated.length + 1, type: 'single', text: '\u0906\u092A\u0915\u0940 \u0909\u092E\u094D\u0930 \u0915\u094D\u092F\u093E \u0939\u0948?', textEn: 'What is your age?', options: ['18-25', '26-35', '36-45', '46-55', '55+'], required: true, category: 'Demographics', isDemographic: true },
-      { id: generated.length + 2, type: 'single', text: '\u0906\u092A\u0915\u093E \u0932\u093F\u0902\u0917 \u0915\u094D\u092F\u093E \u0939\u0948?', textEn: 'What is your gender?', options: ['Male', 'Female', 'Other', 'Prefer not to say'], required: true, category: 'Demographics', isDemographic: true }
-    );
-
-    setQuestions(generated);
-    setIsGenerating(false);
-    setStep(5);
   };
 
   const updateQuestion = (id, updates) => {
