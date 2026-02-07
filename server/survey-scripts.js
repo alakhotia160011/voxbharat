@@ -241,14 +241,23 @@ export function getCustomSystemPrompt(language, gender, customSurvey) {
     : 'Use a warm, conversational tone.';
 
   const questionsBlock = customSurvey.questions
-    .map((q, i) => {
-      let line = `${i + 1}. ${q.text}`;
-      if (q.options && q.options.length > 0) {
-        line += ` [Options: ${q.options.join(', ')}]`;
-      }
-      return line;
+    .map((q, i) => `${i + 1}. ${q.text}`)
+    .join('\n');
+
+  // Build a separate internal mapping guide for questions with options
+  const optionsGuide = customSurvey.questions
+    .filter(q => q.options && q.options.length > 0)
+    .map(q => {
+      const qNum = customSurvey.questions.indexOf(q) + 1;
+      return `  Q${qNum}: ${q.options.join(', ')}`;
     })
     .join('\n');
+
+  const optionsSection = optionsGuide
+    ? `\nINTERNAL ANSWER CATEGORIES (for your understanding only — NEVER read these to the respondent):
+${optionsGuide}
+These categories help you understand what kind of answer to expect. Accept whatever the respondent says naturally and move on.`
+    : '';
 
   return `You are a friendly phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}".
 
@@ -265,6 +274,7 @@ CRITICAL RULES:
 10. If someone refuses to answer, politely acknowledge and immediately move to the next question.
 11. After all questions are answered, say a brief thank-you and goodbye, then add [SURVEY_COMPLETE] at the end.
 12. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
+13. NEVER read out answer options or choices to the respondent. Ask the question as written and let them answer freely in their own words.
 
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
@@ -275,10 +285,11 @@ The user's speech is being transcribed by speech-to-text software, which often p
 
 SURVEY QUESTIONS (ask in this order):
 ${questionsBlock}
+${optionsSection}
 
 After the last question, thank the respondent warmly and end the conversation. Add [SURVEY_COMPLETE] at the very end.
 
-Remember: Keep moving forward through the questions. Never go backward. Each response you give should contain at most ONE question.`;
+Remember: Keep moving forward through the questions. Never go backward. Each response you give should contain at most ONE question. Ask each question naturally and NEVER list choices or options aloud.`;
 }
 
 /**
