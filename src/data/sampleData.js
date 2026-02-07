@@ -1,0 +1,183 @@
+// Sample Report Data (simulating 512 survey responses)
+export const sampleReportData = {
+  metadata: {
+    title: 'Religion and Social Attitudes in India',
+    subtitle: 'A Voice-Based Survey Study',
+    conductedBy: 'VoxBharat Research',
+    dateRange: 'January 15-22, 2026',
+    totalResponses: 512,
+    completionRate: 78.4,
+    avgDuration: '4m 32s',
+    marginOfError: 4.3,
+    confidenceLevel: 95,
+  },
+  demographics: {
+    byAge: [
+      { group: '18-25', count: 89, pct: 17.4 },
+      { group: '26-35', count: 142, pct: 27.7 },
+      { group: '36-45', count: 118, pct: 23.0 },
+      { group: '46-55', count: 97, pct: 19.0 },
+      { group: '55+', count: 66, pct: 12.9 },
+    ],
+    byReligion: [
+      { group: 'Hindu', count: 398, pct: 77.7 },
+      { group: 'Muslim', count: 72, pct: 14.1 },
+      { group: 'Christian', count: 21, pct: 4.1 },
+      { group: 'Sikh', count: 12, pct: 2.3 },
+      { group: 'Other', count: 9, pct: 1.8 },
+    ],
+    byLanguage: [
+      { group: 'Hindi', count: 287, pct: 56.1 },
+      { group: 'Bengali', count: 98, pct: 19.1 },
+      { group: 'Telugu', count: 52, pct: 10.2 },
+      { group: 'Marathi', count: 41, pct: 8.0 },
+      { group: 'Tamil', count: 34, pct: 6.6 },
+    ],
+    byGender: [
+      { group: 'Male', count: 276, pct: 53.9 },
+      { group: 'Female', count: 231, pct: 45.1 },
+      { group: 'Other', count: 5, pct: 1.0 },
+    ],
+  },
+  keyFindings: [
+    {
+      metric: 'Religion Importance',
+      headline: '73% say religion is "very important" in their lives',
+      breakdown: [
+        { label: 'Very', pct: 73, color: '#e8550f' },
+        { label: 'Somewhat', pct: 19, color: '#cc4400' },
+        { label: 'Not very', pct: 6, color: '#94a3b8' },
+        { label: 'Not at all', pct: 2, color: '#cbd5e1' },
+      ],
+    },
+    {
+      metric: 'Religious Freedom',
+      headline: '84% believe all religions can freely practice in India',
+      breakdown: [
+        { label: 'Yes, freely', pct: 84, color: '#e8550f' },
+        { label: 'Restricted', pct: 12, color: '#94a3b8' },
+        { label: 'No, limited', pct: 4, color: '#cbd5e1' },
+      ],
+    },
+    {
+      metric: 'Interfaith Neighbors',
+      headline: '91% would accept neighbors from different religions',
+      breakdown: [
+        { label: 'Yes', pct: 91, color: '#e8550f' },
+        { label: 'Depends', pct: 6, color: '#94a3b8' },
+        { label: 'Same only', pct: 3, color: '#cbd5e1' },
+      ],
+    },
+    {
+      metric: 'Interfaith Marriage',
+      headline: 'Only 34% say family would accept interfaith marriage',
+      breakdown: [
+        { label: 'Accept', pct: 34, color: '#e8550f' },
+        { label: 'Difficult', pct: 28, color: '#cc4400' },
+        { label: 'Reject', pct: 31, color: '#94a3b8' },
+        { label: 'Depends', pct: 7, color: '#cbd5e1' },
+      ],
+    },
+    {
+      metric: 'Diversity Opinion',
+      headline: '89% view religious diversity as making India better',
+      breakdown: [
+        { label: 'Better', pct: 89, color: '#e8550f' },
+        { label: 'No effect', pct: 7, color: '#94a3b8' },
+        { label: 'Weaker', pct: 4, color: '#cbd5e1' },
+      ],
+    },
+  ],
+  crosstabs: {
+    ageVsInterfaithMarriage: [
+      { age: '18-25', accept: 52, difficult: 26, reject: 18, depends: 4 },
+      { age: '26-35', accept: 41, difficult: 31, reject: 22, depends: 6 },
+      { age: '36-45', accept: 32, difficult: 29, reject: 32, depends: 7 },
+      { age: '46-55', accept: 24, difficult: 27, reject: 41, depends: 8 },
+      { age: '55+', accept: 18, difficult: 24, reject: 48, depends: 10 },
+    ],
+    religionVsInterfaithMarriage: [
+      { religion: 'Hindu', accept: 32, difficult: 29, reject: 32, depends: 7 },
+      { religion: 'Muslim', accept: 28, difficult: 25, reject: 40, depends: 7 },
+      { religion: 'Christian', accept: 48, difficult: 28, reject: 19, depends: 5 },
+      { religion: 'Sikh', accept: 42, difficult: 33, reject: 17, depends: 8 },
+    ],
+  },
+  insights: [
+    {
+      type: 'key',
+      title: 'Generational Divide on Interfaith Marriage',
+      text: 'Younger respondents (18-25) are nearly 3x more likely to say their family would accept interfaith marriage compared to those 55+. This suggests significant generational shift in attitudes.',
+    },
+    {
+      type: 'key',
+      title: 'High Tolerance for Interfaith Neighbors',
+      text: 'Despite hesitation about interfaith marriage, 91% express comfort with neighbors from different religions, indicating acceptance in public sphere but traditional views in family matters.',
+    },
+    {
+      type: 'key',
+      title: 'Strong Consensus on Diversity',
+      text: 'Across all demographics, overwhelming majority (89%) view religious diversity positively. This finding is consistent across age, religion, and language groups.',
+    },
+  ],
+  methodology: {
+    sampleSize: 512,
+    samplingMethod: 'Stratified random sampling across 5 states',
+    dataCollection: 'AI-powered voice calls in 5 languages',
+    fieldDates: 'January 15-22, 2026',
+    avgCallDuration: '4 minutes 32 seconds',
+    completionRate: '78.4%',
+    qualityChecks: 'Audio review of 10% random sample, attention check questions',
+    weighting: 'Post-stratification weighting by age, gender, religion, and state',
+    marginOfError: '±4.3 percentage points at 95% confidence',
+    limitations: 'Mobile phone users only; excludes populations without phone access',
+  },
+};
+
+// Sample call log data (based on a real completed survey call)
+export const sampleCallLog = {
+  id: '7e334fbf-b929-4147-8d6d-da2e8bfbfcc6',
+  timestamp: '2026-02-07T17:45:50.006Z',
+  duration: 141,
+  language: 'Hindi',
+  gender: 'Female voice',
+  status: 'completed',
+  phone: '+91 98XXX XXXXX',
+  summary: '24-year-old Hindu respondent who prays daily and values religion highly. Shows strong openness to religious diversity and welcomes interfaith neighbors, believing religious diversity makes India better.',
+  transcript: [
+    { role: 'assistant', content: 'नमस्ते! मैं VoxBharat से बोल रही हूँ। क्या मैं आपसे धार्मिक सद्भाव पर एक छोटा सा सर्वे कर सकती हूँ? बस 5 मिनट लगेंगे।' },
+    { role: 'user', content: 'अच्छा बताइए क्या जानना है आपको' },
+    { role: 'assistant', content: 'बहुत अच्छा! सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?' },
+    { role: 'user', content: 'जी मैं 24 साल का हूँ' },
+    { role: 'assistant', content: 'धन्यवाद! आप किस धर्म को मानते हैं?' },
+    { role: 'user', content: 'मैं हिंदू हूँ' },
+    { role: 'assistant', content: 'ठीक है। आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?' },
+    { role: 'user', content: 'काफी महत्वपूर्ण है मेरे लिए' },
+    { role: 'assistant', content: 'जी समझ गई। आप कितनी बार प्रार्थना या पूजा करते हैं?' },
+    { role: 'user', content: 'मैं रोज़ सुबह पूजा करता हूँ' },
+    { role: 'assistant', content: 'बहुत अच्छा। क्या आपको लगता है कि भारत में सभी धर्मों के लोगों को अपने धर्म का पालन करने की पूरी स्वतंत्रता है?' },
+    { role: 'user', content: 'हाँ जी ज़रूर, कोई दिक्कत नहीं है' },
+    { role: 'assistant', content: 'अच्छा। अगर आपके पड़ोस में किसी दूसरे धर्म का परिवार आए, तो आपको कैसा लगेगा?' },
+    { role: 'user', content: 'मुझे कोई दिक्कत नहीं है, आने दीजिए' },
+    { role: 'assistant', content: 'बहुत बढ़िया! अंतर-धार्मिक विवाह के बारे में आपकी क्या राय है?' },
+    { role: 'user', content: 'मुझे लगता है कि यह ठीक है, प्यार मायने रखता है' },
+    { role: 'assistant', content: 'ठीक है। आपके विचार में, धार्मिक विविधता भारत को बेहतर बनाती है या चुनौतीपूर्ण?' },
+    { role: 'user', content: 'बेहतर बनाती है जी' },
+    { role: 'assistant', content: 'बहुत-बहुत धन्यवाद! आपके जवाब हमारे लिए बहुत कीमती हैं। आपका दिन शुभ हो!' },
+  ],
+  extractedData: {
+    demographics: { age: 24, ageGroup: '18-24', religion: 'Hindu', language: 'Hindi' },
+    structured: {
+      age: 24,
+      ageGroup: '18-24',
+      religion: 'Hindu',
+      religionImportance: 'very_important',
+      prayerFrequency: 'daily',
+      religiousFreedom: 'yes_fully',
+      interfaithNeighbor: 'welcome',
+      interfaithMarriage: 'fully_support',
+      diversityOpinion: 'makes_better',
+    },
+    sentiment: { overall: 'positive', openness: 'high', religiosity: 'high' },
+  },
+};
