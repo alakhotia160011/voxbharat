@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
+import PageShell from './components/layout/PageShell';
 import HeroSection from './components/landing/HeroSection';
 import StatsBar from './components/landing/StatsBar';
 import DemoSection from './components/landing/DemoSection';
@@ -34,98 +35,49 @@ export default function VoxBharat() {
     setShowBuilder(false);
   };
 
-  // Shared style tag for legacy font classes used by sub-pages and builder
-  const styleTag = (
-    <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@400;500;600;700&display=swap');
-      .font-display { font-family: 'Playfair Display', serif; }
-      .font-body { font-family: 'DM Sans', sans-serif; }
-      .font-serif-indic { font-family: 'Noto Serif Devanagari', serif; }
-      .gradient-text {
-        background: linear-gradient(135deg, #e8550f 0%, #c24a0e 50%, #e8550f 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-      .gradient-text-warm {
-        background: linear-gradient(135deg, #e8550f 0%, #c24a0e 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
-    `}</style>
-  );
-
   // ── Survey Builder (full-screen overlay) ──
   if (showBuilder) {
     return (
-      <>
-        {styleTag}
-        <FullSurveyBuilder onClose={() => setShowBuilder(false)} onLaunch={handleLaunch} />
-      </>
+      <FullSurveyBuilder onClose={() => setShowBuilder(false)} onLaunch={handleLaunch} />
     );
   }
 
-  // ── Sub-pages (wrapped in a page shell) ──
+  // ── Sub-pages (wrapped in PageShell) ──
   if (currentPage === 'how-it-works') {
     return (
-      <div className="min-h-screen bg-[#faf8f5]">
-        {styleTag}
-        <NavBar currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-        <div className="pt-24">
-          <HowItWorksPage navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-        </div>
-        <Footer navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-      </div>
+      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+        <HowItWorksPage navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
+      </PageShell>
     );
   }
 
   if (currentPage === 'about') {
     return (
-      <div className="min-h-screen bg-[#faf8f5]">
-        {styleTag}
-        <NavBar currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-        <div className="pt-24">
-          <AboutPage navigateTo={navigateTo} />
-        </div>
-        <Footer navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-      </div>
+      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+        <AboutPage navigateTo={navigateTo} />
+      </PageShell>
     );
   }
 
   if (currentPage === 'faqs') {
     return (
-      <div className="min-h-screen bg-[#faf8f5]">
-        {styleTag}
-        <NavBar currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-        <div className="pt-24">
-          <FaqsPage navigateTo={navigateTo} />
-        </div>
-        <Footer navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-      </div>
+      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+        <FaqsPage navigateTo={navigateTo} />
+      </PageShell>
     );
   }
 
   if (currentPage === 'data-policy') {
     return (
-      <div className="min-h-screen bg-[#faf8f5]">
-        {styleTag}
-        <NavBar currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-        <div className="pt-24">
-          <DataPolicyPage navigateTo={navigateTo} />
-        </div>
-        <Footer navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-      </div>
+      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+        <DataPolicyPage navigateTo={navigateTo} />
+      </PageShell>
     );
   }
 
   // ── Home page ──
   return (
-    <div className="min-h-screen bg-[#faf8f5]">
-      {styleTag}
+    <div className="min-h-screen bg-cream">
       <NavBar currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
 
       <HeroSection
