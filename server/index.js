@@ -10,6 +10,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = 3001;
 
+// Cartesia API Key (for local development)
+const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || 'sk_car_Hamdih147oPiXJqLhbNs9w';
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -167,6 +170,51 @@ const saveSurvey = db.transaction((data) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// TTS Proxy - Cartesia API
+app.post('/api/tts', async (req, res) => {
+  try {
+    const { text, voiceId, language } = req.body;
+
+    if (!text || !voiceId) {
+      return res.status(400).json({ error: 'Missing required fields: text, voiceId' });
+    }
+
+    const response = await fetch('https://api.cartesia.ai/tts/bytes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CARTESIA_API_KEY}`,
+        'Cartesia-Version': '2024-06-10',
+      },
+      body: JSON.stringify({
+        model_id: 'sonic-2',
+        transcript: text,
+        voice: { mode: 'id', id: voiceId },
+        language: language || 'hi',
+        output_format: { container: 'mp3', bit_rate: 128000, sample_rate: 44100 },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Cartesia API error:', errorText);
+      return res.status(response.status).json({ error: 'TTS generation failed', details: errorText });
+    }
+
+    // Get audio bytes and return as base64
+    const audioBuffer = await response.arrayBuffer();
+    const base64Audio = Buffer.from(audioBuffer).toString('base64');
+
+    res.json({
+      audio: base64Audio,
+      contentType: 'audio/mp3'
+    });
+  } catch (error) {
+    console.error('TTS proxy error:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
 });
 
 // Save a new survey result

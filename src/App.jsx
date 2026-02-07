@@ -20,21 +20,21 @@ const LANGUAGES = [
 ];
 
 const SURVEY_TYPES = [
-  { id: 'political', name: 'Political Polling', icon: '🗳️', desc: 'Voting intent, leader approval, issues' },
-  { id: 'market', name: 'Market Research', icon: '📊', desc: 'Brand awareness, purchase intent' },
-  { id: 'customer', name: 'Customer Feedback', icon: '⭐', desc: 'Satisfaction, NPS, service quality' },
-  { id: 'employee', name: 'Employee Survey', icon: '👥', desc: 'Engagement, culture, workplace' },
-  { id: 'social', name: 'Social Research', icon: '🔬', desc: 'Attitudes, behaviors, social issues' },
-  { id: 'custom', name: 'Custom Survey', icon: '✏️', desc: 'Build from scratch' },
+  { id: 'political', name: 'Political Polling', icon: 'P', desc: 'Voting intent, leader approval, issues' },
+  { id: 'market', name: 'Market Research', icon: 'M', desc: 'Brand awareness, purchase intent' },
+  { id: 'customer', name: 'Customer Feedback', icon: 'C', desc: 'Satisfaction, NPS, service quality' },
+  { id: 'employee', name: 'Employee Survey', icon: 'E', desc: 'Engagement, culture, workplace' },
+  { id: 'social', name: 'Social Research', icon: 'S', desc: 'Attitudes, behaviors, social issues' },
+  { id: 'custom', name: 'Custom Survey', icon: '+', desc: 'Build from scratch' },
 ];
 
 const QUESTION_TYPES = [
   { id: 'single', name: 'Single Choice', icon: '○' },
   { id: 'multiple', name: 'Multiple Choice', icon: '☐' },
-  { id: 'likert', name: 'Likert Scale', icon: '⊖' },
+  { id: 'likert', name: 'Likert Scale', icon: '—' },
   { id: 'rating', name: 'Rating (1-10)', icon: '★' },
-  { id: 'nps', name: 'NPS (0-10)', icon: '📈' },
-  { id: 'open', name: 'Open Ended', icon: '💬' },
+  { id: 'nps', name: 'NPS (0-10)', icon: '#' },
+  { id: 'open', name: 'Open Ended', icon: '...' },
   { id: 'yes_no', name: 'Yes / No', icon: '✓' },
 ];
 
@@ -59,7 +59,7 @@ const INDIAN_STATES = [
 // SHARED COMPONENTS
 // ============================================
 
-const VoiceWave = ({ active, color = '#0d6e6e' }) => {
+const VoiceWave = ({ active, color = '#e8550f' }) => {
   const [heights, setHeights] = useState([4,4,4,4,4,4,4,4]);
   
   useEffect(() => {
@@ -101,6 +101,11 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
   const [previewLanguage, setPreviewLanguage] = useState('hi');
   const [showCustomQuestionInput, setShowCustomQuestionInput] = useState(false);
   const [customTestText, setCustomTestText] = useState('');
+  const [showTestCall, setShowTestCall] = useState(false);
+  const [testPhoneNumber, setTestPhoneNumber] = useState('');
+  const [testCallStatus, setTestCallStatus] = useState(null); // null | 'calling' | 'ringing' | 'connected' | 'completed' | 'error'
+  const [testCallError, setTestCallError] = useState(null);
+  const testCallPollRef = useRef(null);
   const audioPreviewRef = useRef(null);
 
   const PREVIEW_VOICES = [
@@ -110,7 +115,9 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', lang: 'bn' },
   ];
 
-  // Play text using Cartesia TTS via serverless proxy
+  const CARTESIA_API_KEY = 'sk_car_Hamdih147oPiXJqLhbNs9w';
+
+  // Play text using Cartesia TTS
   const playVoice = async (text, questionId = null) => {
     if (isPlayingVoice) {
       // Stop current playback
@@ -128,27 +135,24 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
     try {
       const voice = PREVIEW_VOICES.find(v => v.id === selectedPreviewVoice);
-      const resp = await fetch('/api/tts', {
+      const resp = await fetch('https://api.cartesia.ai/tts/bytes', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${CARTESIA_API_KEY}`,
+          'Cartesia-Version': '2024-06-10',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: text,
-          voiceId: selectedPreviewVoice,
+          model_id: 'sonic-3',
+          transcript: text,
+          voice: { mode: 'id', id: selectedPreviewVoice },
           language: voice?.lang || 'hi',
+          output_format: { container: 'wav', encoding: 'pcm_f32le', sample_rate: 44100 },
         }),
       });
 
       if (resp.ok) {
-        const data = await resp.json();
-        const byteCharacters = atob(data.audio);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'audio/mp3' });
+        const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
 
         if (!audioPreviewRef.current) {
@@ -299,6 +303,66 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     setEditingQuestion(newQ.id);
   };
 
+  const initiateTestCall = async () => {
+    if (!testPhoneNumber.trim()) return;
+    setTestCallStatus('calling');
+    setTestCallError(null);
+
+    try {
+      const response = await fetch('http://localhost:3002/call/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber: testPhoneNumber.trim(),
+          language: config.languages[0] || 'hi',
+          gender: 'female',
+          customSurvey: {
+            name: config.name || 'Custom Survey',
+            tone: config.tone || 'conversational',
+            questions: questions.map(q => ({
+              id: q.id,
+              text: q.text,
+              textEn: q.textEn || '',
+              type: q.type,
+              options: q.options || null,
+              category: q.category || 'General',
+            })),
+          },
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Call initiation failed');
+
+      setTestCallStatus('ringing');
+
+      // Poll for status updates
+      if (testCallPollRef.current) clearInterval(testCallPollRef.current);
+      testCallPollRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`http://localhost:3002/call/${data.callId}`);
+          const callData = await res.json();
+          if (callData.status === 'in-progress' || callData.status === 'surveying') {
+            setTestCallStatus('connected');
+          } else if (['completed', 'saved', 'extracting'].includes(callData.status)) {
+            setTestCallStatus('completed');
+            clearInterval(testCallPollRef.current);
+          } else if (callData.status === 'failed') {
+            setTestCallStatus('error');
+            setTestCallError(callData.error || 'Call failed');
+            clearInterval(testCallPollRef.current);
+          }
+        } catch { /* ignore poll errors */ }
+      }, 2000);
+
+      // Stop polling after 10 minutes
+      setTimeout(() => { if (testCallPollRef.current) clearInterval(testCallPollRef.current); }, 10 * 60 * 1000);
+    } catch (err) {
+      setTestCallStatus('error');
+      setTestCallError(err.message);
+    }
+  };
+
   const estimatedDuration = Math.ceil(questions.length * 0.75);
   const estimatedCost = config.sampleSize * (config.urgency === 'urgent' ? 55 : config.urgency === 'express' ? 45 : 38);
   const marginOfError = (1.96 * Math.sqrt(0.5 * 0.5 / config.sampleSize) * 100).toFixed(1);
@@ -314,10 +378,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
             </svg>
           </button>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ff6b2c] to-[#e85d04] flex items-center justify-center">
-            <span className="text-white text-xl">📋</span>
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
           </div>
           <div>
-            <h1 className="font-semibold text-[#1e3a5f]">Survey Builder</h1>
+            <h1 className="font-semibold text-[#3d2314]">Survey Builder</h1>
             <p className="text-sm text-gray-500">{config.name || 'Untitled Survey'}</p>
           </div>
         </div>
@@ -330,9 +394,9 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           )}
           <button 
             onClick={() => setShowVoicePreview(true)}
-            className="px-4 py-2 text-[#0d6e6e] border border-[#0d6e6e] rounded-lg hover:bg-[#0d6e6e]/5"
+            className="px-4 py-2 text-[#e8550f] border border-[#e8550f] rounded-lg hover:bg-[#e8550f]/5"
           >
-            🔊 Preview Voice
+            <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" /></svg> Preview Voice
           </button>
           <button className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
             Save Draft
@@ -348,17 +412,17 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               <button
                 onClick={() => i + 1 <= step && setStep(i + 1)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  step === i + 1 ? 'bg-[#0d6e6e] text-white' 
-                  : step > i + 1 ? 'bg-[#0d6e6e]/10 text-[#0d6e6e] cursor-pointer hover:bg-[#0d6e6e]/20' 
+                  step === i + 1 ? 'bg-[#e8550f] text-white' 
+                  : step > i + 1 ? 'bg-[#e8550f]/10 text-[#e8550f] cursor-pointer hover:bg-[#e8550f]/20' 
                   : 'bg-gray-100 text-gray-400'
                 }`}
               >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${step > i + 1 ? 'bg-[#0d6e6e] text-white' : ''}`}>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${step > i + 1 ? 'bg-[#e8550f] text-white' : ''}`}>
                   {step > i + 1 ? '✓' : i + 1}
                 </span>
                 <span className="hidden sm:inline">{s}</span>
               </button>
-              {i < 5 && <div className={`flex-1 h-0.5 ${step > i + 1 ? 'bg-[#0d6e6e]' : 'bg-gray-200'}`} />}
+              {i < 5 && <div className={`flex-1 h-0.5 ${step > i + 1 ? 'bg-[#e8550f]' : 'bg-gray-200'}`} />}
             </React.Fragment>
           ))}
         </div>
@@ -372,34 +436,33 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 1 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#1e3a5f] mb-2">Let's create your survey</h2>
+                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Let's create your survey</h2>
                 <p className="text-gray-600">Start with the basics.</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Survey Name *</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Survey Name *</label>
                 <input
                   type="text"
                   value={config.name}
                   onChange={(e) => setConfig({ ...config, name: e.target.value })}
                   placeholder="e.g., Bihar Assembly Election Poll 2025"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20 focus:border-[#0d6e6e]"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 focus:border-[#e8550f]"
                 />
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-4">Survey Type *</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-4">Survey Type *</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {SURVEY_TYPES.map((type) => (
                     <button
                       key={type.id}
                       onClick={() => setConfig({ ...config, type: type.id })}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        config.type === type.id ? 'border-[#0d6e6e] bg-[#0d6e6e]/5' : 'border-gray-200 hover:border-gray-300'
+                        config.type === type.id ? 'border-[#e8550f] bg-[#e8550f]/5' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <span className="text-2xl block mb-2">{type.icon}</span>
-                      <span className="font-medium text-[#1e3a5f] block">{type.name}</span>
+                      <span className="font-medium text-[#3d2314] block mb-1">{type.name}</span>
                       <span className="text-xs text-gray-500">{type.desc}</span>
                     </button>
                   ))}
@@ -407,7 +470,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-4">Survey Languages *</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-4">Survey Languages *</label>
                 <div className="flex flex-wrap gap-2">
                   {LANGUAGES.map((lang) => (
                     <button
@@ -420,7 +483,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       }}
                       className={`px-4 py-2 rounded-full border-2 text-sm transition-all ${
                         config.languages.includes(lang.code)
-                          ? 'border-[#0d6e6e] bg-[#0d6e6e] text-white'
+                          ? 'border-[#e8550f] bg-[#e8550f] text-white'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -432,13 +495,13 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
               {config.type === 'market' && (
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Brand Names (comma-separated)</label>
+                  <label className="block text-sm font-medium text-[#3d2314] mb-2">Brand Names (comma-separated)</label>
                   <input
                     type="text"
                     value={config.brandNames}
                     onChange={(e) => setConfig({ ...config, brandNames: e.target.value })}
                     placeholder="e.g., Tata, Reliance, Adani, Mahindra"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
                   />
                 </div>
               )}
@@ -446,7 +509,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               <button
                 onClick={() => setStep(2)}
                 disabled={!config.name || !config.type}
-                className="w-full py-4 bg-[#0d6e6e] text-white rounded-xl font-medium hover:bg-[#1e6f5c] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue to Audience →
               </button>
@@ -457,19 +520,19 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 2 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#1e3a5f] mb-2">Define your audience</h2>
+                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Define your audience</h2>
                 <p className="text-gray-600">Who should we survey?</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-4">Geographic Scope</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-4">Geographic Scope</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                   {GEOGRAPHIES.map((geo) => (
                     <button
                       key={geo.id}
                       onClick={() => setConfig({ ...config, geography: geo.id, states: [] })}
                       className={`p-3 rounded-xl border-2 text-sm transition-all ${
-                        config.geography === geo.id ? 'border-[#0d6e6e] bg-[#0d6e6e]/5 font-medium' : 'border-gray-200 hover:border-gray-300'
+                        config.geography === geo.id ? 'border-[#e8550f] bg-[#e8550f]/5 font-medium' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       {geo.name}
@@ -492,7 +555,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           }}
                           className={`px-3 py-1 rounded-full text-sm transition-all ${
                             config.states.includes(state)
-                              ? 'bg-[#0d6e6e] text-white'
+                              ? 'bg-[#e8550f] text-white'
                               : 'bg-gray-100 hover:bg-gray-200'
                           }`}
                         >
@@ -505,7 +568,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Target Sample Size</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Target Sample Size</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="range"
@@ -514,7 +577,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     step="100"
                     value={config.sampleSize}
                     onChange={(e) => setConfig({ ...config, sampleSize: parseInt(e.target.value) })}
-                    className="flex-1 accent-[#0d6e6e]"
+                    className="flex-1 accent-[#e8550f]"
                   />
                   <input
                     type="number"
@@ -529,24 +592,24 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Target Audience Description</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Target Audience Description</label>
                 <textarea
                   value={config.targetAudience}
                   onChange={(e) => setConfig({ ...config, targetAudience: e.target.value })}
                   placeholder="e.g., Registered voters in rural Maharashtra, aged 25-55, primarily farmers..."
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20 resize-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none"
                 />
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Exclusion Criteria (Optional)</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Exclusion Criteria (Optional)</label>
                 <textarea
                   value={config.exclusions}
                   onChange={(e) => setConfig({ ...config, exclusions: e.target.value })}
                   placeholder="e.g., Exclude anyone who has participated in a survey in the last 30 days, employees of political parties..."
                   rows={2}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20 resize-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none"
                 />
               </div>
 
@@ -554,7 +617,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 <button onClick={() => setStep(1)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-gray-50">
                   ← Back
                 </button>
-                <button onClick={() => setStep(3)} className="flex-1 py-4 bg-[#0d6e6e] text-white rounded-xl font-medium hover:bg-[#1e6f5c]">
+                <button onClick={() => setStep(3)} className="flex-1 py-4 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400]">
                   Continue to Timeline →
                 </button>
               </div>
@@ -565,46 +628,45 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 3 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#1e3a5f] mb-2">Timeline & Budget</h2>
+                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Timeline & Budget</h2>
                 <p className="text-gray-600">When do you need results and what's your budget?</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-4">Urgency</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-4">Urgency</label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { id: 'standard', name: 'Standard', time: '5-7 days', price: '₹38/response', icon: '📅' },
-                    { id: 'express', name: 'Express', time: '2-3 days', price: '₹45/response', icon: '⚡' },
-                    { id: 'urgent', name: 'Urgent', time: '24-48 hours', price: '₹55/response', icon: '🚨' },
+                    { id: 'standard', name: 'Standard', time: '5-7 days', price: '₹38/response', icon: '—' },
+                    { id: 'express', name: 'Express', time: '2-3 days', price: '₹45/response', icon: '»' },
+                    { id: 'urgent', name: 'Urgent', time: '24-48 hours', price: '₹55/response', icon: '!' },
                   ].map(opt => (
                     <button
                       key={opt.id}
                       onClick={() => setConfig({ ...config, urgency: opt.id })}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        config.urgency === opt.id ? 'border-[#0d6e6e] bg-[#0d6e6e]/5' : 'border-gray-200 hover:border-gray-300'
+                        config.urgency === opt.id ? 'border-[#e8550f] bg-[#e8550f]/5' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <span className="text-2xl block mb-1">{opt.icon}</span>
-                      <span className="font-medium block">{opt.name}</span>
+                      <span className="font-medium block mb-1">{opt.name}</span>
                       <span className="text-sm text-gray-500 block">{opt.time}</span>
-                      <span className="text-xs text-[#0d6e6e]">{opt.price}</span>
+                      <span className="text-xs text-[#e8550f]">{opt.price}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Deadline (Optional)</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Deadline (Optional)</label>
                 <input
                   type="date"
                   value={config.deadline}
                   onChange={(e) => setConfig({ ...config, deadline: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
                 />
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Budget (Optional)</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Budget (Optional)</label>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500">₹</span>
                   <input
@@ -612,7 +674,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     value={config.budget}
                     onChange={(e) => setConfig({ ...config, budget: e.target.value })}
                     placeholder="e.g., 50000"
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20"
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
@@ -621,12 +683,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-4">Call Timing Preferences</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-4">Call Timing Preferences</label>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { id: 'morning', label: '🌅 Morning (8am-12pm)' },
-                    { id: 'afternoon', label: '☀️ Afternoon (12pm-5pm)' },
-                    { id: 'evening', label: '🌙 Evening (5pm-9pm)' },
+                    { id: 'morning', label: 'AM Morning (8am-12pm)' },
+                    { id: 'afternoon', label: 'PM Afternoon (12pm-5pm)' },
+                    { id: 'evening', label: 'EVE Evening (5pm-9pm)' },
                   ].map(time => (
                     <button
                       key={time.id}
@@ -638,7 +700,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       }}
                       className={`px-4 py-2 rounded-lg border-2 text-sm transition-all ${
                         config.callTiming.includes(time.id)
-                          ? 'border-[#0d6e6e] bg-[#0d6e6e] text-white'
+                          ? 'border-[#e8550f] bg-[#e8550f] text-white'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -649,7 +711,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Retry Policy</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Retry Policy</label>
                 <p className="text-sm text-gray-500 mb-3">How many times should we retry non-responders?</p>
                 <div className="flex items-center gap-4">
                   {[1, 2, 3, 5].map(n => (
@@ -658,7 +720,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       onClick={() => setConfig({ ...config, retryPolicy: n })}
                       className={`w-12 h-12 rounded-lg border-2 font-medium transition-all ${
                         config.retryPolicy === n
-                          ? 'border-[#0d6e6e] bg-[#0d6e6e] text-white'
+                          ? 'border-[#e8550f] bg-[#e8550f] text-white'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -669,13 +731,13 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Incentive for Respondents (Optional)</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Incentive for Respondents (Optional)</label>
                 <input
                   type="text"
                   value={config.incentive}
                   onChange={(e) => setConfig({ ...config, incentive: e.target.value })}
                   placeholder="e.g., ₹50 mobile recharge, lottery entry..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
                 />
               </div>
 
@@ -683,7 +745,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 <button onClick={() => setStep(2)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-gray-50">
                   ← Back
                 </button>
-                <button onClick={() => setStep(4)} className="flex-1 py-4 bg-[#0d6e6e] text-white rounded-xl font-medium hover:bg-[#1e6f5c]">
+                <button onClick={() => setStep(4)} className="flex-1 py-4 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400]">
                   Continue to Goals →
                 </button>
               </div>
@@ -694,35 +756,35 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 4 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#1e3a5f] mb-2">Research Goals</h2>
+                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Research Goals</h2>
                 <p className="text-gray-600">What do you want to learn? Better input = better questions.</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Primary Purpose / Research Objective *</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Primary Purpose / Research Objective *</label>
                 <p className="text-sm text-gray-500 mb-3">What decision will this survey inform?</p>
                 <textarea
                   value={config.purpose}
                   onChange={(e) => setConfig({ ...config, purpose: e.target.value })}
                   placeholder="e.g., Understand voter sentiment before the 2025 Bihar elections, measure satisfaction with incumbent government, identify key issues driving vote choice..."
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20 resize-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none"
                 />
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Key Questions You Want Answered</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Key Questions You Want Answered</label>
                 <textarea
                   value={config.keyQuestions}
                   onChange={(e) => setConfig({ ...config, keyQuestions: e.target.value })}
                   placeholder={"1. Which party is leading in vote share?\n2. What are the top 3 issues for voters?\n3. How does the youth vote differ from older voters?\n4. Is there an urban-rural divide?"}
                   rows={5}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20 resize-none font-mono text-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none font-mono text-sm"
                 />
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-4">Survey Settings</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-4">Survey Settings</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm text-gray-600 mb-2">Target Duration</label>
@@ -732,7 +794,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           key={d}
                           onClick={() => setConfig({ ...config, duration: d })}
                           className={`flex-1 py-2 rounded-lg border-2 transition-all ${
-                            config.duration === d ? 'border-[#0d6e6e] bg-[#0d6e6e] text-white' : 'border-gray-200'
+                            config.duration === d ? 'border-[#e8550f] bg-[#e8550f] text-white' : 'border-gray-200'
                           }`}
                         >
                           {d} min
@@ -740,7 +802,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       ))}
                     </div>
                     <p className="text-xs text-gray-400 mt-2">
-                      {config.duration <= 10 ? '✓ Optimal for voice' : '⚠️ May reduce completion'}
+                      {config.duration <= 10 ? '✓ Optimal for voice' : '! May reduce completion'}
                     </p>
                   </div>
 
@@ -752,7 +814,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           key={t}
                           onClick={() => setConfig({ ...config, tone: t })}
                           className={`flex-1 py-2 rounded-lg border-2 capitalize transition-all ${
-                            config.tone === t ? 'border-[#0d6e6e] bg-[#0d6e6e] text-white' : 'border-gray-200'
+                            config.tone === t ? 'border-[#e8550f] bg-[#e8550f] text-white' : 'border-gray-200'
                           }`}
                         >
                           {t}
@@ -769,7 +831,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           key={s}
                           onClick={() => setConfig({ ...config, sensitivity: s })}
                           className={`flex-1 py-2 rounded-lg border-2 capitalize transition-all ${
-                            config.sensitivity === s ? 'border-[#0d6e6e] bg-[#0d6e6e] text-white' : 'border-gray-200'
+                            config.sensitivity === s ? 'border-[#e8550f] bg-[#e8550f] text-white' : 'border-gray-200'
                           }`}
                         >
                           {s}
@@ -781,24 +843,24 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Analysis Goals (Optional)</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Analysis Goals (Optional)</label>
                 <textarea
                   value={config.analysisGoals}
                   onChange={(e) => setConfig({ ...config, analysisGoals: e.target.value })}
                   placeholder="e.g., Compare by age, urban vs rural, caste breakdown. Track against 2020 poll..."
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20 resize-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none"
                 />
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">Link to Previous Survey (Optional)</label>
+                <label className="block text-sm font-medium text-[#3d2314] mb-2">Link to Previous Survey (Optional)</label>
                 <input
                   type="url"
                   value={config.previousSurveyLink}
                   onChange={(e) => setConfig({ ...config, previousSurveyLink: e.target.value })}
                   placeholder="https://..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0d6e6e]/20"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
                 />
                 <p className="text-xs text-gray-500 mt-2">For trend tracking, we'll use the same question wording</p>
               </div>
@@ -821,7 +883,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       Generating Questions...
                     </>
                   ) : (
-                    <>✨ Generate Questions with AI</>
+                    <>+ Generate Questions with AI</>
                   )}
                 </button>
               </div>
@@ -833,12 +895,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
             <div className="space-y-6 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold text-[#1e3a5f] mb-2">Edit Questions</h2>
+                  <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Edit Questions</h2>
                   <p className="text-gray-600">Reorder, edit, or add new questions.</p>
                 </div>
                 <button
                   onClick={addQuestion}
-                  className="px-4 py-2 bg-[#0d6e6e] text-white rounded-lg hover:bg-[#1e6f5c] flex items-center gap-2"
+                  className="px-4 py-2 bg-[#e8550f] text-white rounded-lg hover:bg-[#cc4400] flex items-center gap-2"
                 >
                   + Add Question
                 </button>
@@ -849,7 +911,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   <div
                     key={q.id}
                     className={`bg-white rounded-xl border-2 transition-all ${
-                      editingQuestion === q.id ? 'border-[#0d6e6e] shadow-lg' : 'border-gray-100 hover:border-gray-200'
+                      editingQuestion === q.id ? 'border-[#e8550f] shadow-lg' : 'border-gray-100 hover:border-gray-200'
                     } ${q.isDemographic ? 'opacity-60' : ''}`}
                   >
                     <div
@@ -858,7 +920,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     >
                       <div className="flex flex-col items-center gap-1">
                         <button onClick={(e) => { e.stopPropagation(); moveQuestion(q.id, -1); }} className="p-1 hover:bg-gray-100 rounded text-gray-400" disabled={i === 0}>↑</button>
-                        <span className="w-7 h-7 rounded-lg bg-[#0d6e6e]/10 flex items-center justify-center text-[#0d6e6e] font-medium text-sm">{i + 1}</span>
+                        <span className="w-7 h-7 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-[#e8550f] font-medium text-sm">{i + 1}</span>
                         <button onClick={(e) => { e.stopPropagation(); moveQuestion(q.id, 1); }} className="p-1 hover:bg-gray-100 rounded text-gray-400" disabled={i === questions.length - 1}>↓</button>
                       </div>
                       
@@ -867,10 +929,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">
                             {QUESTION_TYPES.find(t => t.id === q.type)?.name}
                           </span>
-                          <span className="px-2 py-0.5 bg-[#0d6e6e]/10 rounded text-xs text-[#0d6e6e]">{q.category}</span>
+                          <span className="px-2 py-0.5 bg-[#e8550f]/10 rounded text-xs text-[#e8550f]">{q.category}</span>
                           {q.required && <span className="text-red-500 text-xs">Required</span>}
                         </div>
-                        <p className="font-medium text-[#1e3a5f] truncate">{q.text || 'Untitled'}</p>
+                        <p className="font-medium text-[#3d2314] truncate">{q.text || 'Untitled'}</p>
                         {q.textEn && <p className="text-sm text-gray-500 truncate">{q.textEn}</p>}
                       </div>
 
@@ -878,7 +940,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                         onClick={(e) => { e.stopPropagation(); deleteQuestion(q.id); }}
                         className="p-2 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600"
                       >
-                        🗑️
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
 
@@ -892,10 +954,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                                 key={type.id}
                                 onClick={() => updateQuestion(q.id, { type: type.id })}
                                 className={`px-3 py-1.5 rounded-lg border text-sm ${
-                                  q.type === type.id ? 'border-[#0d6e6e] bg-[#0d6e6e] text-white' : 'border-gray-200'
+                                  q.type === type.id ? 'border-[#e8550f] bg-[#e8550f] text-white' : 'border-gray-200'
                                 }`}
                               >
-                                {type.icon} {type.name}
+                                {type.name}
                               </button>
                             ))}
                           </div>
@@ -908,7 +970,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               value={q.text}
                               onChange={(e) => updateQuestion(q.id, { text: e.target.value })}
                               rows={2}
-                              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]"
+                              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#e8550f]"
                             />
                           </div>
                           <div>
@@ -917,7 +979,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               value={q.textEn}
                               onChange={(e) => updateQuestion(q.id, { textEn: e.target.value })}
                               rows={2}
-                              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]"
+                              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#e8550f]"
                             />
                           </div>
                         </div>
@@ -947,7 +1009,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               ))}
                               <button
                                 onClick={() => updateQuestion(q.id, { options: [...q.options, `Option ${q.options.length + 1}`] })}
-                                className="text-sm text-[#0d6e6e] hover:underline"
+                                className="text-sm text-[#e8550f] hover:underline"
                               >
                                 + Add option
                               </button>
@@ -961,7 +1023,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               type="checkbox"
                               checked={q.required}
                               onChange={(e) => updateQuestion(q.id, { required: e.target.checked })}
-                              className="w-4 h-4 accent-[#0d6e6e]"
+                              className="w-4 h-4 accent-[#e8550f]"
                             />
                             <span className="text-sm">Required</span>
                           </label>
@@ -976,7 +1038,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 <button onClick={() => setStep(4)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-gray-50">
                   ← Back
                 </button>
-                <button onClick={() => setStep(6)} className="flex-1 py-4 bg-[#0d6e6e] text-white rounded-xl font-medium hover:bg-[#1e6f5c]">
+                <button onClick={() => setStep(6)} className="flex-1 py-4 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400]">
                   Review & Launch →
                 </button>
               </div>
@@ -987,13 +1049,13 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 6 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#1e3a5f] mb-2">Review & Launch</h2>
+                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Review & Launch</h2>
                 <p className="text-gray-600">Double-check everything before going live.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-[#0d6e6e]">{questions.length}</div>
+                  <div className="text-3xl font-bold text-[#e8550f]">{questions.length}</div>
                   <div className="text-sm text-gray-500">Questions</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 border text-center">
@@ -1001,13 +1063,13 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   <div className="text-sm text-gray-500">Duration</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-[#1e3a5f]">{config.sampleSize.toLocaleString()}</div>
+                  <div className="text-3xl font-bold text-[#3d2314]">{config.sampleSize.toLocaleString()}</div>
                   <div className="text-sm text-gray-500">Responses</div>
                 </div>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-[#1e3a5f] mb-4">Configuration Summary</h3>
+                <h3 className="font-semibold text-[#3d2314] mb-4">Configuration Summary</h3>
                 <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
                   <div><span className="text-gray-500">Name:</span> <span className="font-medium">{config.name}</span></div>
                   <div><span className="text-gray-500">Type:</span> <span className="font-medium">{SURVEY_TYPES.find(t => t.id === config.type)?.name}</span></div>
@@ -1021,11 +1083,11 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-[#1e3a5f] mb-3">Questions ({questions.length})</h3>
+                <h3 className="font-semibold text-[#3d2314] mb-3">Questions ({questions.length})</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {questions.map((q, i) => (
                     <div key={q.id} className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg">
-                      <span className="w-6 h-6 rounded-full bg-[#0d6e6e]/10 flex items-center justify-center text-xs text-[#0d6e6e] font-medium flex-shrink-0">{i + 1}</span>
+                      <span className="w-6 h-6 rounded-full bg-[#e8550f]/10 flex items-center justify-center text-xs text-[#e8550f] font-medium flex-shrink-0">{i + 1}</span>
                       <div className="min-w-0">
                         <p className="text-sm truncate">{q.text}</p>
                         <p className="text-xs text-gray-400">{q.type}</p>
@@ -1035,7 +1097,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-[#0d6e6e] to-[#1e6f5c] rounded-2xl p-6 text-white">
+              <div className="bg-gradient-to-r from-[#e8550f] to-[#cc4400] rounded-2xl p-6 text-white">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="text-sm text-white/70">Estimated Total Cost</div>
@@ -1054,7 +1116,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-[#1e3a5f] mb-4">Quality Settings</h3>
+                <h3 className="font-semibold text-[#3d2314] mb-4">Quality Settings</h3>
                 <div className="space-y-3">
                   <label className="flex items-center justify-between">
                     <span className="text-sm">Record all audio (for quality audit)</span>
@@ -1062,7 +1124,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       type="checkbox"
                       checked={config.recordAudio}
                       onChange={(e) => setConfig({ ...config, recordAudio: e.target.checked })}
-                      className="w-5 h-5 accent-[#0d6e6e]"
+                      className="w-5 h-5 accent-[#e8550f]"
                     />
                   </label>
                   <label className="flex items-center justify-between">
@@ -1071,10 +1133,86 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       type="checkbox"
                       checked={config.qualityChecks}
                       onChange={(e) => setConfig({ ...config, qualityChecks: e.target.checked })}
-                      className="w-5 h-5 accent-[#0d6e6e]"
+                      className="w-5 h-5 accent-[#e8550f]"
                     />
                   </label>
                 </div>
+              </div>
+
+              {/* Test Call Section */}
+              <div className="bg-white rounded-2xl p-6 shadow-sm border">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h3 className="font-semibold text-[#3d2314]">Test Your Survey</h3>
+                    <p className="text-sm text-gray-500">Receive a real AI call with your custom questions</p>
+                  </div>
+                  <button
+                    onClick={() => setShowTestCall(!showTestCall)}
+                    className="px-4 py-2 bg-[#e8550f]/10 text-[#e8550f] rounded-lg text-sm font-medium hover:bg-[#e8550f]/20"
+                  >
+                    {showTestCall ? 'Hide' : 'Test Call'}
+                  </button>
+                </div>
+
+                {showTestCall && (
+                  <div className="space-y-4 pt-4 border-t mt-4">
+                    <div className="flex gap-3">
+                      <input
+                        type="tel"
+                        value={testPhoneNumber}
+                        onChange={(e) => setTestPhoneNumber(e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="flex-1 px-4 py-3 border rounded-xl text-sm focus:ring-2 focus:ring-[#e8550f]/20 focus:border-[#e8550f]"
+                        disabled={testCallStatus === 'calling' || testCallStatus === 'ringing' || testCallStatus === 'connected'}
+                      />
+                      <button
+                        onClick={initiateTestCall}
+                        disabled={!testPhoneNumber.trim() || testCallStatus === 'calling' || testCallStatus === 'ringing' || testCallStatus === 'connected'}
+                        className={`px-6 py-3 rounded-xl text-sm font-medium whitespace-nowrap ${
+                          testCallStatus === 'calling' || testCallStatus === 'ringing' || testCallStatus === 'connected'
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-[#e8550f] text-white hover:bg-[#cc4400]'
+                        }`}
+                      >
+                        {testCallStatus === 'calling' ? 'Initiating...'
+                          : testCallStatus === 'ringing' ? 'Ringing...'
+                          : testCallStatus === 'connected' ? 'In Progress...'
+                          : 'Call Me'}
+                      </button>
+                    </div>
+
+                    {testCallStatus === 'ringing' && (
+                      <div className="flex items-center gap-2 text-sm text-yellow-600 bg-yellow-50 px-4 py-2 rounded-lg">
+                        <span className="animate-pulse">●</span> Ringing your phone...
+                      </div>
+                    )}
+                    {testCallStatus === 'connected' && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">
+                        <span className="animate-pulse">●</span> Survey in progress — answer the call!
+                      </div>
+                    )}
+                    {testCallStatus === 'completed' && (
+                      <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg">
+                        ✓ Test call completed successfully!
+                      </div>
+                    )}
+                    {testCallStatus === 'error' && (
+                      <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+                        Error: {testCallError || 'Something went wrong'}
+                        <button
+                          onClick={() => { setTestCallStatus(null); setTestCallError(null); }}
+                          className="ml-2 underline"
+                        >
+                          Try again
+                        </button>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-400">
+                      Language: {config.languages[0] === 'bn' ? 'Bengali' : 'Hindi'} · {questions.length} questions · ~{estimatedDuration} min
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4">
@@ -1085,7 +1223,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   onClick={() => onLaunch && onLaunch(config, questions)}
                   className="flex-1 py-4 bg-gradient-to-r from-[#ff6b2c] to-[#e85d04] text-white rounded-xl font-medium hover:opacity-90"
                 >
-                  🚀 Launch Survey
+                  → Launch Survey
                 </button>
               </div>
             </div>
@@ -1097,7 +1235,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
       {showVoicePreview && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-[#0d6e6e] to-[#1e6f5c] text-white">
+            <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-[#e8550f] to-[#cc4400] text-white">
               <div>
                 <h3 className="font-semibold">Voice Preview</h3>
                 <p className="text-xs text-white/70">Test how your survey sounds</p>
@@ -1112,7 +1250,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 <select
                   value={selectedPreviewVoice}
                   onChange={(e) => setSelectedPreviewVoice(e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#0d6e6e] focus:border-transparent"
+                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#e8550f] focus:border-transparent"
                 >
                   {PREVIEW_VOICES.map(v => (
                     <option key={v.id} value={v.id}>{v.name}</option>
@@ -1125,10 +1263,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               {/* Test Custom Text */}
               <div className="bg-gradient-to-r from-[#ff6b2c]/10 to-[#e85d04]/10 rounded-xl p-4 border border-[#ff6b2c]/20">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-[#1e3a5f]">🎤 Try Custom Text</span>
+                  <span className="text-sm font-medium text-[#3d2314]"><svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v4a3 3 0 006 0V4a3 3 0 00-3-3z" /></svg>Try Custom Text</span>
                   <button
                     onClick={() => setShowCustomQuestionInput(!showCustomQuestionInput)}
-                    className="text-xs text-[#0d6e6e] hover:underline"
+                    className="text-xs text-[#e8550f] hover:underline"
                   >
                     {showCustomQuestionInput ? 'Hide' : 'Show'}
                   </button>
@@ -1139,21 +1277,21 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       value={customTestText}
                       onChange={(e) => setCustomTestText(e.target.value)}
                       placeholder="Type any text in Hindi, Bengali, or English to hear it spoken..."
-                      className="w-full px-3 py-2 border rounded-lg text-sm resize-none h-20 focus:ring-2 focus:ring-[#0d6e6e] focus:border-transparent"
+                      className="w-full px-3 py-2 border rounded-lg text-sm resize-none h-20 focus:ring-2 focus:ring-[#e8550f] focus:border-transparent"
                     />
                     <button
                       onClick={() => customTestText.trim() && playVoice(customTestText, 'custom')}
                       disabled={!customTestText.trim()}
                       className={`w-full py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 ${
                         customTestText.trim()
-                          ? 'bg-[#0d6e6e] text-white hover:bg-[#1e6f5c]'
+                          ? 'bg-[#e8550f] text-white hover:bg-[#cc4400]'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
                       {isPlayingVoice && playingQuestionId === 'custom' ? (
-                        <>⏹️ Stop</>
+                        <><span className="inline-block w-3 h-3 bg-current mr-1" /> Stop</>
                       ) : (
-                        <>🔊 Play Custom Text</>
+                        <><svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" /></svg>Play Custom Text</>
                       )}
                     </button>
                   </div>
@@ -1166,9 +1304,9 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Intro</span>
                   <button
                     onClick={() => playVoice('नमस्ते! मैं VoxBharat से बोल रही हूं। क्या आपके पास कुछ मिनट हैं एक सर्वे के लिए?', 'intro')}
-                    className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === 'intro' ? 'bg-red-100 text-red-600' : 'text-[#0d6e6e] hover:bg-[#0d6e6e]/10'}`}
+                    className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === 'intro' ? 'bg-red-100 text-red-600' : 'text-[#e8550f] hover:bg-[#e8550f]/10'}`}
                   >
-                    {isPlayingVoice && playingQuestionId === 'intro' ? '⏹️ Stop' : '🔊 Play'}
+                    {isPlayingVoice && playingQuestionId === 'intro' ? '\u25A0 Stop' : '\u266A Play'}
                   </button>
                 </div>
                 <p className="text-sm font-medium">नमस्ते! मैं VoxBharat से बोल रही हूं। क्या आपके पास कुछ मिनट हैं एक सर्वे के लिए?</p>
@@ -1182,14 +1320,14 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     <div key={q.id} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-[#0d6e6e]/10 text-[#0d6e6e] px-2 py-0.5 rounded">Q{i + 1}</span>
+                          <span className="text-xs bg-[#e8550f]/10 text-[#e8550f] px-2 py-0.5 rounded">Q{i + 1}</span>
                           <span className="text-xs text-gray-400">{q.category}</span>
                         </div>
                         <button
                           onClick={() => playVoice(q.text, q.id)}
-                          className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === q.id ? 'bg-red-100 text-red-600' : 'text-[#0d6e6e] hover:bg-[#0d6e6e]/10'}`}
+                          className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === q.id ? 'bg-red-100 text-red-600' : 'text-[#e8550f] hover:bg-[#e8550f]/10'}`}
                         >
-                          {isPlayingVoice && playingQuestionId === q.id ? '⏹️ Stop' : '🔊 Play'}
+                          {isPlayingVoice && playingQuestionId === q.id ? '\u25A0 Stop' : '\u266A Play'}
                         </button>
                       </div>
                       <p className="text-sm font-medium">{q.text}</p>
@@ -1218,9 +1356,9 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Closing</span>
                   <button
                     onClick={() => playVoice('आपका बहुत-बहुत धन्यवाद अपना कीमती समय देने के लिए। आपका दिन शुभ हो!', 'closing')}
-                    className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === 'closing' ? 'bg-red-100 text-red-600' : 'text-[#0d6e6e] hover:bg-[#0d6e6e]/10'}`}
+                    className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === 'closing' ? 'bg-red-100 text-red-600' : 'text-[#e8550f] hover:bg-[#e8550f]/10'}`}
                   >
-                    {isPlayingVoice && playingQuestionId === 'closing' ? '⏹️ Stop' : '🔊 Play'}
+                    {isPlayingVoice && playingQuestionId === 'closing' ? '\u25A0 Stop' : '\u266A Play'}
                   </button>
                 </div>
                 <p className="text-sm font-medium">आपका बहुत-बहुत धन्यवाद अपना कीमती समय देने के लिए। आपका दिन शुभ हो!</p>
@@ -1242,9 +1380,9 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     await new Promise(r => setTimeout(r, 500));
                   }
                 }}
-                className="w-full py-3 bg-gradient-to-r from-[#0d6e6e] to-[#1e6f5c] text-white rounded-xl font-medium hover:opacity-90 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gradient-to-r from-[#e8550f] to-[#cc4400] text-white rounded-xl font-medium hover:opacity-90 flex items-center justify-center gap-2"
               >
-                ▶️ Play Full Preview
+                ▶ Play Full Preview
               </button>
               <p className="text-xs text-gray-400 text-center mt-2">
                 Plays intro + first 3 questions + closing
@@ -1271,15 +1409,20 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
 export default function VoxBharat() {
   const [showBuilder, setShowBuilder] = useState(false);
+  const [currentPage, setCurrentPage] = useState('home');
   const [activeLang, setActiveLang] = useState(0);
   const [demoActive, setDemoActive] = useState(false);
   const [demoStep, setDemoStep] = useState(0);
+  const [apiKey, setApiKey] = useState('sk_car_Hamdih147oPiXJqLhbNs9w');
+  const [showApiModal, setShowApiModal] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('7e8cb11d-37af-476b-ab8f-25da99b18644');
   const [showTranscript, setShowTranscript] = useState(false);
   const [callComplete, setCallComplete] = useState(false);
   const [surveyResults, setSurveyResults] = useState([]);
   const [showSampleReport, setShowSampleReport] = useState(false);
+  const [showSampleCallLog, setShowSampleCallLog] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
   const audioRef = useRef(null);
   const abortRef = useRef(false);
   const timersRef = useRef([]);
@@ -1590,45 +1733,46 @@ export default function VoxBharat() {
       setDemoStep(i + 1);
       const msg = conversation[i];
 
+      if (apiKey) {
         setIsSpeaking(true);
-      // Use selected voice for AI, contrasting voice for user responses
-      const voiceId = msg.speaker === 'ai' ? selectedVoice : respondentVoiceId;
-      try {
-        const resp = await fetch('/api/tts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: msg.text,
-            voiceId: voiceId,
-            language: language,
-          }),
-        });
-        if (resp.ok && audioRef.current && !abortRef.current) {
-          const data = await resp.json();
-          const byteCharacters = atob(data.audio);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: 'audio/mp3' });
-          const url = URL.createObjectURL(blob);
-          audioRef.current.src = url;
-          await new Promise((resolve) => {
-            audioRef.current.onended = () => { URL.revokeObjectURL(url); resolve(); };
-            audioRef.current.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-            audioRef.current.play().catch(() => resolve());
+        // Use selected voice for AI, contrasting voice for user responses
+        const voiceId = msg.speaker === 'ai' ? selectedVoice : respondentVoiceId;
+        try {
+          const resp = await fetch('https://api.cartesia.ai/tts/bytes', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Cartesia-Version': '2024-06-10',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model_id: 'sonic-3',
+              transcript: msg.text,
+              voice: { mode: 'id', id: voiceId },
+              language: language,
+              output_format: { container: 'wav', encoding: 'pcm_f32le', sample_rate: 44100 },
+            }),
           });
-        } else {
+          if (resp.ok && audioRef.current && !abortRef.current) {
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            audioRef.current.src = url;
+            await new Promise((resolve) => {
+              audioRef.current.onended = () => { URL.revokeObjectURL(url); resolve(); };
+              audioRef.current.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+              audioRef.current.play().catch(() => resolve());
+            });
+          } else {
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        } catch (e) {
+          console.error('Cartesia:', e);
           await new Promise(r => setTimeout(r, 2000));
         }
-      } catch (e) {
-        console.error('TTS Error:', e);
-        await new Promise(r => setTimeout(r, 2000));
+        setIsSpeaking(false);
+      } else {
+        await new Promise(r => setTimeout(r, msg.speaker === 'user' ? 1200 : 1800));
       }
-      setIsSpeaking(false);
       if (abortRef.current) break;
       await new Promise(r => setTimeout(r, 300));
     }
@@ -1685,37 +1829,37 @@ export default function VoxBharat() {
         metric: 'Religion Importance',
         headline: '73% say religion is "very important" in their lives',
         breakdown: [
-          { label: 'Very important', pct: 73, color: '#0d6e6e' },
-          { label: 'Somewhat important', pct: 19, color: '#1e6f5c' },
-          { label: 'Not very important', pct: 6, color: '#94a3b8' },
-          { label: 'Not at all important', pct: 2, color: '#cbd5e1' },
+          { label: 'Very', pct: 73, color: '#e8550f' },
+          { label: 'Somewhat', pct: 19, color: '#cc4400' },
+          { label: 'Not very', pct: 6, color: '#94a3b8' },
+          { label: 'Not at all', pct: 2, color: '#cbd5e1' },
         ],
       },
       {
         metric: 'Religious Freedom',
         headline: '84% believe all religions can freely practice in India',
         breakdown: [
-          { label: 'Yes, complete freedom', pct: 84, color: '#0d6e6e' },
-          { label: 'Some restrictions', pct: 12, color: '#94a3b8' },
-          { label: 'No, limited freedom', pct: 4, color: '#cbd5e1' },
+          { label: 'Yes, freely', pct: 84, color: '#e8550f' },
+          { label: 'Restricted', pct: 12, color: '#94a3b8' },
+          { label: 'No, limited', pct: 4, color: '#cbd5e1' },
         ],
       },
       {
         metric: 'Interfaith Neighbors',
         headline: '91% would accept neighbors from different religions',
         breakdown: [
-          { label: 'Yes, no problem', pct: 91, color: '#0d6e6e' },
-          { label: 'Depends on religion', pct: 6, color: '#94a3b8' },
-          { label: 'Prefer same religion', pct: 3, color: '#cbd5e1' },
+          { label: 'Yes', pct: 91, color: '#e8550f' },
+          { label: 'Depends', pct: 6, color: '#94a3b8' },
+          { label: 'Same only', pct: 3, color: '#cbd5e1' },
         ],
       },
       {
         metric: 'Interfaith Marriage',
         headline: 'Only 34% say family would accept interfaith marriage',
         breakdown: [
-          { label: 'Would accept', pct: 34, color: '#0d6e6e' },
-          { label: 'Difficult but possible', pct: 28, color: '#1e6f5c' },
-          { label: 'Would not accept', pct: 31, color: '#94a3b8' },
+          { label: 'Accept', pct: 34, color: '#e8550f' },
+          { label: 'Difficult', pct: 28, color: '#cc4400' },
+          { label: 'Reject', pct: 31, color: '#94a3b8' },
           { label: 'Depends', pct: 7, color: '#cbd5e1' },
         ],
       },
@@ -1723,9 +1867,9 @@ export default function VoxBharat() {
         metric: 'Diversity Opinion',
         headline: '89% view religious diversity as making India better',
         breakdown: [
-          { label: 'Makes India better', pct: 89, color: '#0d6e6e' },
+          { label: 'Better', pct: 89, color: '#e8550f' },
           { label: 'No effect', pct: 7, color: '#94a3b8' },
-          { label: 'Makes India weaker', pct: 4, color: '#cbd5e1' },
+          { label: 'Weaker', pct: 4, color: '#cbd5e1' },
         ],
       },
     ],
@@ -1775,8 +1919,56 @@ export default function VoxBharat() {
     },
   };
 
+  // Sample call log data (based on a real completed survey call)
+  const sampleCallLog = {
+    id: '7e334fbf-b929-4147-8d6d-da2e8bfbfcc6',
+    timestamp: '2026-02-07T17:45:50.006Z',
+    duration: 141,
+    language: 'Hindi',
+    gender: 'Female voice',
+    status: 'completed',
+    phone: '+91 98XXX XXXXX',
+    summary: '24-year-old Hindu respondent who prays daily and values religion highly. Shows strong openness to religious diversity and welcomes interfaith neighbors, believing religious diversity makes India better.',
+    transcript: [
+      { role: 'assistant', content: 'नमस्ते! मैं VoxBharat से बोल रही हूँ। क्या मैं आपसे धार्मिक सद्भाव पर एक छोटा सा सर्वे कर सकती हूँ? बस 5 मिनट लगेंगे।' },
+      { role: 'user', content: 'अच्छा बताइए क्या जानना है आपको' },
+      { role: 'assistant', content: 'बहुत अच्छा! सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?' },
+      { role: 'user', content: 'जी मैं 24 साल का हूँ' },
+      { role: 'assistant', content: 'धन्यवाद! आप किस धर्म को मानते हैं?' },
+      { role: 'user', content: 'मैं हिंदू हूँ' },
+      { role: 'assistant', content: 'ठीक है। आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?' },
+      { role: 'user', content: 'काफी महत्वपूर्ण है मेरे लिए' },
+      { role: 'assistant', content: 'जी समझ गई। आप कितनी बार प्रार्थना या पूजा करते हैं?' },
+      { role: 'user', content: 'मैं रोज़ सुबह पूजा करता हूँ' },
+      { role: 'assistant', content: 'बहुत अच्छा। क्या आपको लगता है कि भारत में सभी धर्मों के लोगों को अपने धर्म का पालन करने की पूरी स्वतंत्रता है?' },
+      { role: 'user', content: 'हाँ जी ज़रूर, कोई दिक्कत नहीं है' },
+      { role: 'assistant', content: 'अच्छा। अगर आपके पड़ोस में किसी दूसरे धर्म का परिवार आए, तो आपको कैसा लगेगा?' },
+      { role: 'user', content: 'मुझे कोई दिक्कत नहीं है, आने दीजिए' },
+      { role: 'assistant', content: 'बहुत बढ़िया! अंतर-धार्मिक विवाह के बारे में आपकी क्या राय है?' },
+      { role: 'user', content: 'मुझे लगता है कि यह ठीक है, प्यार मायने रखता है' },
+      { role: 'assistant', content: 'ठीक है। आपके विचार में, धार्मिक विविधता भारत को बेहतर बनाती है या चुनौतीपूर्ण?' },
+      { role: 'user', content: 'बेहतर बनाती है जी' },
+      { role: 'assistant', content: 'बहुत-बहुत धन्यवाद! आपके जवाब हमारे लिए बहुत कीमती हैं। आपका दिन शुभ हो!' },
+    ],
+    extractedData: {
+      demographics: { age: 24, ageGroup: '18-24', religion: 'Hindu', language: 'Hindi' },
+      structured: {
+        age: 24,
+        ageGroup: '18-24',
+        religion: 'Hindu',
+        religionImportance: 'very_important',
+        prayerFrequency: 'daily',
+        religiousFreedom: 'yes_fully',
+        interfaithNeighbor: 'welcome',
+        interfaithMarriage: 'fully_support',
+        diversityOpinion: 'makes_better',
+      },
+      sentiment: { overall: 'positive', openness: 'high', religiosity: 'high' },
+    },
+  };
+
   // Simple bar chart component
-  const BarChart = ({ data, valueKey = 'pct', labelKey = 'label', color = '#0d6e6e', showValue = true }) => (
+  const BarChart = ({ data, valueKey = 'pct', labelKey = 'label', color = '#e8550f', showValue = true }) => (
     <div className="space-y-2">
       {data.map((item, i) => (
         <div key={i} className="flex items-center gap-3">
@@ -1809,6 +2001,537 @@ export default function VoxBharat() {
     return <FullSurveyBuilder onClose={() => setShowBuilder(false)} onLaunch={handleLaunch} />;
   }
 
+  const navigateTo = (page) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+  };
+
+  // Shared nav component
+  const NavBar = () => (
+    <nav className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <button onClick={() => navigateTo('home')} className="flex items-center gap-2">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ff6b2c] to-[#e85d04] flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v4a3 3 0 006 0V4a3 3 0 00-3-3z" /></svg>
+          </div>
+          <span className="font-display text-2xl font-bold">
+            <span className="gradient-text">Vox</span>Bharat
+          </span>
+        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigateTo('how-it-works')} className={`font-body text-sm hover:text-[#e8550f] ${currentPage === 'how-it-works' ? 'text-[#e8550f] font-medium' : 'text-gray-600'}`}>How It Works</button>
+          <button onClick={() => navigateTo('about')} className={`font-body text-sm hover:text-[#e8550f] ${currentPage === 'about' ? 'text-[#e8550f] font-medium' : 'text-gray-600'}`}>About</button>
+          <button onClick={() => navigateTo('faqs')} className={`font-body text-sm hover:text-[#e8550f] ${currentPage === 'faqs' ? 'text-[#e8550f] font-medium' : 'text-gray-600'}`}>FAQs</button>
+          <button onClick={() => navigateTo('data-policy')} className={`font-body text-sm hover:text-[#e8550f] ${currentPage === 'data-policy' ? 'text-[#e8550f] font-medium' : 'text-gray-600'}`}>Data Policy</button>
+          <button
+            onClick={() => setShowBuilder(true)}
+            className="px-5 py-2 bg-[#e8550f] text-white rounded-full font-body text-sm font-medium hover:bg-[#cc4400] transition-colors"
+          >
+            Create Survey →
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+
+  // Shared footer component
+  const Footer = () => (
+    <footer className="py-16 border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+          <div>
+            <button onClick={() => navigateTo('home')} className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff6b2c] to-[#e85d04] flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v4a3 3 0 006 0V4a3 3 0 00-3-3z" /></svg>
+              </div>
+              <span className="font-display text-xl font-bold">
+                <span className="gradient-text">Vox</span>Bharat
+              </span>
+            </button>
+            <p className="font-body text-sm text-gray-400 leading-relaxed">
+              AI-powered voice surveys for Bharat. Hearing every voice, in every language.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-body text-sm font-semibold text-[#3d2314] mb-3">Product</h4>
+            <div className="space-y-2">
+              <button onClick={() => navigateTo('home')} className="block font-body text-sm text-gray-400 hover:text-[#e8550f]">Home</button>
+              <button onClick={() => navigateTo('how-it-works')} className="block font-body text-sm text-gray-400 hover:text-[#e8550f]">How It Works</button>
+            </div>
+          </div>
+          <div>
+            <h4 className="font-body text-sm font-semibold text-[#3d2314] mb-3">Company</h4>
+            <div className="space-y-2">
+              <button onClick={() => navigateTo('about')} className="block font-body text-sm text-gray-400 hover:text-[#e8550f]">About</button>
+              <button onClick={() => navigateTo('faqs')} className="block font-body text-sm text-gray-400 hover:text-[#e8550f]">FAQs</button>
+              <button onClick={() => navigateTo('data-policy')} className="block font-body text-sm text-gray-400 hover:text-[#e8550f]">Data Policy</button>
+            </div>
+          </div>
+          <div>
+            <h4 className="font-body text-sm font-semibold text-[#3d2314] mb-3">Get Started</h4>
+            <div className="space-y-2">
+              <button onClick={() => setShowBuilder(true)} className="block font-body text-sm text-gray-400 hover:text-[#e8550f]">Create Survey</button>
+              <a href="https://cartesia.ai" target="_blank" rel="noopener noreferrer" className="block font-body text-sm text-gray-400 hover:text-[#e8550f]">Cartesia Voice</a>
+            </div>
+          </div>
+        </div>
+        <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="font-body text-sm text-gray-400">
+            © 2026 VoxBharat · Hearing every voice
+          </div>
+          <div className="flex gap-6">
+            <button onClick={() => navigateTo('data-policy')} className="font-body text-xs text-gray-400 hover:text-[#e8550f]">Privacy</button>
+            <button onClick={() => navigateTo('faqs')} className="font-body text-xs text-gray-400 hover:text-[#e8550f]">Support</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+
+  // Shared page shell
+  const PageShell = ({ children }) => (
+    <div className="min-h-screen bg-gradient-to-br from-[#faf8f5] via-[#fff9f0] to-[#f5f0e8]">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+        .font-display { font-family: 'Cormorant Garamond', serif; }
+        .font-body { font-family: 'DM Sans', sans-serif; }
+        .gradient-text {
+          background: linear-gradient(135deg, #ff6b2c 0%, #e85d04 50%, #ffaa80 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        .gradient-text-warm {
+          background: linear-gradient(135deg, #e8550f 0%, #cc4400 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
+      `}</style>
+      <NavBar />
+      <div className="pt-24">
+        {children}
+      </div>
+      <Footer />
+    </div>
+  );
+
+  // ===== SUBPAGES =====
+
+  if (currentPage === 'how-it-works') {
+    return (
+      <PageShell>
+        <section className="py-16 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <h1 className="font-display text-4xl md:text-6xl font-bold text-[#3d2314] mb-4">
+                How It <span className="gradient-text-warm">Works</span>
+              </h1>
+              <p className="font-body text-lg text-gray-500 max-w-2xl mx-auto">
+                From survey creation to actionable insights in four simple steps.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-4 gap-8 mb-24">
+              {[
+                {
+                  step: '01',
+                  title: 'Design Your Survey',
+                  desc: 'Choose your topic, audience, and languages. Our builder helps you craft culturally appropriate questions.',
+                  icon: (
+                    <svg className="w-7 h-7 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  ),
+                },
+                {
+                  step: '02',
+                  title: 'AI Calls Respondents',
+                  desc: 'Our voice AI places calls in the respondent\'s native language, conducting natural conversations.',
+                  icon: (
+                    <svg className="w-7 h-7 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                  ),
+                },
+                {
+                  step: '03',
+                  title: 'Responses Analyzed',
+                  desc: 'Every response is transcribed, translated, and structured automatically with sentiment analysis.',
+                  icon: (
+                    <svg className="w-7 h-7 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  ),
+                },
+                {
+                  step: '04',
+                  title: 'Get Your Report',
+                  desc: 'Receive a comprehensive report with demographics, cross-tabulations, and exportable datasets.',
+                  icon: (
+                    <svg className="w-7 h-7 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  ),
+                },
+              ].map((item, i) => (
+                <div key={i} className="relative">
+                  {i < 3 && (
+                    <div className="hidden md:block absolute top-10 left-full w-full h-px border-t-2 border-dashed border-[#e8550f]/20 -translate-x-4" />
+                  )}
+                  <div className="bg-white rounded-2xl p-6 border hover:shadow-lg transition-shadow h-full">
+                    <div className="w-14 h-14 rounded-xl bg-[#e8550f]/10 flex items-center justify-center mb-4">
+                      {item.icon}
+                    </div>
+                    <div className="font-body text-xs font-bold text-[#e8550f] tracking-widest uppercase mb-2">Step {item.step}</div>
+                    <h3 className="font-display text-xl font-bold text-[#3d2314] mb-2">{item.title}</h3>
+                    <p className="font-body text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Detailed breakdown */}
+            <div className="max-w-3xl mx-auto space-y-12">
+              <div>
+                <h2 className="font-display text-3xl font-bold text-[#3d2314] mb-4">Survey Design</h2>
+                <p className="font-body text-gray-600 leading-relaxed mb-4">
+                  Start by choosing from our template library or build from scratch. Select your target audience by geography, demographics, and language. Our builder supports multiple question types including single choice, Likert scales, open-ended questions, and NPS scores.
+                </p>
+                <p className="font-body text-gray-600 leading-relaxed">
+                  Questions are automatically adapted for cultural context — phrasing that works in Hindi may not translate directly to Tamil. Our AI handles these nuances so you get natural, unbiased conversations.
+                </p>
+              </div>
+              <div>
+                <h2 className="font-display text-3xl font-bold text-[#3d2314] mb-4">Voice AI Conversations</h2>
+                <p className="font-body text-gray-600 leading-relaxed mb-4">
+                  Our AI uses Cartesia Sonic 3 for ultra-low-latency speech synthesis. Calls sound natural and human-like, with support for code-switching (mixing languages mid-sentence), regional accents, and conversational flow.
+                </p>
+                <p className="font-body text-gray-600 leading-relaxed">
+                  The AI adapts in real-time — if a respondent gives a short answer, it probes further. If they go off-topic, it gently redirects. Every conversation feels personal, not scripted.
+                </p>
+              </div>
+              <div>
+                <h2 className="font-display text-3xl font-bold text-[#3d2314] mb-4">Analysis & Reports</h2>
+                <p className="font-body text-gray-600 leading-relaxed mb-4">
+                  Every response is transcribed and translated to English in real-time. Our pipeline extracts structured data, runs sentiment analysis, and flags key themes automatically.
+                </p>
+                <p className="font-body text-gray-600 leading-relaxed">
+                  You get a live dashboard with demographic breakdowns, cross-tabulations, and exportable datasets in CSV and JSON formats. Reports include AI-generated summaries with confidence intervals and margin of error calculations.
+                </p>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="mt-24 max-w-4xl mx-auto">
+              <div className="bg-gradient-to-br from-[#ff6b2c] via-[#e85d04] to-[#ffaa80] rounded-3xl p-12 text-center">
+                <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
+                  Ready to get started?
+                </h2>
+                <button
+                  onClick={() => setShowBuilder(true)}
+                  className="px-10 py-4 bg-white text-[#e85d04] rounded-full font-body font-bold text-lg hover:bg-[#faf8f5] transition-colors shadow-lg"
+                >
+                  Create Your First Survey
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </PageShell>
+    );
+  }
+
+  if (currentPage === 'about') {
+    return (
+      <PageShell>
+        <section className="py-16 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-16 items-center mb-24">
+              <div>
+                <h1 className="font-display text-4xl md:text-6xl font-bold text-[#3d2314] mb-6">
+                  About <span className="gradient-text-warm">VoxBharat</span>
+                </h1>
+                <div className="space-y-4 font-body text-gray-600 leading-relaxed">
+                  <p>
+                    India is the world's largest democracy, yet traditional polling consistently fails to capture
+                    the true voice of its 1.4 billion people. Language barriers, rural inaccessibility, and
+                    cultural hesitance leave hundreds of millions unheard.
+                  </p>
+                  <p>
+                    VoxBharat changes that. Using advanced voice AI, we conduct natural phone conversations
+                    in 12 Indian languages, reaching respondents where they are — from Mumbai high-rises
+                    to villages in Bihar. No apps to download, no literacy required.
+                  </p>
+                  <p>
+                    Our AI doesn't just ask questions — it listens. It handles code-switching between languages,
+                    understands regional idioms, and adapts its tone to build genuine rapport. The result:
+                    higher response rates, richer data, and insights that actually represent Bharat.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: 'Languages Supported', value: '12', sub: 'and growing' },
+                  { label: 'Response Rate', value: '68%', sub: 'vs 12% traditional' },
+                  { label: 'Cost Per Interview', value: '~40', sub: 'rupees average' },
+                  { label: 'Average Call Duration', value: '4:30', sub: 'minutes' },
+                ].map((stat, i) => (
+                  <div key={i} className="bg-white rounded-2xl p-6 border text-center">
+                    <div className="font-display text-3xl font-bold gradient-text">{stat.value}</div>
+                    <div className="font-body text-sm font-medium text-[#3d2314] mt-1">{stat.label}</div>
+                    <div className="font-body text-xs text-gray-400 mt-0.5">{stat.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Mission */}
+            <div className="max-w-3xl mx-auto mb-24">
+              <h2 className="font-display text-3xl font-bold text-[#3d2314] mb-6">Our Mission</h2>
+              <p className="font-body text-gray-600 leading-relaxed mb-4">
+                Traditional polling in India has a fundamental problem: it can't reach the people who matter most.
+                The farmer in rural Madhya Pradesh, the fisherwoman in coastal Kerala, the daily-wage worker in
+                Kolkata's lanes — their voices shape elections, markets, and policy, yet they're systematically excluded
+                from the data that drives decisions.
+              </p>
+              <p className="font-body text-gray-600 leading-relaxed mb-4">
+                We built VoxBharat to close this gap. Our AI conducts thousands of natural voice conversations
+                simultaneously across 12 languages, reaching respondents on the only device they carry —
+                their mobile phone. No internet needed, no app to install, no literacy required.
+              </p>
+              <p className="font-body text-gray-600 leading-relaxed">
+                The result is data that finally represents all of India — not just the English-speaking,
+                urban, online minority. Better data means better decisions, and better decisions mean
+                a more representative democracy.
+              </p>
+            </div>
+
+            {/* What sets us apart */}
+            <div className="max-w-3xl mx-auto">
+              <h2 className="font-display text-3xl font-bold text-[#3d2314] mb-8">What Sets Us Apart</h2>
+              <div className="space-y-6">
+                {[
+                  { title: 'True Multilingual AI', desc: 'Not just translation — our voice models understand cultural context, code-switching, and regional idioms across 12 Indian languages.' },
+                  { title: 'Rural-First Design', desc: 'Works on basic feature phones over 2G networks. 73% of our respondents are from rural areas that traditional polls miss entirely.' },
+                  { title: 'Bias-Free Methodology', desc: 'No interviewer bias, no leading questions, no social desirability effects. Every respondent gets the same consistent, empathetic AI interviewer.' },
+                  { title: 'Real-Time Analysis', desc: 'Responses are transcribed, translated, structured, and analyzed as they come in. No weeks-long processing — see results as calls complete.' },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-[#e8550f]/10 flex items-center justify-center flex-shrink-0 mt-1">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#e8550f]" />
+                    </div>
+                    <div>
+                      <h3 className="font-display text-xl font-bold text-[#3d2314] mb-1">{item.title}</h3>
+                      <p className="font-body text-gray-600 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </PageShell>
+    );
+  }
+
+  if (currentPage === 'faqs') {
+    return (
+      <PageShell>
+        <section className="py-16 px-6">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-16">
+              <h1 className="font-display text-4xl md:text-6xl font-bold text-[#3d2314] mb-4">
+                Frequently Asked <span className="gradient-text-warm">Questions</span>
+              </h1>
+              <p className="font-body text-lg text-gray-500">
+                Everything you need to know about VoxBharat.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                {
+                  q: 'How does the AI handle different dialects within a language?',
+                  a: 'Our voice models are trained on diverse regional speech patterns. The AI recognizes dialectal variations in pronunciation, vocabulary, and grammar — whether it\'s Bhojpuri-influenced Hindi or Sylheti Bengali. It adapts its responses to match the respondent\'s natural speech.',
+                },
+                {
+                  q: 'What happens if the respondent doesn\'t want to participate?',
+                  a: 'The AI always introduces itself and asks for consent before proceeding. If the respondent declines, the call ends politely and their number is flagged to avoid re-contact. Participation is entirely voluntary.',
+                },
+                {
+                  q: 'How accurate are the survey results compared to traditional methods?',
+                  a: 'In benchmark studies, our AI-conducted surveys have shown comparable accuracy to in-person interviews, with significantly better reach into underrepresented demographics. The consistent methodology eliminates interviewer bias — a major issue in traditional Indian polling.',
+                },
+                {
+                  q: 'Can I customize the survey questions and flow?',
+                  a: 'Yes. Our survey builder lets you design custom questionnaires with multiple question types (single choice, Likert scale, open-ended, etc.). You can set branching logic, choose target demographics, and select which languages to deploy in.',
+                },
+                {
+                  q: 'What languages are currently supported?',
+                  a: 'We currently support 12 languages: Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, Odia, Assamese, and Urdu. Together these cover over 95% of India\'s population. More languages are being added regularly.',
+                },
+                {
+                  q: 'How long does it take to get results?',
+                  a: 'Most surveys are completed within 24-48 hours. The AI can conduct thousands of calls simultaneously, so even large sample sizes (10,000+) are typically done within two days. Results are available in real-time as calls complete.',
+                },
+                {
+                  q: 'Is respondent data kept private?',
+                  a: 'Absolutely. All data is encrypted in transit and at rest. Phone numbers are hashed and never stored in plain text. Individual responses are anonymized before analysis. We comply with India\'s Digital Personal Data Protection Act.',
+                },
+                {
+                  q: 'How does pricing work?',
+                  a: 'Pricing is based on the number of completed interviews and languages used. Our per-interview cost is roughly 10x cheaper than traditional in-person polling. Contact us for a custom quote based on your survey needs.',
+                },
+                {
+                  q: 'Can the AI handle interruptions or off-topic responses?',
+                  a: 'Yes. The AI is designed for natural conversation flow. If a respondent goes off-topic, it gently redirects. If they interrupt, it pauses and lets them speak. If they need a question repeated, it rephrases naturally rather than reading the same script.',
+                },
+                {
+                  q: 'What kind of reports do I get?',
+                  a: 'You receive a full dashboard with demographic breakdowns, sentiment analysis, cross-tabulations, and AI-generated summaries. Data is exportable in CSV and JSON formats. Each completed call also generates an individual transcript with translation.',
+                },
+              ].map((item, i) => (
+                <div key={i} className="bg-white rounded-xl border hover:shadow-md transition-shadow">
+                  <button
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    className="w-full flex items-center justify-between p-5 cursor-pointer font-body font-medium text-[#3d2314] text-left"
+                  >
+                    <span>{item.q}</span>
+                    <svg className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ml-4 ${openFaq === i ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {openFaq === i && (
+                    <div className="px-5 pb-5 font-body text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-4">
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Still have questions? */}
+            <div className="mt-16 text-center bg-white rounded-2xl border p-8">
+              <h3 className="font-display text-2xl font-bold text-[#3d2314] mb-2">Still have questions?</h3>
+              <p className="font-body text-gray-500 mb-4">We're happy to help with anything else.</p>
+              <a
+                href="mailto:hello@voxbharat.com"
+                className="inline-block px-6 py-3 bg-[#e8550f] text-white rounded-full font-body font-medium hover:bg-[#cc4400] transition-colors"
+              >
+                Get in Touch
+              </a>
+            </div>
+          </div>
+        </section>
+      </PageShell>
+    );
+  }
+
+  if (currentPage === 'data-policy') {
+    return (
+      <PageShell>
+        <section className="py-16 px-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16">
+              <h1 className="font-display text-4xl md:text-6xl font-bold text-[#3d2314] mb-4">
+                Data <span className="gradient-text-warm">& Privacy</span>
+              </h1>
+              <p className="font-body text-lg text-gray-500 max-w-2xl mx-auto">
+                Trust is the foundation of good research. Here's how we protect every respondent.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-24">
+              {[
+                {
+                  title: 'Informed Consent',
+                  desc: 'Every call begins with a clear disclosure that the respondent is speaking with an AI. Participation is voluntary and can be ended at any time.',
+                  icon: (
+                    <svg className="w-6 h-6 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  ),
+                },
+                {
+                  title: 'Data Encryption',
+                  desc: 'All voice data and survey responses are encrypted using AES-256 in transit and at rest. Audio recordings are processed and deleted — never stored permanently.',
+                  icon: (
+                    <svg className="w-6 h-6 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  ),
+                },
+                {
+                  title: 'Anonymization',
+                  desc: 'Phone numbers are hashed before storage. Individual responses cannot be traced back to specific individuals. All analysis uses aggregated, de-identified data.',
+                  icon: (
+                    <svg className="w-6 h-6 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  ),
+                },
+                {
+                  title: 'Regulatory Compliance',
+                  desc: 'We comply with India\'s Digital Personal Data Protection Act (DPDPA) 2023, TRAI guidelines for automated calls, and international standards including GDPR principles.',
+                  icon: (
+                    <svg className="w-6 h-6 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+                  ),
+                },
+                {
+                  title: 'Data Retention',
+                  desc: 'Survey data is retained only for the duration agreed upon with the client. Respondents can request deletion of their data at any time through our support channels.',
+                  icon: (
+                    <svg className="w-6 h-6 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  ),
+                },
+                {
+                  title: 'No Selling of Data',
+                  desc: 'Respondent data is never sold, shared with third parties, or used for purposes beyond the commissioned research. Your data belongs to you.',
+                  icon: (
+                    <svg className="w-6 h-6 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                  ),
+                },
+              ].map((item, i) => (
+                <div key={i} className="bg-white rounded-2xl p-6 border hover:shadow-md transition-shadow">
+                  <div className="w-12 h-12 rounded-xl bg-[#e8550f]/10 flex items-center justify-center mb-4">
+                    {item.icon}
+                  </div>
+                  <h3 className="font-display text-lg font-bold text-[#3d2314] mb-2">{item.title}</h3>
+                  <p className="font-body text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Detailed policy text */}
+            <div className="max-w-3xl mx-auto space-y-8">
+              <div>
+                <h2 className="font-display text-2xl font-bold text-[#3d2314] mb-3">Data Collection</h2>
+                <p className="font-body text-gray-600 leading-relaxed">
+                  We collect only the data necessary for the commissioned survey: voice responses (temporarily for transcription),
+                  demographic information voluntarily provided by respondents, and call metadata (duration, language, completion status).
+                  Phone numbers provided by clients are used solely for outreach and are hashed immediately upon call completion.
+                </p>
+              </div>
+              <div>
+                <h2 className="font-display text-2xl font-bold text-[#3d2314] mb-3">Data Processing</h2>
+                <p className="font-body text-gray-600 leading-relaxed">
+                  Voice recordings are transcribed in real-time and deleted immediately after transcription. Transcripts are
+                  translated, analyzed for sentiment, and structured into quantitative data points. All processing happens on
+                  encrypted infrastructure. No human listens to recordings unless explicitly authorized for quality assurance.
+                </p>
+              </div>
+              <div>
+                <h2 className="font-display text-2xl font-bold text-[#3d2314] mb-3">Your Rights</h2>
+                <p className="font-body text-gray-600 leading-relaxed">
+                  Respondents may request access to their data, correction of inaccurate information, or complete deletion
+                  of their records at any time. Clients retain full ownership of aggregated survey data. We do not claim any
+                  intellectual property rights over the insights generated from your surveys.
+                </p>
+              </div>
+              <div>
+                <h2 className="font-display text-2xl font-bold text-[#3d2314] mb-3">Contact</h2>
+                <p className="font-body text-gray-600 leading-relaxed">
+                  For any data-related inquiries, deletion requests, or privacy concerns, reach us at{' '}
+                  <a href="mailto:privacy@voxbharat.com" className="text-[#e8550f] hover:underline">privacy@voxbharat.com</a>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </PageShell>
+    );
+  }
+
+  // ===== HOME PAGE =====
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#faf8f5] via-[#fff9f0] to-[#f5f0e8]">
       <style>{`
@@ -1816,12 +2539,12 @@ export default function VoxBharat() {
         .font-display { font-family: 'Cormorant Garamond', serif; }
         .font-body { font-family: 'DM Sans', sans-serif; }
         .gradient-text {
-          background: linear-gradient(135deg, #ff6b2c 0%, #e85d04 50%, #d4a84b 100%);
+          background: linear-gradient(135deg, #ff6b2c 0%, #e85d04 50%, #ffaa80 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
-        .gradient-text-teal {
-          background: linear-gradient(135deg, #0d6e6e 0%, #1e6f5c 100%);
+        .gradient-text-warm {
+          background: linear-gradient(135deg, #e8550f 0%, #cc4400 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -1832,38 +2555,16 @@ export default function VoxBharat() {
         .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
       `}</style>
 
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ff6b2c] to-[#e85d04] flex items-center justify-center">
-              <span className="text-white text-lg">🎙️</span>
-            </div>
-            <span className="font-display text-2xl font-bold">
-              <span className="gradient-text">Vox</span>Bharat
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="#demo-section" className="font-body text-sm text-gray-600 hover:text-[#0d6e6e]">Demo</a>
-            <a href="#features" className="font-body text-sm text-gray-600 hover:text-[#0d6e6e]">Features</a>
-            <button
-              onClick={() => setShowBuilder(true)}
-              className="px-5 py-2 bg-[#0d6e6e] text-white rounded-full font-body text-sm font-medium hover:bg-[#1e6f5c] transition-colors"
-            >
-              Create Survey →
-            </button>
-          </div>
-        </div>
-      </nav>
+      <NavBar />
 
       {/* Hero */}
       <section className="pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#0d6e6e]/10 rounded-full mb-6">
-              <span className="text-[#0d6e6e] text-sm font-body font-medium">🇮🇳 Voice AI for Bharat</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#e8550f]/10 rounded-full mb-6">
+              <span className="text-[#e8550f] text-sm font-body font-medium">Voice AI for Bharat</span>
             </div>
-            <h1 className="font-display text-5xl md:text-7xl font-bold text-[#1e3a5f] leading-tight mb-6">
+            <h1 className="font-display text-5xl md:text-7xl font-bold text-[#3d2314] leading-tight mb-6">
               Hear Every Voice.
               <br />
               <span className="gradient-text">In Every Language.</span>
@@ -1882,7 +2583,7 @@ export default function VoxBharat() {
               <button
                 onClick={handleWatchDemo}
                 disabled={demoActive}
-                className="px-8 py-4 border-2 border-[#1e3a5f] text-[#1e3a5f] rounded-full font-body font-bold hover:bg-[#1e3a5f]/5 transition-colors flex items-center gap-2"
+                className="px-8 py-4 border-2 border-[#3d2314] text-[#3d2314] rounded-full font-body font-bold hover:bg-[#3d2314]/5 transition-colors flex items-center gap-2"
               >
                 <span>▶</span> Watch Demo
               </button>
@@ -1897,7 +2598,7 @@ export default function VoxBharat() {
                 <span
                   key={lang.code}
                   className={`px-4 py-2 rounded-full font-body text-sm transition-all ${
-                    activeLang % 6 === i ? 'bg-[#0d6e6e] text-white' : 'bg-white text-gray-600'
+                    activeLang % 6 === i ? 'bg-[#e8550f] text-white' : 'bg-white text-gray-600'
                   }`}
                 >
                   {lang.native}
@@ -1933,26 +2634,46 @@ export default function VoxBharat() {
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="font-display text-4xl md:text-5xl font-bold text-[#1e3a5f] mb-6">
+              <h2 className="font-display text-4xl md:text-5xl font-bold text-[#3d2314] mb-6">
                 Experience AI Voice
                 <br />
-                <span className="gradient-text-teal">In Action</span>
+                <span className="gradient-text-warm">In Action</span>
               </h2>
               <p className="font-body text-lg text-gray-600 mb-8">
                 Our AI conducts natural conversations in any Indian language. 
                 It understands context, handles interruptions, and captures nuanced responses.
               </p>
               
-              {/* Voice Picker */}
+              {/* Cartesia API Key + Voice Picker */}
               <div className="bg-white rounded-xl p-4 border mb-6 space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="font-body text-sm font-medium text-gray-700">
-                      🔊 Select Voice
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" /></svg> Cartesia API Key
                     </label>
-                    <span className="text-xs bg-[#0d6e6e]/10 text-[#0d6e6e] px-2 py-0.5 rounded-full font-medium">Cartesia Sonic 3</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-[#e8550f]/10 text-[#e8550f] px-2 py-0.5 rounded-full font-medium">Sonic 3</span>
+                      <a 
+                        href="https://cartesia.ai" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-[#e8550f] hover:underline"
+                      >
+                        Get key →
+                      </a>
+                    </div>
                   </div>
-                  <label className="font-body text-xs text-gray-600 mb-2 block">Choose AI interviewer voice</label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk_car_..."
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-body text-xs text-gray-600 mb-2 block">Voice</label>
                   <div className="flex gap-2">
                     {CARTESIA_VOICES.map(v => (
                       <button
@@ -1960,26 +2681,26 @@ export default function VoxBharat() {
                         onClick={() => setSelectedVoice(v.id)}
                         className={`flex-1 px-3 py-2 rounded-lg border text-sm transition-all ${
                           selectedVoice === v.id
-                            ? 'border-[#0d6e6e] bg-[#0d6e6e]/5 text-[#0d6e6e] font-medium'
+                            ? 'border-[#e8550f] bg-[#e8550f]/5 text-[#e8550f] font-medium'
                             : 'border-gray-200 text-gray-600 hover:border-gray-300'
                         }`}
                       >
-                        {v.gender === 'Male' ? '👨' : '👩'} {v.name}
+                        {v.gender === 'Male' ? 'M' : 'F'} {v.name}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <p className="text-xs text-gray-400">
-                  ✓ Voice enabled · Cartesia Sonic 3 · 40ms latency
+                  {apiKey ? '✓ Voice enabled · Sonic 3 · Hindi · 40ms latency' : 'Add key to hear AI voice in Hindi'}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={runVoiceDemo}
+                  onClick={apiKey ? runVoiceDemo : runTextDemo}
                   disabled={demoActive}
-                  className="px-6 py-3 bg-[#0d6e6e] text-white rounded-full font-body font-medium hover:bg-[#1e6f5c] disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-3 bg-[#e8550f] text-white rounded-full font-body font-medium hover:bg-[#cc4400] disabled:opacity-50 flex items-center gap-2"
                 >
                   {demoActive ? (
                     <>
@@ -1990,7 +2711,7 @@ export default function VoxBharat() {
                       {isSpeaking ? 'Speaking...' : 'Playing...'}
                     </>
                   ) : (
-                    <>▶ Play Voice Demo</>
+                    <>▶ {apiKey ? 'Play with Cartesia Voice' : 'Play Demo'}</>
                   )}
                 </button>
                 {demoActive && (
@@ -2005,7 +2726,13 @@ export default function VoxBharat() {
                   onClick={() => setShowSampleReport(true)}
                   className="px-6 py-3 bg-gradient-to-r from-[#ff6b2c] to-[#e85d04] text-white rounded-full font-body font-medium hover:opacity-90 flex items-center gap-2"
                 >
-                  📊 View Sample Report
+                  <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> View Sample Report
+                </button>
+                <button
+                  onClick={() => setShowSampleCallLog(true)}
+                  className="px-6 py-3 border-2 border-[#e8550f] text-[#e8550f] rounded-full font-body font-medium hover:bg-[#e8550f]/5 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg> Sample Call Log
                 </button>
               </div>
             </div>
@@ -2013,16 +2740,16 @@ export default function VoxBharat() {
             <div className="bg-white rounded-3xl shadow-xl p-6 border">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#ff6b2c] to-[#e85d04] flex items-center justify-center">
-                  <span className="text-white text-xl">🎙️</span>
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v4a3 3 0 006 0V4a3 3 0 00-3-3z" /></svg>
                 </div>
                 <div>
-                  <div className="font-body font-semibold text-[#1e3a5f]">VoxBharat AI</div>
+                  <div className="font-body font-semibold text-[#3d2314]">VoxBharat AI</div>
                   <div className="font-body text-sm text-gray-400">
-                    {isSpeaking ? '🔊 Speaking Hindi · Cartesia Sonic 3' : demoActive ? '● Live' : 'Voice Survey Demo'}
+                    {isSpeaking ? 'Speaking Hindi · Cartesia Sonic 3' : demoActive ? '● Live' : 'Voice Survey Demo'}
                   </div>
                 </div>
                 <div className="ml-auto">
-                  <VoiceWave active={isSpeaking || demoActive} color={isSpeaking ? '#ff6b2c' : '#0d6e6e'} />
+                  <VoiceWave active={isSpeaking || demoActive} color={isSpeaking ? '#ff6b2c' : '#e8550f'} />
                 </div>
               </div>
 
@@ -2035,8 +2762,8 @@ export default function VoxBharat() {
                     <div
                       className={`max-w-[85%] p-4 rounded-2xl ${
                         msg.speaker === 'user'
-                          ? 'bg-[#0d6e6e] text-white rounded-br-md'
-                          : 'bg-gradient-to-br from-gray-50 to-gray-100 text-[#1e3a5f] rounded-bl-md border'
+                          ? 'bg-[#e8550f] text-white rounded-br-md'
+                          : 'bg-gradient-to-br from-gray-50 to-gray-100 text-[#3d2314] rounded-bl-md border'
                       }`}
                     >
                       <p className="font-body text-base">{msg.text}</p>
@@ -2050,19 +2777,19 @@ export default function VoxBharat() {
                 {demoStep < 1 && !demoActive && (
                   <div className="flex flex-col items-center justify-center h-[300px] text-gray-400 font-body">
                     <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                      <span className="text-4xl">📞</span>
+                      <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                     </div>
-                    <p>Click "Play Voice Demo" to hear a conversation</p>
+                    <p>Click "Play Demo" to see a conversation</p>
                     <p className="text-sm mt-1">
-                      🔊 Powered by Cartesia Sonic 3
+                      {apiKey ? 'Cartesia Sonic 3 · Hindi' : 'Add API key for voice'}
                     </p>
                   </div>
                 )}
 
                 {demoStep === 0 && demoActive && (
-                  <div className="flex flex-col items-center justify-center h-[300px] text-[#0d6e6e] font-body animate-fadeIn">
-                    <div className="w-16 h-16 rounded-full bg-[#0d6e6e]/10 flex items-center justify-center mb-4 animate-pulse">
-                      <span className="text-3xl">📞</span>
+                  <div className="flex flex-col items-center justify-center h-[300px] text-[#e8550f] font-body animate-fadeIn">
+                    <div className="w-16 h-16 rounded-full bg-[#e8550f]/10 flex items-center justify-center mb-4 animate-pulse">
+                      <svg className="w-8 h-8 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                     </div>
                     <p className="font-medium">Calling respondent...</p>
                     <p className="text-sm text-gray-400 mt-1">Connecting in Hindi</p>
@@ -2070,17 +2797,17 @@ export default function VoxBharat() {
                 )}
 
                 {demoStep === demoConversation.length && !demoActive && callComplete && (
-                  <div className="flex flex-col items-center justify-center py-6 text-[#0d6e6e] font-body">
-                    <div className="w-16 h-16 rounded-full bg-[#0d6e6e]/10 flex items-center justify-center mb-3">
+                  <div className="flex flex-col items-center justify-center py-6 text-[#e8550f] font-body">
+                    <div className="w-16 h-16 rounded-full bg-[#e8550f]/10 flex items-center justify-center mb-3">
                       <span className="text-3xl">✓</span>
                     </div>
                     <p className="font-semibold">Survey Complete!</p>
                     <p className="text-sm text-gray-500 mb-4">Response captured and analyzed</p>
                     <button
                       onClick={() => setShowTranscript(true)}
-                      className="px-4 py-2 bg-[#0d6e6e] text-white rounded-lg text-sm font-medium hover:bg-[#1e6f5c] flex items-center gap-2"
+                      className="px-4 py-2 bg-[#e8550f] text-white rounded-lg text-sm font-medium hover:bg-[#cc4400] flex items-center gap-2"
                     >
-                      📊 View Transcript & Summary
+                      View Transcript & Summary
                     </button>
                   </div>
                 )}
@@ -2093,18 +2820,20 @@ export default function VoxBharat() {
         <audio ref={audioRef} />
         
         {/* Powered by */}
-        <div className="text-center mt-8">
-          <span className="font-body text-xs text-gray-400">
-            Voice powered by <a href="https://cartesia.ai" target="_blank" rel="noopener noreferrer" className="text-[#0d6e6e] hover:underline">Cartesia Sonic 3</a> · 40ms latency · 9 Indian languages
-          </span>
-        </div>
+        {apiKey && (
+          <div className="text-center mt-8">
+            <span className="font-body text-xs text-gray-400">
+              Voice powered by <a href="https://cartesia.ai" target="_blank" rel="noopener noreferrer" className="text-[#e8550f] hover:underline">Cartesia Sonic 3</a> · 40ms latency · 9 Indian languages
+            </span>
+          </div>
+        )}
       </section>
 
       {/* Features */}
-      <section id="features" className="py-24 px-6 bg-gradient-to-b from-transparent via-[#0d6e6e]/5 to-transparent">
+      <section id="features" className="py-24 px-6 bg-gradient-to-b from-transparent via-[#e8550f]/5 to-transparent">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-[#1e3a5f] mb-4">
+            <h2 className="font-display text-4xl md:text-5xl font-bold text-[#3d2314] mb-4">
               Why Polls <span className="gradient-text">Get It Wrong</span>
             </h2>
             <p className="font-body text-lg text-gray-500">And how we fix it.</p>
@@ -2112,17 +2841,16 @@ export default function VoxBharat() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { problem: 'Urban sampling bias', solution: '73% rural reach via mobile', icon: '🏘️' },
-              { problem: 'No caste census since 1931', solution: 'Real-time demographic weighting', icon: '📈' },
-              { problem: 'Fear-based non-response', solution: 'AI builds trust in native language', icon: '🤝' },
-              { problem: 'Weeks to get data', solution: 'Results in 24-48 hours', icon: '⚡' },
-              { problem: '₹400/interview cost', solution: '10x cheaper at scale', icon: '💰' },
-              { problem: 'Interviewer bias', solution: 'Consistent AI methodology', icon: '🎯' },
+              { problem: 'Urban sampling bias', solution: '73% rural reach via mobile' },
+              { problem: 'No caste census since 1931', solution: 'Real-time demographic weighting' },
+              { problem: 'Fear-based non-response', solution: 'AI builds trust in native language' },
+              { problem: 'Weeks to get data', solution: 'Results in 24-48 hours' },
+              { problem: '₹400/interview cost', solution: '10x cheaper at scale' },
+              { problem: 'Interviewer bias', solution: 'Consistent AI methodology' },
             ].map((item, i) => (
               <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border hover:shadow-lg transition-shadow">
-                <span className="text-3xl block mb-4">{item.icon}</span>
-                <p className="font-body text-gray-400 line-through mb-1">{item.problem}</p>
-                <p className="font-display text-xl text-[#0d6e6e] font-semibold">{item.solution}</p>
+                <p className="font-body text-gray-400 line-through mb-2">{item.problem}</p>
+                <p className="font-display text-xl text-[#e8550f] font-semibold">{item.solution}</p>
               </div>
             ))}
           </div>
@@ -2132,8 +2860,8 @@ export default function VoxBharat() {
       {/* Languages */}
       <section className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
-          <h2 className="font-display text-4xl md:text-5xl font-bold text-[#1e3a5f] mb-4 text-center">
-            Every Language. <span className="gradient-text-teal">Every Dialect.</span>
+          <h2 className="font-display text-4xl md:text-5xl font-bold text-[#3d2314] mb-4 text-center">
+            Every Language. <span className="gradient-text-warm">Every Dialect.</span>
           </h2>
           <p className="font-body text-lg text-gray-500 text-center mb-12 max-w-2xl mx-auto">
             India's diversity is its strength. Our AI handles code-switching, regional idioms, and cultural nuances.
@@ -2145,7 +2873,7 @@ export default function VoxBharat() {
                 key={lang.code}
                 className="bg-white rounded-xl p-4 text-center hover:shadow-md hover:-translate-y-1 transition-all border"
               >
-                <div className="font-display text-xl text-[#0d6e6e] font-semibold">{lang.native}</div>
+                <div className="font-display text-xl text-[#e8550f] font-semibold">{lang.native}</div>
                 <div className="font-body text-sm text-gray-500">{lang.english}</div>
                 <div className="font-body text-xs text-gray-300 mt-1">{lang.speakers}</div>
               </div>
@@ -2157,7 +2885,7 @@ export default function VoxBharat() {
       {/* CTA */}
       <section className="py-24 px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-br from-[#ff6b2c] via-[#e85d04] to-[#d4a84b] rounded-3xl p-12 md:p-16 text-center">
+          <div className="bg-gradient-to-br from-[#ff6b2c] via-[#e85d04] to-[#ffaa80] rounded-3xl p-12 md:p-16 text-center">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white mb-4">
               Ready to Hear Bharat?
             </h2>
@@ -2174,29 +2902,14 @@ export default function VoxBharat() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff6b2c] to-[#e85d04] flex items-center justify-center">
-              <span className="text-white text-sm">🎙️</span>
-            </div>
-            <span className="font-display text-xl font-bold">
-              <span className="gradient-text">Vox</span>Bharat
-            </span>
-          </div>
-          <div className="font-body text-sm text-gray-400">
-            © 2026 VoxBharat · Hearing every voice
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Transcript & Summary Modal */}
       {showTranscript && surveyResults.length > 0 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-[#0d6e6e] to-[#1e6f5c] text-white">
+            <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-[#e8550f] to-[#cc4400] text-white">
               <div>
                 <h3 className="font-display text-xl font-bold">Call Analysis</h3>
                 <p className="text-sm text-white/70">Survey response #{surveyResults.length}</p>
@@ -2218,11 +2931,11 @@ export default function VoxBharat() {
                     {/* Call Metadata */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="bg-gray-50 rounded-xl p-3 text-center">
-                        <div className="text-2xl font-bold text-[#0d6e6e]">{result.language}</div>
+                        <div className="text-2xl font-bold text-[#e8550f]">{result.language}</div>
                         <div className="text-xs text-gray-500">Language</div>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3 text-center">
-                        <div className="text-2xl font-bold text-[#0d6e6e]">{Math.floor(result.duration / 60)}:{(result.duration % 60).toString().padStart(2, '0')}</div>
+                        <div className="text-2xl font-bold text-[#e8550f]">{Math.floor(result.duration / 60)}:{(result.duration % 60).toString().padStart(2, '0')}</div>
                         <div className="text-xs text-gray-500">Duration</div>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -2230,16 +2943,16 @@ export default function VoxBharat() {
                         <div className="text-xs text-gray-500">Completed</div>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3 text-center">
-                        <div className="text-2xl font-bold text-[#0d6e6e]">{result.responses.length}</div>
+                        <div className="text-2xl font-bold text-[#e8550f]">{result.responses.length}</div>
                         <div className="text-xs text-gray-500">Questions</div>
                       </div>
                     </div>
 
                     {/* AI Summary */}
-                    <div className="bg-gradient-to-br from-[#0d6e6e]/5 to-[#0d6e6e]/10 rounded-xl p-5 border border-[#0d6e6e]/20">
+                    <div className="bg-gradient-to-br from-[#e8550f]/5 to-[#e8550f]/10 rounded-xl p-5 border border-[#e8550f]/20">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="text-xl">🤖</span>
-                        <h4 className="font-display text-lg font-semibold text-[#1e3a5f]">AI Summary</h4>
+                        <svg className="w-5 h-5 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        <h4 className="font-display text-lg font-semibold text-[#3d2314]">AI Summary</h4>
                       </div>
                       <p className="font-body text-gray-700 leading-relaxed">{result.summary}</p>
                     </div>
@@ -2247,14 +2960,14 @@ export default function VoxBharat() {
                     {/* Structured Data */}
                     <div className="bg-white rounded-xl border p-5">
                       <div className="flex items-center gap-2 mb-4">
-                        <span className="text-xl">📊</span>
-                        <h4 className="font-display text-lg font-semibold text-[#1e3a5f]">Structured Data</h4>
+                        <svg className="w-5 h-5 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                        <h4 className="font-display text-lg font-semibold text-[#3d2314]">Structured Data</h4>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {Object.entries(result.structured).map(([key, value]) => (
                           <div key={key} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
                             <span className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                            <span className="text-sm font-medium text-[#1e3a5f]">{value}</span>
+                            <span className="text-sm font-medium text-[#3d2314]">{value}</span>
                           </div>
                         ))}
                       </div>
@@ -2263,8 +2976,8 @@ export default function VoxBharat() {
                     {/* Sentiment Analysis */}
                     <div className="bg-white rounded-xl border p-5">
                       <div className="flex items-center gap-2 mb-4">
-                        <span className="text-xl">💭</span>
-                        <h4 className="font-display text-lg font-semibold text-[#1e3a5f]">Sentiment Analysis</h4>
+                        <svg className="w-5 h-5 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        <h4 className="font-display text-lg font-semibold text-[#3d2314]">Sentiment Analysis</h4>
                       </div>
                       <div className="flex gap-4">
                         {Object.entries(result.sentiment).map(([key, value]) => (
@@ -2282,19 +2995,19 @@ export default function VoxBharat() {
                     {/* Full Transcript */}
                     <div className="bg-white rounded-xl border p-5">
                       <div className="flex items-center gap-2 mb-4">
-                        <span className="text-xl">📝</span>
-                        <h4 className="font-display text-lg font-semibold text-[#1e3a5f]">Full Transcript</h4>
+                        <svg className="w-5 h-5 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        <h4 className="font-display text-lg font-semibold text-[#3d2314]">Full Transcript</h4>
                       </div>
                       <div className="space-y-3 max-h-80 overflow-y-auto">
                         {demoConversation.map((msg, i) => (
                           <div key={i} className={`flex ${msg.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[80%] p-3 rounded-xl ${
                               msg.speaker === 'user'
-                                ? 'bg-[#0d6e6e] text-white'
+                                ? 'bg-[#e8550f] text-white'
                                 : 'bg-gray-100 text-gray-800'
                             }`}>
                               <div className="text-xs opacity-60 mb-1">
-                                {msg.speaker === 'ai' ? '🤖 VoxBharat AI' : '👤 Respondent'}
+                                {msg.speaker === 'ai' ? 'VoxBharat AI' : 'Respondent'}
                               </div>
                               <p className="text-sm">{msg.text}</p>
                               <p className="text-xs opacity-60 mt-1 italic">{msg.translation}</p>
@@ -2316,9 +3029,9 @@ export default function VoxBharat() {
                           a.click();
                           URL.revokeObjectURL(url);
                         }}
-                        className="flex-1 py-3 bg-[#0d6e6e] text-white rounded-xl font-medium hover:bg-[#1e6f5c] flex items-center justify-center gap-2"
+                        className="flex-1 py-3 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400] flex items-center justify-center gap-2"
                       >
-                        📥 Export JSON
+                        ↓ Export JSON
                       </button>
                       <button
                         onClick={() => {
@@ -2335,7 +3048,7 @@ export default function VoxBharat() {
                         }}
                         className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 flex items-center justify-center gap-2"
                       >
-                        📄 Export CSV
+                        ↓ Export CSV
                       </button>
                       <button
                         onClick={() => {
@@ -2344,15 +3057,15 @@ export default function VoxBharat() {
                         }}
                         className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 flex items-center justify-center gap-2"
                       >
-                        📋 Copy Summary
+                        Copy Summary
                       </button>
                     </div>
 
                     {/* Sample Research Report Preview */}
                     <div className="bg-gradient-to-r from-[#ff6b2c]/10 to-[#e85d04]/10 rounded-xl p-5 border border-[#ff6b2c]/20">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="text-xl">📊</span>
-                        <h4 className="font-display text-lg font-semibold text-[#1e3a5f]">
+                        <svg className="w-5 h-5 text-[#e8550f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                        <h4 className="font-display text-lg font-semibold text-[#3d2314]">
                           See What 500+ Responses Look Like
                         </h4>
                       </div>
@@ -2374,12 +3087,175 @@ export default function VoxBharat() {
         </div>
       )}
 
+      {/* Sample Call Log Modal */}
+      {showSampleCallLog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b bg-gradient-to-r from-[#3d2314] to-[#e8550f] text-white">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-white/60 mb-1">Sample Call Log</div>
+                  <h2 className="font-display text-2xl font-bold">AI Voice Survey - Single Call</h2>
+                  <p className="text-white/80 mt-1">What each completed call produces</p>
+                </div>
+                <button
+                  onClick={() => setShowSampleCallLog(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex gap-6 mt-4 pt-4 border-t border-white/20 text-sm">
+                <div>
+                  <div className="text-lg font-bold">{Math.floor(sampleCallLog.duration / 60)}m {sampleCallLog.duration % 60}s</div>
+                  <div className="text-xs text-white/60">Duration</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold">{sampleCallLog.language}</div>
+                  <div className="text-xs text-white/60">Language</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold capitalize">{sampleCallLog.status}</div>
+                  <div className="text-xs text-white/60">Status</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold">{sampleCallLog.phone}</div>
+                  <div className="text-xs text-white/60">Phone</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+              {/* AI Summary */}
+              <section>
+                <h3 className="font-display text-lg font-bold text-[#3d2314] mb-3 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-xs font-bold">1</span>
+                  AI Summary
+                </h3>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-gray-700 italic">
+                  "{sampleCallLog.summary}"
+                </div>
+              </section>
+
+              {/* Conversation Transcript */}
+              <section>
+                <h3 className="font-display text-lg font-bold text-[#3d2314] mb-3 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-xs font-bold">2</span>
+                  Conversation Transcript
+                </h3>
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3 max-h-80 overflow-y-auto">
+                  {sampleCallLog.transcript.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
+                      <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
+                        msg.role === 'assistant'
+                          ? 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
+                          : 'bg-[#e8550f] text-white rounded-br-md'
+                      }`}>
+                        <div className="text-[10px] uppercase tracking-wider mb-1 opacity-60">
+                          {msg.role === 'assistant' ? 'AI Interviewer' : 'Respondent'}
+                        </div>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Extracted Data */}
+              <section>
+                <h3 className="font-display text-lg font-bold text-[#3d2314] mb-3 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-xs font-bold">3</span>
+                  Extracted Structured Data
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Demographics */}
+                  <div className="bg-white border rounded-xl p-4">
+                    <h4 className="font-semibold text-[#3d2314] mb-3 text-sm uppercase tracking-wider">Demographics</h4>
+                    <div className="space-y-2 text-sm">
+                      {Object.entries(sampleCallLog.extractedData.demographics).map(([key, value]) => (
+                        <div key={key} className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
+                          <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <span className="font-medium text-[#3d2314]">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sentiment */}
+                  <div className="bg-white border rounded-xl p-4">
+                    <h4 className="font-semibold text-[#3d2314] mb-3 text-sm uppercase tracking-wider">Sentiment Analysis</h4>
+                    <div className="space-y-2 text-sm">
+                      {Object.entries(sampleCallLog.extractedData.sentiment).map(([key, value]) => (
+                        <div key={key} className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
+                          <span className="text-gray-500 capitalize">{key}</span>
+                          <span className={`font-medium px-2 py-0.5 rounded-full text-xs ${
+                            value === 'positive' || value === 'high' ? 'bg-green-100 text-green-700' :
+                            value === 'neutral' || value === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Structured Survey Responses */}
+                <div className="bg-white border rounded-xl p-4 mt-4">
+                  <h4 className="font-semibold text-[#3d2314] mb-3 text-sm uppercase tracking-wider">Survey Responses</h4>
+                  <div className="grid md:grid-cols-2 gap-x-6 gap-y-0 text-sm">
+                    {Object.entries(sampleCallLog.extractedData.structured).map(([key, value]) => (
+                      <div key={key} className="flex justify-between py-2 border-b border-gray-100">
+                        <span className="text-gray-500">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()}</span>
+                        <span className="font-medium text-[#3d2314]">{value !== null ? String(value).replace(/_/g, ' ') : '—'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t bg-gray-50 flex items-center justify-between">
+              <div className="text-xs text-gray-400">
+                Call ID: {sampleCallLog.id} &middot; {new Date(sampleCallLog.timestamp).toLocaleString()}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify(sampleCallLog, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'voxbharat-sample-call-log.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="px-3 py-1.5 text-sm bg-[#e8550f] text-white rounded-lg hover:bg-[#cc4400]"
+                >
+                  ↓ Download JSON
+                </button>
+                <button
+                  onClick={() => setShowSampleCallLog(false)}
+                  className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sample Research Report Modal */}
       {showSampleReport && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-hidden flex flex-col">
             {/* Report Header */}
-            <div className="p-6 border-b bg-gradient-to-r from-[#1e3a5f] to-[#0d6e6e] text-white">
+            <div className="p-6 border-b bg-gradient-to-r from-[#3d2314] to-[#e8550f] text-white">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-xs uppercase tracking-wider text-white/60 mb-1">Sample Research Report</div>
@@ -2423,16 +3299,16 @@ export default function VoxBharat() {
 
               {/* Executive Summary */}
               <section>
-                <h3 className="font-display text-xl font-bold text-[#1e3a5f] mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-[#0d6e6e]/10 flex items-center justify-center text-sm">1</span>
+                <h3 className="font-display text-xl font-bold text-[#3d2314] mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-sm">1</span>
                   Executive Summary
                 </h3>
                 <div className="bg-gray-50 rounded-xl p-5 space-y-3">
                   {sampleReportData.insights.map((insight, i) => (
                     <div key={i} className="flex gap-3">
-                      <div className="w-2 h-2 rounded-full bg-[#0d6e6e] mt-2 flex-shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-[#e8550f] mt-2 flex-shrink-0" />
                       <div>
-                        <div className="font-medium text-[#1e3a5f]">{insight.title}</div>
+                        <div className="font-medium text-[#3d2314]">{insight.title}</div>
                         <div className="text-sm text-gray-600">{insight.text}</div>
                       </div>
                     </div>
@@ -2442,25 +3318,25 @@ export default function VoxBharat() {
 
               {/* Demographics */}
               <section>
-                <h3 className="font-display text-xl font-bold text-[#1e3a5f] mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-[#0d6e6e]/10 flex items-center justify-center text-sm">2</span>
+                <h3 className="font-display text-xl font-bold text-[#3d2314] mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-sm">2</span>
                   Sample Demographics
                 </h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="bg-white border rounded-xl p-5">
-                    <h4 className="font-semibold text-[#1e3a5f] mb-4">Age Distribution</h4>
+                    <h4 className="font-semibold text-[#3d2314] mb-4">Age Distribution</h4>
                     <BarChart data={sampleReportData.demographics.byAge} labelKey="group" />
                   </div>
                   <div className="bg-white border rounded-xl p-5">
-                    <h4 className="font-semibold text-[#1e3a5f] mb-4">Religious Affiliation</h4>
+                    <h4 className="font-semibold text-[#3d2314] mb-4">Religious Affiliation</h4>
                     <BarChart data={sampleReportData.demographics.byReligion} labelKey="group" />
                   </div>
                   <div className="bg-white border rounded-xl p-5">
-                    <h4 className="font-semibold text-[#1e3a5f] mb-4">Survey Language</h4>
-                    <BarChart data={sampleReportData.demographics.byLanguage} labelKey="group" color="#1e6f5c" />
+                    <h4 className="font-semibold text-[#3d2314] mb-4">Survey Language</h4>
+                    <BarChart data={sampleReportData.demographics.byLanguage} labelKey="group" color="#cc4400" />
                   </div>
                   <div className="bg-white border rounded-xl p-5">
-                    <h4 className="font-semibold text-[#1e3a5f] mb-4">Gender</h4>
+                    <h4 className="font-semibold text-[#3d2314] mb-4">Gender</h4>
                     <BarChart data={sampleReportData.demographics.byGender} labelKey="group" color="#e85d04" />
                   </div>
                 </div>
@@ -2468,8 +3344,8 @@ export default function VoxBharat() {
 
               {/* Key Findings */}
               <section>
-                <h3 className="font-display text-xl font-bold text-[#1e3a5f] mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-[#0d6e6e]/10 flex items-center justify-center text-sm">3</span>
+                <h3 className="font-display text-xl font-bold text-[#3d2314] mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-sm">3</span>
                   Key Findings
                 </h3>
                 <div className="space-y-6">
@@ -2478,7 +3354,7 @@ export default function VoxBharat() {
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">{finding.metric}</div>
-                          <h4 className="font-semibold text-[#1e3a5f] text-lg">{finding.headline}</h4>
+                          <h4 className="font-semibold text-[#3d2314] text-lg">{finding.headline}</h4>
                         </div>
                       </div>
                       <BarChart data={finding.breakdown} />
@@ -2489,14 +3365,14 @@ export default function VoxBharat() {
 
               {/* Cross-tabulations */}
               <section>
-                <h3 className="font-display text-xl font-bold text-[#1e3a5f] mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-[#0d6e6e]/10 flex items-center justify-center text-sm">4</span>
+                <h3 className="font-display text-xl font-bold text-[#3d2314] mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-sm">4</span>
                   Cross-Tabulations
                 </h3>
 
                 {/* Age vs Interfaith Marriage */}
                 <div className="bg-white border rounded-xl p-5 mb-6">
-                  <h4 className="font-semibold text-[#1e3a5f] mb-4">Interfaith Marriage Acceptance by Age Group</h4>
+                  <h4 className="font-semibold text-[#3d2314] mb-4">Interfaith Marriage Acceptance by Age Group</h4>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -2536,7 +3412,7 @@ export default function VoxBharat() {
 
                 {/* Religion vs Interfaith Marriage */}
                 <div className="bg-white border rounded-xl p-5">
-                  <h4 className="font-semibold text-[#1e3a5f] mb-4">Interfaith Marriage Acceptance by Religion</h4>
+                  <h4 className="font-semibold text-[#3d2314] mb-4">Interfaith Marriage Acceptance by Religion</h4>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -2574,16 +3450,16 @@ export default function VoxBharat() {
 
               {/* Methodology */}
               <section>
-                <h3 className="font-display text-xl font-bold text-[#1e3a5f] mb-4 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-[#0d6e6e]/10 flex items-center justify-center text-sm">5</span>
+                <h3 className="font-display text-xl font-bold text-[#3d2314] mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-sm">5</span>
                   Methodology
                 </h3>
                 <div className="bg-gray-50 rounded-xl p-5">
-                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="grid md:grid-cols-2 gap-x-8 gap-y-0 text-sm">
                     {Object.entries(sampleReportData.methodology).map(([key, value]) => (
-                      <div key={key} className="flex justify-between py-2 border-b border-gray-200 last:border-0">
+                      <div key={key} className="grid grid-cols-[140px_1fr] gap-3 py-3 border-b border-gray-200 last:border-0">
                         <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                        <span className="font-medium text-[#1e3a5f]">{value}</span>
+                        <span className="font-medium text-[#3d2314] text-right">{value}</span>
                       </div>
                     ))}
                   </div>
@@ -2591,12 +3467,12 @@ export default function VoxBharat() {
               </section>
 
               {/* CTA */}
-              <section className="bg-gradient-to-r from-[#0d6e6e] to-[#1e6f5c] rounded-xl p-6 text-white text-center">
+              <section className="bg-gradient-to-r from-[#e8550f] to-[#cc4400] rounded-xl p-6 text-white text-center">
                 <h3 className="font-display text-xl font-bold mb-2">Ready to run your own voice survey?</h3>
                 <p className="text-white/80 mb-4">Get results like this in days, not months. No enumerators needed.</p>
                 <button
                   onClick={() => { setShowSampleReport(false); setShowBuilder(true); }}
-                  className="px-6 py-3 bg-white text-[#0d6e6e] rounded-lg font-semibold hover:bg-gray-100"
+                  className="px-6 py-3 bg-white text-[#e8550f] rounded-lg font-semibold hover:bg-gray-100"
                 >
                   Create Your Survey →
                 </button>
@@ -2620,9 +3496,9 @@ export default function VoxBharat() {
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="px-3 py-1.5 text-sm bg-[#0d6e6e] text-white rounded-lg hover:bg-[#1e6f5c]"
+                  className="px-3 py-1.5 text-sm bg-[#e8550f] text-white rounded-lg hover:bg-[#cc4400]"
                 >
-                  📥 Download Report
+                  ↓ Download Report
                 </button>
                 <button
                   onClick={() => setShowSampleReport(false)}
