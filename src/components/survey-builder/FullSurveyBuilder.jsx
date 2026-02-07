@@ -278,61 +278,61 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
   const marginOfError = (1.96 * Math.sqrt(0.5 * 0.5 / config.sampleSize) * 100).toFixed(1);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#faf8f5] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 bg-cream overflow-hidden flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <header className="bg-white border-b border-cream-warm px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-cream-warm rounded-lg cursor-pointer">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ff6b2c] to-[#e85d04] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-saffron to-saffron-deep flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
           </div>
           <div>
-            <h1 className="font-semibold text-[#3d2314]">Survey Builder</h1>
-            <p className="text-sm text-gray-500">{config.name || 'Untitled Survey'}</p>
+            <h1 className="font-display font-semibold text-earth">Survey Builder</h1>
+            <p className="text-sm text-earth-mid">{config.name || 'Untitled Survey'}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {questions.length > 0 && (
-            <div className="text-sm text-gray-500 mr-4">
+            <div className="text-sm text-earth-mid mr-4">
               {questions.length} questions • ~{estimatedDuration} min
             </div>
           )}
           <button
             onClick={() => setShowVoicePreview(true)}
-            className="px-4 py-2 text-[#e8550f] border border-[#e8550f] rounded-lg hover:bg-[#e8550f]/5"
+            className="px-4 py-2 text-saffron border border-saffron rounded-lg hover:bg-saffron/5 cursor-pointer"
           >
             <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" /></svg> Preview Voice
           </button>
-          <button className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+          <button className="px-4 py-2 bg-cream-warm rounded-lg hover:bg-cream-warm/80 cursor-pointer">
             Save Draft
           </button>
         </div>
       </header>
 
       {/* Progress */}
-      <div className="bg-white border-b px-6 py-3 flex-shrink-0">
+      <div className="bg-white border-b border-cream-warm px-6 py-3 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex items-center gap-2">
           {['Setup', 'Audience', 'Timeline', 'Goals', 'Questions', 'Review'].map((s, i) => (
             <React.Fragment key={s}>
               <button
                 onClick={() => i + 1 <= step && setStep(i + 1)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  step === i + 1 ? 'bg-[#e8550f] text-white'
-                  : step > i + 1 ? 'bg-[#e8550f]/10 text-[#e8550f] cursor-pointer hover:bg-[#e8550f]/20'
-                  : 'bg-gray-100 text-gray-400'
+                  step === i + 1 ? 'bg-saffron text-white'
+                  : step > i + 1 ? 'bg-saffron/10 text-saffron cursor-pointer hover:bg-saffron/20'
+                  : 'bg-cream-warm text-earth-mid/40'
                 }`}
               >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${step > i + 1 ? 'bg-[#e8550f] text-white' : ''}`}>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${step > i + 1 ? 'bg-saffron text-white' : ''}`}>
                   {step > i + 1 ? '\u2713' : i + 1}
                 </span>
                 <span className="hidden sm:inline">{s}</span>
               </button>
-              {i < 5 && <div className={`flex-1 h-0.5 ${step > i + 1 ? 'bg-[#e8550f]' : 'bg-gray-200'}`} />}
+              {i < 5 && <div className={`flex-1 h-0.5 ${step > i + 1 ? 'bg-saffron' : 'bg-cream-warm'}`} />}
             </React.Fragment>
           ))}
         </div>
@@ -346,41 +346,41 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 1 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Let's create your survey</h2>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Let's create your survey</h2>
                 <p className="text-gray-600">Start with the basics.</p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Survey Name *</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Survey Name *</label>
                 <input
                   type="text"
                   value={config.name}
                   onChange={(e) => setConfig({ ...config, name: e.target.value })}
                   placeholder="e.g., Bihar Assembly Election Poll 2025"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 focus:border-[#e8550f]"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 focus:border-saffron"
                 />
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-4">Survey Type *</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-4">Survey Type *</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {SURVEY_TYPES.map((type) => (
                     <button
                       key={type.id}
                       onClick={() => setConfig({ ...config, type: type.id })}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        config.type === type.id ? 'border-[#e8550f] bg-[#e8550f]/5' : 'border-gray-200 hover:border-gray-300'
+                        config.type === type.id ? 'border-saffron bg-saffron/5' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <span className="font-medium text-[#3d2314] block mb-1">{type.name}</span>
+                      <span className="font-medium text-earth block mb-1">{type.name}</span>
                       <span className="text-xs text-gray-500">{type.desc}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-4">Survey Languages *</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-4">Survey Languages *</label>
                 <div className="flex flex-wrap gap-2">
                   {LANGUAGES.map((lang) => (
                     <button
@@ -393,7 +393,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       }}
                       className={`px-4 py-2 rounded-full border-2 text-sm transition-all ${
                         config.languages.includes(lang.code)
-                          ? 'border-[#e8550f] bg-[#e8550f] text-white'
+                          ? 'border-saffron bg-saffron text-white'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -404,14 +404,14 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               {config.type === 'market' && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <label className="block text-sm font-medium text-[#3d2314] mb-2">Brand Names (comma-separated)</label>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                  <label className="block text-sm font-medium text-earth mb-2">Brand Names (comma-separated)</label>
                   <input
                     type="text"
                     value={config.brandNames}
                     onChange={(e) => setConfig({ ...config, brandNames: e.target.value })}
                     placeholder="e.g., Tata, Reliance, Adani, Mahindra"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
+                    className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                   />
                 </div>
               )}
@@ -419,7 +419,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               <button
                 onClick={() => setStep(2)}
                 disabled={!config.name || !config.type}
-                className="w-full py-4 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue to Audience →
               </button>
@@ -430,19 +430,19 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 2 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Define your audience</h2>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Define your audience</h2>
                 <p className="text-gray-600">Who should we survey?</p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-4">Geographic Scope</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-4">Geographic Scope</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                   {GEOGRAPHIES.map((geo) => (
                     <button
                       key={geo.id}
                       onClick={() => setConfig({ ...config, geography: geo.id, states: [] })}
                       className={`p-3 rounded-xl border-2 text-sm transition-all ${
-                        config.geography === geo.id ? 'border-[#e8550f] bg-[#e8550f]/5 font-medium' : 'border-gray-200 hover:border-gray-300'
+                        config.geography === geo.id ? 'border-saffron bg-saffron/5 font-medium' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       {geo.name}
@@ -465,7 +465,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           }}
                           className={`px-3 py-1 rounded-full text-sm transition-all ${
                             config.states.includes(state)
-                              ? 'bg-[#e8550f] text-white'
+                              ? 'bg-saffron text-white'
                               : 'bg-gray-100 hover:bg-gray-200'
                           }`}
                         >
@@ -477,8 +477,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Target Sample Size</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Target Sample Size</label>
                 <div className="flex items-center gap-4">
                   <input
                     type="range"
@@ -487,7 +487,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     step="100"
                     value={config.sampleSize}
                     onChange={(e) => setConfig({ ...config, sampleSize: parseInt(e.target.value) })}
-                    className="flex-1 accent-[#e8550f]"
+                    className="flex-1 accent-saffron"
                   />
                   <input
                     type="number"
@@ -501,33 +501,33 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Target Audience Description</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Target Audience Description</label>
                 <textarea
                   value={config.targetAudience}
                   onChange={(e) => setConfig({ ...config, targetAudience: e.target.value })}
                   placeholder="e.g., Registered voters in rural Maharashtra, aged 25-55, primarily farmers..."
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
                 />
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Exclusion Criteria (Optional)</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Exclusion Criteria (Optional)</label>
                 <textarea
                   value={config.exclusions}
                   onChange={(e) => setConfig({ ...config, exclusions: e.target.value })}
                   placeholder="e.g., Exclude anyone who has participated in a survey in the last 30 days, employees of political parties..."
                   rows={2}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
                 />
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setStep(1)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-gray-50">
+                <button onClick={() => setStep(1)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
                   ← Back
                 </button>
-                <button onClick={() => setStep(3)} className="flex-1 py-4 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400]">
+                <button onClick={() => setStep(3)} className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep">
                   Continue to Timeline →
                 </button>
               </div>
@@ -538,12 +538,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 3 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Timeline & Budget</h2>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Timeline & Budget</h2>
                 <p className="text-gray-600">When do you need results and what's your budget?</p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-4">Urgency</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-4">Urgency</label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { id: 'standard', name: 'Standard', time: '5-7 days', price: '\u20B938/response', icon: '\u2014' },
@@ -554,29 +554,29 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       key={opt.id}
                       onClick={() => setConfig({ ...config, urgency: opt.id })}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        config.urgency === opt.id ? 'border-[#e8550f] bg-[#e8550f]/5' : 'border-gray-200 hover:border-gray-300'
+                        config.urgency === opt.id ? 'border-saffron bg-saffron/5' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <span className="font-medium block mb-1">{opt.name}</span>
                       <span className="text-sm text-gray-500 block">{opt.time}</span>
-                      <span className="text-xs text-[#e8550f]">{opt.price}</span>
+                      <span className="text-xs text-saffron">{opt.price}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Deadline (Optional)</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Deadline (Optional)</label>
                 <input
                   type="date"
                   value={config.deadline}
                   onChange={(e) => setConfig({ ...config, deadline: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                 />
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Budget (Optional)</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Budget (Optional)</label>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500">\u20B9</span>
                   <input
@@ -584,7 +584,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     value={config.budget}
                     onChange={(e) => setConfig({ ...config, budget: e.target.value })}
                     placeholder="e.g., 50000"
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
+                    className="flex-1 px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
@@ -592,8 +592,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-4">Call Timing Preferences</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-4">Call Timing Preferences</label>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { id: 'morning', label: 'AM Morning (8am-12pm)' },
@@ -610,7 +610,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       }}
                       className={`px-4 py-2 rounded-lg border-2 text-sm transition-all ${
                         config.callTiming.includes(time.id)
-                          ? 'border-[#e8550f] bg-[#e8550f] text-white'
+                          ? 'border-saffron bg-saffron text-white'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -620,8 +620,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Retry Policy</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Retry Policy</label>
                 <p className="text-sm text-gray-500 mb-3">How many times should we retry non-responders?</p>
                 <div className="flex items-center gap-4">
                   {[1, 2, 3, 5].map(n => (
@@ -630,7 +630,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       onClick={() => setConfig({ ...config, retryPolicy: n })}
                       className={`w-12 h-12 rounded-lg border-2 font-medium transition-all ${
                         config.retryPolicy === n
-                          ? 'border-[#e8550f] bg-[#e8550f] text-white'
+                          ? 'border-saffron bg-saffron text-white'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -640,22 +640,22 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Incentive for Respondents (Optional)</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Incentive for Respondents (Optional)</label>
                 <input
                   type="text"
                   value={config.incentive}
                   onChange={(e) => setConfig({ ...config, incentive: e.target.value })}
                   placeholder="e.g., \u20B950 mobile recharge, lottery entry..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                 />
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setStep(2)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-gray-50">
+                <button onClick={() => setStep(2)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
                   ← Back
                 </button>
-                <button onClick={() => setStep(4)} className="flex-1 py-4 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400]">
+                <button onClick={() => setStep(4)} className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep">
                   Continue to Goals →
                 </button>
               </div>
@@ -666,35 +666,35 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 4 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Research Goals</h2>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Research Goals</h2>
                 <p className="text-gray-600">What do you want to learn? Better input = better questions.</p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Primary Purpose / Research Objective *</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Primary Purpose / Research Objective *</label>
                 <p className="text-sm text-gray-500 mb-3">What decision will this survey inform?</p>
                 <textarea
                   value={config.purpose}
                   onChange={(e) => setConfig({ ...config, purpose: e.target.value })}
                   placeholder="e.g., Understand voter sentiment before the 2025 Bihar elections, measure satisfaction with incumbent government, identify key issues driving vote choice..."
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
                 />
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Key Questions You Want Answered</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Key Questions You Want Answered</label>
                 <textarea
                   value={config.keyQuestions}
                   onChange={(e) => setConfig({ ...config, keyQuestions: e.target.value })}
                   placeholder={"1. Which party is leading in vote share?\n2. What are the top 3 issues for voters?\n3. How does the youth vote differ from older voters?\n4. Is there an urban-rural divide?"}
                   rows={5}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none font-mono text-sm"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none font-mono text-sm"
                 />
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-4">Survey Settings</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-4">Survey Settings</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm text-gray-600 mb-2">Target Duration</label>
@@ -704,7 +704,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           key={d}
                           onClick={() => setConfig({ ...config, duration: d })}
                           className={`flex-1 py-2 rounded-lg border-2 transition-all ${
-                            config.duration === d ? 'border-[#e8550f] bg-[#e8550f] text-white' : 'border-gray-200'
+                            config.duration === d ? 'border-saffron bg-saffron text-white' : 'border-gray-200'
                           }`}
                         >
                           {d} min
@@ -724,7 +724,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           key={t}
                           onClick={() => setConfig({ ...config, tone: t })}
                           className={`flex-1 py-2 rounded-lg border-2 capitalize transition-all ${
-                            config.tone === t ? 'border-[#e8550f] bg-[#e8550f] text-white' : 'border-gray-200'
+                            config.tone === t ? 'border-saffron bg-saffron text-white' : 'border-gray-200'
                           }`}
                         >
                           {t}
@@ -741,7 +741,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           key={s}
                           onClick={() => setConfig({ ...config, sensitivity: s })}
                           className={`flex-1 py-2 rounded-lg border-2 capitalize transition-all ${
-                            config.sensitivity === s ? 'border-[#e8550f] bg-[#e8550f] text-white' : 'border-gray-200'
+                            config.sensitivity === s ? 'border-saffron bg-saffron text-white' : 'border-gray-200'
                           }`}
                         >
                           {s}
@@ -752,37 +752,37 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Analysis Goals (Optional)</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Analysis Goals (Optional)</label>
                 <textarea
                   value={config.analysisGoals}
                   onChange={(e) => setConfig({ ...config, analysisGoals: e.target.value })}
                   placeholder="e.g., Compare by age, urban vs rural, caste breakdown. Track against 2020 poll..."
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20 resize-none"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
                 />
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-[#3d2314] mb-2">Link to Previous Survey (Optional)</label>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Link to Previous Survey (Optional)</label>
                 <input
                   type="url"
                   value={config.previousSurveyLink}
                   onChange={(e) => setConfig({ ...config, previousSurveyLink: e.target.value })}
                   placeholder="https://..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#e8550f]/20"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                 />
                 <p className="text-xs text-gray-500 mt-2">For trend tracking, we'll use the same question wording</p>
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setStep(3)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-gray-50">
+                <button onClick={() => setStep(3)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
                   ← Back
                 </button>
                 <button
                   onClick={generateQuestions}
                   disabled={!config.purpose || isGenerating}
-                  className="flex-1 py-4 bg-gradient-to-r from-[#ff6b2c] to-[#e85d04] text-white rounded-xl font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-4 bg-gradient-to-r from-saffron to-saffron-deep text-white rounded-xl font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isGenerating ? (
                     <>
@@ -805,12 +805,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
             <div className="space-y-6 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Edit Questions</h2>
+                  <h2 className="font-display text-2xl font-semibold text-earth mb-2">Edit Questions</h2>
                   <p className="text-gray-600">Reorder, edit, or add new questions.</p>
                 </div>
                 <button
                   onClick={addQuestion}
-                  className="px-4 py-2 bg-[#e8550f] text-white rounded-lg hover:bg-[#cc4400] flex items-center gap-2"
+                  className="px-4 py-2 bg-saffron text-white rounded-lg hover:bg-saffron-deep flex items-center gap-2"
                 >
                   + Add Question
                 </button>
@@ -821,7 +821,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   <div
                     key={q.id}
                     className={`bg-white rounded-xl border-2 transition-all ${
-                      editingQuestion === q.id ? 'border-[#e8550f] shadow-lg' : 'border-gray-100 hover:border-gray-200'
+                      editingQuestion === q.id ? 'border-saffron shadow-lg' : 'border-gray-100 hover:border-gray-200'
                     } ${q.isDemographic ? 'opacity-60' : ''}`}
                   >
                     <div
@@ -830,7 +830,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     >
                       <div className="flex flex-col items-center gap-1">
                         <button onClick={(e) => { e.stopPropagation(); moveQuestion(q.id, -1); }} className="p-1 hover:bg-gray-100 rounded text-gray-400" disabled={i === 0}>↑</button>
-                        <span className="w-7 h-7 rounded-lg bg-[#e8550f]/10 flex items-center justify-center text-[#e8550f] font-medium text-sm">{i + 1}</span>
+                        <span className="w-7 h-7 rounded-lg bg-saffron/10 flex items-center justify-center text-saffron font-medium text-sm">{i + 1}</span>
                         <button onClick={(e) => { e.stopPropagation(); moveQuestion(q.id, 1); }} className="p-1 hover:bg-gray-100 rounded text-gray-400" disabled={i === questions.length - 1}>↓</button>
                       </div>
 
@@ -839,10 +839,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">
                             {QUESTION_TYPES.find(t => t.id === q.type)?.name}
                           </span>
-                          <span className="px-2 py-0.5 bg-[#e8550f]/10 rounded text-xs text-[#e8550f]">{q.category}</span>
+                          <span className="px-2 py-0.5 bg-saffron/10 rounded text-xs text-saffron">{q.category}</span>
                           {q.required && <span className="text-red-500 text-xs">Required</span>}
                         </div>
-                        <p className="font-medium text-[#3d2314] truncate">{q.text || 'Untitled'}</p>
+                        <p className="font-medium text-earth truncate">{q.text || 'Untitled'}</p>
                         {q.textEn && <p className="text-sm text-gray-500 truncate">{q.textEn}</p>}
                       </div>
 
@@ -864,7 +864,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                                 key={type.id}
                                 onClick={() => updateQuestion(q.id, { type: type.id })}
                                 className={`px-3 py-1.5 rounded-lg border text-sm ${
-                                  q.type === type.id ? 'border-[#e8550f] bg-[#e8550f] text-white' : 'border-gray-200'
+                                  q.type === type.id ? 'border-saffron bg-saffron text-white' : 'border-gray-200'
                                 }`}
                               >
                                 {type.name}
@@ -880,7 +880,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               value={q.text}
                               onChange={(e) => updateQuestion(q.id, { text: e.target.value })}
                               rows={2}
-                              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#e8550f]"
+                              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-saffron"
                             />
                           </div>
                           <div>
@@ -889,7 +889,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               value={q.textEn}
                               onChange={(e) => updateQuestion(q.id, { textEn: e.target.value })}
                               rows={2}
-                              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#e8550f]"
+                              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-saffron"
                             />
                           </div>
                         </div>
@@ -919,7 +919,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               ))}
                               <button
                                 onClick={() => updateQuestion(q.id, { options: [...q.options, `Option ${q.options.length + 1}`] })}
-                                className="text-sm text-[#e8550f] hover:underline"
+                                className="text-sm text-saffron hover:underline"
                               >
                                 + Add option
                               </button>
@@ -933,7 +933,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               type="checkbox"
                               checked={q.required}
                               onChange={(e) => updateQuestion(q.id, { required: e.target.checked })}
-                              className="w-4 h-4 accent-[#e8550f]"
+                              className="w-4 h-4 accent-saffron"
                             />
                             <span className="text-sm">Required</span>
                           </label>
@@ -945,10 +945,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setStep(4)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-gray-50">
+                <button onClick={() => setStep(4)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
                   ← Back
                 </button>
-                <button onClick={() => setStep(6)} className="flex-1 py-4 bg-[#e8550f] text-white rounded-xl font-medium hover:bg-[#cc4400]">
+                <button onClick={() => setStep(6)} className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep">
                   Review & Launch →
                 </button>
               </div>
@@ -959,27 +959,27 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
           {step === 6 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-semibold text-[#3d2314] mb-2">Review & Launch</h2>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Review & Launch</h2>
                 <p className="text-gray-600">Double-check everything before going live.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-[#e8550f]">{questions.length}</div>
+                  <div className="text-3xl font-bold text-saffron">{questions.length}</div>
                   <div className="text-sm text-gray-500">Questions</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-[#e85d04]">~{estimatedDuration} min</div>
+                  <div className="text-3xl font-bold text-saffron-deep">~{estimatedDuration} min</div>
                   <div className="text-sm text-gray-500">Duration</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-[#3d2314]">{config.sampleSize.toLocaleString()}</div>
+                  <div className="text-3xl font-bold text-earth">{config.sampleSize.toLocaleString()}</div>
                   <div className="text-sm text-gray-500">Responses</div>
                 </div>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-[#3d2314] mb-4">Configuration Summary</h3>
+                <h3 className="font-semibold text-earth mb-4">Configuration Summary</h3>
                 <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
                   <div><span className="text-gray-500">Name:</span> <span className="font-medium">{config.name}</span></div>
                   <div><span className="text-gray-500">Type:</span> <span className="font-medium">{SURVEY_TYPES.find(t => t.id === config.type)?.name}</span></div>
@@ -993,11 +993,11 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-[#3d2314] mb-3">Questions ({questions.length})</h3>
+                <h3 className="font-semibold text-earth mb-3">Questions ({questions.length})</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {questions.map((q, i) => (
-                    <div key={q.id} className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg">
-                      <span className="w-6 h-6 rounded-full bg-[#e8550f]/10 flex items-center justify-center text-xs text-[#e8550f] font-medium flex-shrink-0">{i + 1}</span>
+                    <div key={q.id} className="flex items-start gap-2 p-2 bg-cream-warm rounded-lg">
+                      <span className="w-6 h-6 rounded-full bg-saffron/10 flex items-center justify-center text-xs text-saffron font-medium flex-shrink-0">{i + 1}</span>
                       <div className="min-w-0">
                         <p className="text-sm truncate">{q.text}</p>
                         <p className="text-xs text-gray-400">{q.type}</p>
@@ -1007,7 +1007,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-[#e8550f] to-[#cc4400] rounded-2xl p-6 text-white">
+              <div className="bg-gradient-to-r from-saffron to-saffron-deep rounded-2xl p-6 text-white">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="text-sm text-white/70">Estimated Total Cost</div>
@@ -1026,7 +1026,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-[#3d2314] mb-4">Quality Settings</h3>
+                <h3 className="font-semibold text-earth mb-4">Quality Settings</h3>
                 <div className="space-y-3">
                   <label className="flex items-center justify-between">
                     <span className="text-sm">Record all audio (for quality audit)</span>
@@ -1034,7 +1034,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       type="checkbox"
                       checked={config.recordAudio}
                       onChange={(e) => setConfig({ ...config, recordAudio: e.target.checked })}
-                      className="w-5 h-5 accent-[#e8550f]"
+                      className="w-5 h-5 accent-saffron"
                     />
                   </label>
                   <label className="flex items-center justify-between">
@@ -1043,7 +1043,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       type="checkbox"
                       checked={config.qualityChecks}
                       onChange={(e) => setConfig({ ...config, qualityChecks: e.target.checked })}
-                      className="w-5 h-5 accent-[#e8550f]"
+                      className="w-5 h-5 accent-saffron"
                     />
                   </label>
                 </div>
@@ -1053,12 +1053,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <h3 className="font-semibold text-[#3d2314]">Test Your Survey</h3>
+                    <h3 className="font-semibold text-earth">Test Your Survey</h3>
                     <p className="text-sm text-gray-500">Receive a real AI call with your custom questions</p>
                   </div>
                   <button
                     onClick={() => setShowTestCall(!showTestCall)}
-                    className="px-4 py-2 bg-[#e8550f]/10 text-[#e8550f] rounded-lg text-sm font-medium hover:bg-[#e8550f]/20"
+                    className="px-4 py-2 bg-saffron/10 text-saffron rounded-lg text-sm font-medium hover:bg-saffron/20"
                   >
                     {showTestCall ? 'Hide' : 'Test Call'}
                   </button>
@@ -1072,7 +1072,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                         value={testPhoneNumber}
                         onChange={(e) => setTestPhoneNumber(e.target.value)}
                         placeholder="+91 98765 43210"
-                        className="flex-1 px-4 py-3 border rounded-xl text-sm focus:ring-2 focus:ring-[#e8550f]/20 focus:border-[#e8550f]"
+                        className="flex-1 px-4 py-3 border rounded-xl text-sm focus:ring-2 focus:ring-saffron/20 focus:border-saffron"
                         disabled={testCallStatus === 'calling' || testCallStatus === 'ringing' || testCallStatus === 'connected'}
                       />
                       <button
@@ -1081,7 +1081,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                         className={`px-6 py-3 rounded-xl text-sm font-medium whitespace-nowrap ${
                           testCallStatus === 'calling' || testCallStatus === 'ringing' || testCallStatus === 'connected'
                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            : 'bg-[#e8550f] text-white hover:bg-[#cc4400]'
+                            : 'bg-saffron text-white hover:bg-saffron-deep'
                         }`}
                       >
                         {testCallStatus === 'calling' ? 'Initiating...'
@@ -1123,14 +1123,14 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
                             {/* Transcript */}
                             <div>
-                              <h4 className="text-sm font-semibold text-[#3d2314] mb-2">Conversation Transcript</h4>
-                              <div className="bg-gray-50 rounded-xl p-3 space-y-2 max-h-60 overflow-y-auto">
+                              <h4 className="text-sm font-semibold text-earth mb-2">Conversation Transcript</h4>
+                              <div className="bg-cream-warm rounded-xl p-3 space-y-2 max-h-60 overflow-y-auto">
                                 {(testCallResult.transcript || []).map((msg, i) => (
                                   <div key={i} className={`flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
                                     <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs ${
                                       msg.role === 'assistant'
                                         ? 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
-                                        : 'bg-[#e8550f] text-white rounded-br-md'
+                                        : 'bg-saffron text-white rounded-br-md'
                                     }`}>
                                       <div className="text-[9px] uppercase tracking-wider mb-0.5 opacity-60">
                                         {msg.role === 'assistant' ? 'AI' : 'You'}
@@ -1142,10 +1142,11 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                               </div>
                             </div>
 
+
                             {/* Extracted Data */}
                             {testCallResult.extractedData && (
                               <div>
-                                <h4 className="text-sm font-semibold text-[#3d2314] mb-2">Extracted Data</h4>
+                                <h4 className="text-sm font-semibold text-earth mb-2">Extracted Data</h4>
                                 <div className="grid grid-cols-2 gap-3">
                                   {/* Responses */}
                                   <div className="bg-white border rounded-xl p-4">
@@ -1154,7 +1155,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                                       {Object.entries(testCallResult.extractedData.responses || testCallResult.extractedData.structured || {}).map(([key, value]) => (
                                         <div key={key} className="border-b border-gray-100 pb-2.5 last:border-0 last:pb-0">
                                           <div className="text-[11px] text-gray-400 capitalize mb-1">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}</div>
-                                          <div className="text-sm font-medium text-[#3d2314]">{value !== null ? String(value).replace(/_/g, ' ') : <span className="text-gray-300 italic">No response</span>}</div>
+                                          <div className="text-sm font-medium text-earth">{value !== null ? String(value).replace(/_/g, ' ') : <span className="text-gray-300 italic">No response</span>}</div>
                                         </div>
                                       ))}
                                     </div>
@@ -1182,7 +1183,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
                             <button
                               onClick={() => { setTestCallStatus(null); setTestCallResult(null); }}
-                              className="text-xs text-[#e8550f] hover:underline"
+                              className="text-xs text-saffron hover:underline"
                             >
                               Run another test call
                             </button>
@@ -1210,12 +1211,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setStep(5)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-gray-50">
+                <button onClick={() => setStep(5)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
                   ← Edit Questions
                 </button>
                 <button
                   onClick={() => onLaunch && onLaunch(config, questions)}
-                  className="flex-1 py-4 bg-gradient-to-r from-[#ff6b2c] to-[#e85d04] text-white rounded-xl font-medium hover:opacity-90"
+                  className="flex-1 py-4 bg-gradient-to-r from-saffron to-saffron-deep text-white rounded-xl font-medium hover:opacity-90"
                 >
                   → Launch Survey
                 </button>
@@ -1229,7 +1230,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
       {showVoicePreview && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-[#e8550f] to-[#cc4400] text-white">
+            <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-saffron to-saffron-deep text-white">
               <div>
                 <h3 className="font-semibold">Voice Preview</h3>
                 <p className="text-xs text-white/70">Test how your survey sounds</p>
@@ -1237,14 +1238,14 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               <button onClick={() => { setShowVoicePreview(false); if (audioPreviewRef.current) audioPreviewRef.current.pause(); }} className="p-2 hover:bg-white/20 rounded-lg">\u2715</button>
             </div>
 
-            <div className="p-4 border-b bg-gray-50">
+            <div className="p-4 border-b bg-cream-warm">
               {/* Voice Selection */}
               <div className="flex items-center gap-3">
                 <label className="text-sm text-gray-600 whitespace-nowrap">Voice:</label>
                 <select
                   value={selectedPreviewVoice}
                   onChange={(e) => setSelectedPreviewVoice(e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#e8550f] focus:border-transparent"
+                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-saffron focus:border-transparent"
                 >
                   {PREVIEW_VOICES.map(v => (
                     <option key={v.id} value={v.id}>{v.name}</option>
@@ -1255,12 +1256,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
             <div className="p-4 space-y-4 overflow-y-auto flex-1">
               {/* Test Custom Text */}
-              <div className="bg-gradient-to-r from-[#ff6b2c]/10 to-[#e85d04]/10 rounded-xl p-4 border border-[#ff6b2c]/20">
+              <div className="bg-gradient-to-r from-saffron/10 to-saffron-deep/10 rounded-xl p-4 border border-saffron/20">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-[#3d2314]"><svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v4a3 3 0 006 0V4a3 3 0 00-3-3z" /></svg>Try Custom Text</span>
+                  <span className="text-sm font-medium text-earth"><svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v4a3 3 0 006 0V4a3 3 0 00-3-3z" /></svg>Try Custom Text</span>
                   <button
                     onClick={() => setShowCustomQuestionInput(!showCustomQuestionInput)}
-                    className="text-xs text-[#e8550f] hover:underline"
+                    className="text-xs text-saffron hover:underline"
                   >
                     {showCustomQuestionInput ? 'Hide' : 'Show'}
                   </button>
@@ -1271,14 +1272,14 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       value={customTestText}
                       onChange={(e) => setCustomTestText(e.target.value)}
                       placeholder="Type any text in Hindi, Bengali, or English to hear it spoken..."
-                      className="w-full px-3 py-2 border rounded-lg text-sm resize-none h-20 focus:ring-2 focus:ring-[#e8550f] focus:border-transparent"
+                      className="w-full px-3 py-2 border rounded-lg text-sm resize-none h-20 focus:ring-2 focus:ring-saffron focus:border-transparent"
                     />
                     <button
                       onClick={() => customTestText.trim() && playVoice(customTestText, 'custom')}
                       disabled={!customTestText.trim()}
                       className={`w-full py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 ${
                         customTestText.trim()
-                          ? 'bg-[#e8550f] text-white hover:bg-[#cc4400]'
+                          ? 'bg-saffron text-white hover:bg-saffron-deep'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
@@ -1293,12 +1294,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               </div>
 
               {/* Introduction */}
-              <div className="bg-gray-50 rounded-xl p-4">
+              <div className="bg-cream-warm rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Intro</span>
                   <button
                     onClick={() => playVoice('\u0928\u092E\u0938\u094D\u0924\u0947! \u092E\u0948\u0902 VoxBharat \u0938\u0947 \u092C\u094B\u0932 \u0930\u0939\u0940 \u0939\u0942\u0902\u0964 \u0915\u094D\u092F\u093E \u0906\u092A\u0915\u0947 \u092A\u093E\u0938 \u0915\u0941\u091B \u092E\u093F\u0928\u091F \u0939\u0948\u0902 \u090F\u0915 \u0938\u0930\u094D\u0935\u0947 \u0915\u0947 \u0932\u093F\u090F?', 'intro')}
-                    className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === 'intro' ? 'bg-red-100 text-red-600' : 'text-[#e8550f] hover:bg-[#e8550f]/10'}`}
+                    className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === 'intro' ? 'bg-red-100 text-red-600' : 'text-saffron hover:bg-saffron/10'}`}
                   >
                     {isPlayingVoice && playingQuestionId === 'intro' ? '\u25A0 Stop' : '\u266A Play'}
                   </button>
@@ -1311,15 +1312,15 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               {questions.length > 0 ? (
                 <>
                   {questions.map((q, i) => (
-                    <div key={q.id} className="bg-gray-50 rounded-xl p-4">
+                    <div key={q.id} className="bg-cream-warm rounded-xl p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-[#e8550f]/10 text-[#e8550f] px-2 py-0.5 rounded">Q{i + 1}</span>
+                          <span className="text-xs bg-saffron/10 text-saffron px-2 py-0.5 rounded">Q{i + 1}</span>
                           <span className="text-xs text-gray-400">{q.category}</span>
                         </div>
                         <button
                           onClick={() => playVoice(q.text, q.id)}
-                          className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === q.id ? 'bg-red-100 text-red-600' : 'text-[#e8550f] hover:bg-[#e8550f]/10'}`}
+                          className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === q.id ? 'bg-red-100 text-red-600' : 'text-saffron hover:bg-saffron/10'}`}
                         >
                           {isPlayingVoice && playingQuestionId === q.id ? '\u25A0 Stop' : '\u266A Play'}
                         </button>
@@ -1345,12 +1346,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               )}
 
               {/* Closing */}
-              <div className="bg-gray-50 rounded-xl p-4">
+              <div className="bg-cream-warm rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Closing</span>
                   <button
                     onClick={() => playVoice('\u0906\u092A\u0915\u093E \u092C\u0939\u0941\u0924-\u092C\u0939\u0941\u0924 \u0927\u0928\u094D\u092F\u0935\u093E\u0926 \u0905\u092A\u0928\u093E \u0915\u0940\u092E\u0924\u0940 \u0938\u092E\u092F \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093F\u090F\u0964 \u0906\u092A\u0915\u093E \u0926\u093F\u0928 \u0936\u0941\u092D \u0939\u094B!', 'closing')}
-                    className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === 'closing' ? 'bg-red-100 text-red-600' : 'text-[#e8550f] hover:bg-[#e8550f]/10'}`}
+                    className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === 'closing' ? 'bg-red-100 text-red-600' : 'text-saffron hover:bg-saffron/10'}`}
                   >
                     {isPlayingVoice && playingQuestionId === 'closing' ? '\u25A0 Stop' : '\u266A Play'}
                   </button>
@@ -1361,7 +1362,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
             </div>
 
             {/* Play All Button */}
-            <div className="p-4 border-t bg-gray-50">
+            <div className="p-4 border-t bg-cream-warm">
               <button
                 onClick={async () => {
                   const allTexts = [
@@ -1374,7 +1375,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     await new Promise(r => setTimeout(r, 500));
                   }
                 }}
-                className="w-full py-3 bg-gradient-to-r from-[#e8550f] to-[#cc4400] text-white rounded-xl font-medium hover:opacity-90 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gradient-to-r from-saffron to-saffron-deep text-white rounded-xl font-medium hover:opacity-90 flex items-center justify-center gap-2"
               >
                 \u25B6 Play Full Preview
               </button>
