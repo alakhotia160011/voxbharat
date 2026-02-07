@@ -1,0 +1,648 @@
+[
+  {
+    "id": "2134988e-22d1-489f-8b36-5acb596f7e85",
+    "timestamp": "2026-02-07T16:59:03.849Z",
+    "duration": 94,
+    "language": "hi",
+    "status": "completed",
+    "summary": "Data extraction failed",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा बताई है"
+      },
+      {
+        "role": "assistant",
+        "content": "सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "जी"
+      },
+      {
+        "role": "assistant",
+        "content": "आप किस धर्म को मानते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "हेंडू"
+      },
+      {
+        "role": "assistant",
+        "content": "आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?"
+      },
+      {
+        "role": "user",
+        "content": "मैं तो कहूंगा काफी जादा मात्वपोना"
+      },
+      {
+        "role": "assistant",
+        "content": "आप कितनी बार प्रार्थना या पूजा करते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "दिन में एक बार करता हूँ मैं"
+      },
+      {
+        "role": "assistant",
+        "content": "क्या आपको लगता है कि भारत में सभी धर्मों के लोगों को अपने धर्म का पालन करने की पूरी स्वतंत्रता है?"
+      },
+      {
+        "role": "user",
+        "content": "जी, जरूर."
+      },
+      {
+        "role": "assistant",
+        "content": "अगर आपके पड़ोस में किसी दूसरे धर्म का परिवार आए, तो आपको कैसा लगेगा?"
+      },
+      {
+        "role": "user",
+        "content": "आने दिए?"
+      },
+      {
+        "role": "assistant",
+        "content": "अंतर-धार्मिक विवाह के बारे में आपकी क्या राय है?"
+      },
+      {
+        "role": "user",
+        "content": "ठीक है, उसमें कोई दिकत्नी है"
+      },
+      {
+        "role": "assistant",
+        "content": "आपके विचार में, धार्मिक विविधता भारत को बेहतर बनाती है या चुनौतीपूर्ण?"
+      },
+      {
+        "role": "user",
+        "content": "झाल"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत-बहुत धन्यवाद! आपके जवाब हमारे लिए बहुत कीमती हैं। आपका दिन शुभ हो!"
+      }
+    ],
+    "demographics": {
+      "age": null,
+      "ageGroup": null,
+      "religion": null,
+      "language": "hi"
+    },
+    "structured": {},
+    "sentiment": {
+      "overall": "neutral",
+      "openness": "medium",
+      "religiosity": "medium"
+    }
+  },
+  {
+    "id": "0241bdf4-0a83-4c99-8620-a429869bb9c9",
+    "timestamp": "2026-02-07T17:05:23.116Z",
+    "duration": 40,
+    "language": "hi",
+    "status": "completed",
+    "summary": "Respondent acknowledged the interviewer's greeting but the survey did not proceed beyond the initial introduction. No substantive data was collected.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "जाबतायी एफ"
+      },
+      {
+        "role": "assistant",
+        "content": "नमस्ते! मैं VoxBharat से बोल रही हूँ। क्या मैं आपसे धार्मिक सद्भाव पर एक छोटा सा सर्वे कर सकती हूँ? बस 5 मिनट लगेंगे।"
+      },
+      {
+        "role": "user",
+        "content": "हलो"
+      },
+      {
+        "role": "assistant",
+        "content": "नमस्ते! मैं VoxBharat से बोल रही हूँ। क्या आप धार्मिक सद्भाव पर एक छोटा सा सर्वे देने के लिए तैयार हैं? बस कुछ मिनट लगेंगे।"
+      }
+    ],
+    "demographics": {
+      "age": null,
+      "ageGroup": null,
+      "religion": null,
+      "language": "hi"
+    },
+    "structured": {
+      "age": null,
+      "ageGroup": null,
+      "religion": null,
+      "religionImportance": null,
+      "prayerFrequency": null,
+      "religiousFreedom": null,
+      "interfaithNeighbor": null,
+      "interfaithMarriage": null,
+      "diversityOpinion": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "openness": "medium",
+      "religiosity": "low"
+    }
+  },
+  {
+    "id": "615b693d-2aed-4f0c-8f41-e10a967ba798",
+    "timestamp": "2026-02-07T17:07:33.290Z",
+    "duration": 137,
+    "language": "hi",
+    "status": "completed",
+    "summary": "A 32-year-old Hindu respondent who prays daily and considers religion very important. Demonstrates high openness toward interfaith neighbors and marriages, believes religious freedom exists in India, and views religious diversity positively.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा बताईए"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "जी"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, आपकी उम्र क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मेरी उम्र है"
+      },
+      {
+        "role": "assistant",
+        "content": "हाँ, बताइए कितनी है?"
+      },
+      {
+        "role": "user",
+        "content": "32 साल"
+      },
+      {
+        "role": "user",
+        "content": "बते साल"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! अब बताइए, आप किस धर्म को मानते हैं?"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा, धन्यवाद! अब मुझे बताइए - आप किस धर्म को मानते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "हिंदू"
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा! तो बताइए, आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?"
+      },
+      {
+        "role": "user",
+        "content": "काफी मैं दो पूना"
+      },
+      {
+        "role": "assistant",
+        "content": "समझी। आप कितनी बार प्रार्थना या पूजा करते हैं - रोज़, हफ्ते में कुछ बार, या महीने में?"
+      },
+      {
+        "role": "user",
+        "content": "दिन में एक बार करता हूंगा"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! अब बताइए - क्या आपको लगता है कि भारत में सभी धर्मों के लोगों को अपने धर्म का पालन करने की पूरी स्वतंत्रता है?"
+      },
+      {
+        "role": "user",
+        "content": "जी दरोर."
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा! अब मेरा अगला सवाल है - अगर आपके पड़ोस में किसी दूसरे धर्म का परिवार आए, तो आपको कैसा लगेगा?"
+      },
+      {
+        "role": "user",
+        "content": "मुझे गोई दिक्कत नहीं है आने दीजे"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! अब बताइए - अंतर-धार्मिक विवाह के बारे में आपकी क्या राय है?"
+      },
+      {
+        "role": "user",
+        "content": "अज़ अज़"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, अंतर-धार्मिक विवाह - जब दो अलग धर्मों के लोग शादी करें, इसके बारे में आपकी क्या राय है?"
+      },
+      {
+        "role": "user",
+        "content": "अच्छा है यही मतलब मुझे वे दिकतनी है"
+      },
+      {
+        "role": "assistant",
+        "content": "समझी, कोई दिक्कत नहीं है। अंतिम सवाल - आपके विचार में, धार्मिक विविधता भारत को बेहतर बनाती है या चुनौतीपूर्ण?"
+      },
+      {
+        "role": "user",
+        "content": "वटेवार वटेवार"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत-बहुत धन्यवाद! आपके जवाब हमारे लिए बहुत कीमती हैं। आपका दिन शुभ हो!"
+      }
+    ],
+    "demographics": {
+      "age": 32,
+      "ageGroup": "25-34",
+      "religion": "Hindu",
+      "language": "hi"
+    },
+    "structured": {
+      "age": 32,
+      "ageGroup": "25-34",
+      "religion": "Hindu",
+      "religionImportance": "very_important",
+      "prayerFrequency": "daily",
+      "religiousFreedom": "yes_fully",
+      "interfaithNeighbor": "welcome",
+      "interfaithMarriage": "fully_support",
+      "diversityOpinion": "makes_better"
+    },
+    "sentiment": {
+      "overall": "positive",
+      "openness": "high",
+      "religiosity": "high"
+    }
+  },
+  {
+    "id": "52f988ff-d01d-4332-bef9-35aa798f583d",
+    "timestamp": "2026-02-07T17:27:29.072Z",
+    "duration": 48,
+    "language": "hi",
+    "status": "completed",
+    "summary": "Respondent identified as Hindu but was unwilling or unable to provide age information. The interview was incomplete with only religious affiliation captured.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा बदाया"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "अच्छा बदाया"
+      },
+      {
+        "role": "assistant",
+        "content": "मैं समझी नहीं। क्या आप अपनी उम्र बता सकते हैं? जैसे 25 साल, 40 साल?"
+      },
+      {
+        "role": "user",
+        "content": "ये अज़ अज़ अज़"
+      },
+      {
+        "role": "assistant",
+        "content": "कोई बात नहीं। अगर आप उम्र नहीं बताना चाहते, तो चलिए अगले सवाल पर चलते हैं। आप किस धर्म को मानते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "हंदू"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा। आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?"
+      }
+    ],
+    "demographics": {
+      "age": null,
+      "ageGroup": null,
+      "religion": "Hindu",
+      "language": "hi"
+    },
+    "structured": {
+      "age": null,
+      "ageGroup": null,
+      "religion": "Hindu",
+      "religionImportance": null,
+      "prayerFrequency": null,
+      "religiousFreedom": null,
+      "interfaithNeighbor": null,
+      "interfaithMarriage": null,
+      "diversityOpinion": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "openness": "low",
+      "religiosity": "medium"
+    }
+  },
+  {
+    "id": "f9e3f3e1-3a3d-4a0c-9cd5-f822d3d1ffdf",
+    "timestamp": "2026-02-07T17:35:50.447Z",
+    "duration": 112,
+    "language": "hi",
+    "status": "completed",
+    "summary": "24-year-old Christian respondent with moderate religious engagement who appears somewhat open to interfaith relations and views religious diversity positively, though some responses were unclear or brief.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा बताईए"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "जी मैं 24 साल का हूँ"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! आप किस धर्म को मानते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "मैं एसाई हूँ"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है। आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?"
+      },
+      {
+        "role": "user",
+        "content": "काफी में पूप पूर नहीं में बोलूंगा"
+      },
+      {
+        "role": "assistant",
+        "content": "समझ गई। आप कितनी बार प्रार्थना या पूजा करते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "अब"
+      },
+      {
+        "role": "assistant",
+        "content": "जी। क्या आपको लगता है कि भारत में सभी धर्मों के लोगों को अपने धर्म का पालन करने की पूरी स्वतंत्रता है?"
+      },
+      {
+        "role": "user",
+        "content": "Alltaf með þig vergar dána."
+      },
+      {
+        "role": "assistant",
+        "content": "जी, समझी। अगर आपके पड़ोस में किसी दूसरे धर्म का परिवार आए, तो आपको कैसा लगेगा?"
+      },
+      {
+        "role": "user",
+        "content": "जी जी जी जी जी जी"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है। अंतर-धार्मिक विवाह के बारे में आपकी क्या राय है?"
+      },
+      {
+        "role": "user",
+        "content": "अच्छे है, वेदे कुछ ता वटेवाद"
+      },
+      {
+        "role": "assistant",
+        "content": "समझी। आपके विचार में, धार्मिक विविधता भारत को बेहतर बनाती है या चुनौतीपूर्ण?"
+      },
+      {
+        "role": "user",
+        "content": "बेदर"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत-बहुत धन्यवाद! आपके जवाब हमारे लिए बहुत कीमती हैं। आपका दिन शुभ हो!"
+      }
+    ],
+    "demographics": {
+      "age": 24,
+      "ageGroup": "18-24",
+      "religion": "Christian",
+      "language": "hi"
+    },
+    "structured": {
+      "age": 24,
+      "ageGroup": "18-24",
+      "religion": "Christian",
+      "religionImportance": "somewhat_important",
+      "prayerFrequency": "rarely",
+      "religiousFreedom": null,
+      "interfaithNeighbor": "welcome",
+      "interfaithMarriage": "depends",
+      "diversityOpinion": "makes_better"
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "openness": "medium",
+      "religiosity": "medium"
+    }
+  },
+  {
+    "id": "0b7edb43-6db4-46b6-b9e2-4640d4f609b0",
+    "timestamp": "2026-02-07T17:40:30.273Z",
+    "duration": 43,
+    "language": "hi",
+    "status": "completed",
+    "summary": "Survey started with a Jain respondent but was incomplete. Age and other questions about religious practice and interfaith attitudes were not answered before the conversation ended.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छावताया?"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "वटेवाद"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, धन्यवाद। आप किस धर्म को मानते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "में जाइब"
+      },
+      {
+        "role": "assistant",
+        "content": "समझ गई। आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?"
+      }
+    ],
+    "demographics": {
+      "age": null,
+      "ageGroup": null,
+      "religion": "जैन",
+      "language": "hi"
+    },
+    "structured": {
+      "age": null,
+      "ageGroup": null,
+      "religion": "जैन",
+      "religionImportance": null,
+      "prayerFrequency": null,
+      "religiousFreedom": null,
+      "interfaithNeighbor": null,
+      "interfaithMarriage": null,
+      "diversityOpinion": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "openness": "medium",
+      "religiosity": "medium"
+    }
+  },
+  {
+    "id": "0af70ee1-e92b-4ff8-9b70-2e7f03879590",
+    "timestamp": "2026-02-07T17:43:50.451Z",
+    "duration": 28,
+    "language": "hi",
+    "status": "completed",
+    "summary": "Respondent immediately declined to participate in the survey and refused any conversation. No data was collected.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "नहीं मुझे बिल्कुल भी बात नहीं करना आपसे क्यों फोन कर रहा हूज है"
+      },
+      {
+        "role": "assistant",
+        "content": "कोई बात नहीं, मैं समझती हूँ। आपका समय देने के लिए धन्यवाद। आपका दिन शुभ हो!"
+      }
+    ],
+    "demographics": {
+      "age": null,
+      "ageGroup": null,
+      "religion": null,
+      "language": "hi"
+    },
+    "structured": {
+      "age": null,
+      "ageGroup": null,
+      "religion": null,
+      "religionImportance": null,
+      "prayerFrequency": null,
+      "religiousFreedom": null,
+      "interfaithNeighbor": null,
+      "interfaithMarriage": null,
+      "diversityOpinion": null
+    },
+    "sentiment": {
+      "overall": "negative",
+      "openness": "low",
+      "religiosity": "low"
+    }
+  },
+  {
+    "id": "7e334fbf-b929-4147-8d6d-da2e8bfbfcc6",
+    "timestamp": "2026-02-07T17:45:50.006Z",
+    "duration": 141,
+    "language": "hi",
+    "status": "completed",
+    "summary": "24-year-old Jain respondent who attends religious services weekly and values religion highly. Shows strong openness to religious diversity and welcomes interfaith neighbors, believing religious diversity makes India better.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा बताईए क्या जानना आपको"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "जी मैं 24 साल का हूँ"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! आप किस धर्म को मानते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "मैं जाइब।"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है। आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?"
+      },
+      {
+        "role": "user",
+        "content": "काफी में तुब बोलना मैं काउंगा"
+      },
+      {
+        "role": "assistant",
+        "content": "जी समझ गई। आप कितनी बार प्रार्थना या पूजा करते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "मैं हफ्टे में एक बर करता हूँ चर्ज जाता हूँ ना मैं?"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा। क्या आपको लगता है कि भारत में सभी धर्मों के लोगों को अपने धर्म का पालन करने की पूरी स्वतंत्रता है?"
+      },
+      {
+        "role": "user",
+        "content": "हादी जरूर्ट कोई दिकत निया है?"
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा। अगर आपके पड़ोस में किसी दूसरे धर्म का परिवार आए, तो आपको कैसा लगेगा?"
+      },
+      {
+        "role": "user",
+        "content": "मुझे कोई दिक्कत नहीं है आने दीजें क्या रगारा"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत बढ़िया! अंतर-धार्मिक विवाह के बारे में आपकी क्या राय है?"
+      },
+      {
+        "role": "user",
+        "content": "अजय"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है। आपके विचार में, धार्मिक विविधता भारत को बेहतर बनाती है या चुनौतीपूर्ण?"
+      },
+      {
+        "role": "user",
+        "content": "मतलव मैंले के बेटर बनाते हैं जी"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत-बहुत धन्यवाद! आपके जवाब हमारे लिए बहुत कीमती हैं। आपका दिन शुभ हो!"
+      }
+    ],
+    "demographics": {
+      "age": 24,
+      "ageGroup": "18-24",
+      "religion": "Jain",
+      "language": "hi"
+    },
+    "structured": {
+      "age": 24,
+      "ageGroup": "18-24",
+      "religion": "Jain",
+      "religionImportance": "very_important",
+      "prayerFrequency": "weekly",
+      "religiousFreedom": "yes_fully",
+      "interfaithNeighbor": "welcome",
+      "interfaithMarriage": null,
+      "diversityOpinion": "makes_better"
+    },
+    "sentiment": {
+      "overall": "positive",
+      "openness": "high",
+      "religiosity": "high"
+    }
+  }
+]

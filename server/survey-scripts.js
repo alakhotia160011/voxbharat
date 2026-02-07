@@ -1,0 +1,319 @@
+// Survey question scripts for AI voice surveys
+// Matches the existing demo conversation structure in the frontend
+
+export const SURVEY_SCRIPTS = {
+  hi: {
+    name: 'Hindi Religious Harmony Survey',
+    greeting: 'नमस्ते! मैं VoxBharat से बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए? यह धार्मिक सद्भाव के बारे में है।',
+    questions: [
+      {
+        id: 'age',
+        text: 'सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?',
+        type: 'demographic',
+        field: 'age',
+      },
+      {
+        id: 'religion',
+        text: 'आप किस धर्म को मानते हैं?',
+        type: 'demographic',
+        field: 'religion',
+      },
+      {
+        id: 'religion_importance',
+        text: 'आपके दैनिक जीवन में धर्म कितना महत्वपूर्ण है?',
+        type: 'structured',
+        field: 'religion_importance',
+        options: ['very_important', 'somewhat_important', 'not_important'],
+      },
+      {
+        id: 'prayer_frequency',
+        text: 'आप कितनी बार प्रार्थना या पूजा करते हैं?',
+        type: 'structured',
+        field: 'prayer_frequency',
+        options: ['daily', 'weekly', 'occasionally', 'rarely'],
+      },
+      {
+        id: 'religious_freedom',
+        text: 'क्या आपको लगता है कि भारत में सभी धर्मों के लोगों को अपने धर्म का पालन करने की पूरी स्वतंत्रता है?',
+        type: 'structured',
+        field: 'religious_freedom',
+        options: ['yes_fully', 'mostly', 'somewhat', 'no'],
+      },
+      {
+        id: 'interfaith_neighbor',
+        text: 'अगर आपके पड़ोस में किसी दूसरे धर्म का परिवार आए, तो आपको कैसा लगेगा?',
+        type: 'structured',
+        field: 'interfaith_neighbor',
+        options: ['welcome', 'neutral', 'uncomfortable', 'would_not_accept'],
+      },
+      {
+        id: 'interfaith_marriage',
+        text: 'अंतर-धार्मिक विवाह के बारे में आपकी क्या राय है?',
+        type: 'structured',
+        field: 'interfaith_marriage',
+        options: ['fully_support', 'depends', 'difficult', 'oppose'],
+      },
+      {
+        id: 'diversity_opinion',
+        text: 'आपके विचार में, धार्मिक विविधता भारत को बेहतर बनाती है या चुनौतीपूर्ण?',
+        type: 'structured',
+        field: 'diversity_opinion',
+        options: ['makes_better', 'both', 'challenging', 'no_effect'],
+      },
+    ],
+    closing: 'बहुत-बहुत धन्यवाद! आपके जवाब हमारे लिए बहुत कीमती हैं। आपका दिन शुभ हो!',
+    consent_prompt: 'यह सर्वेक्षण पूरी तरह गोपनीय है। क्या आप इसमें भाग लेना चाहेंगे?',
+  },
+
+  bn: {
+    name: 'Bengali Religious Harmony Survey',
+    greeting: 'নমস্কার! আমি VoxBharat থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে একটি ছোট সমীক্ষার জন্য? এটি ধর্মীয় সম্প্রীতি সম্পর্কে।',
+    questions: [
+      {
+        id: 'age',
+        text: 'প্রথমে, আপনার বয়স কত?',
+        type: 'demographic',
+        field: 'age',
+      },
+      {
+        id: 'religion',
+        text: 'আপনি কোন ধর্ম পালন করেন?',
+        type: 'demographic',
+        field: 'religion',
+      },
+      {
+        id: 'religion_importance',
+        text: 'আপনার দৈনন্দিন জীবনে ধর্ম কতটা গুরুত্বপূর্ণ?',
+        type: 'structured',
+        field: 'religion_importance',
+        options: ['very_important', 'somewhat_important', 'not_important'],
+      },
+      {
+        id: 'prayer_frequency',
+        text: 'আপনি কত ঘন ঘন প্রার্থনা বা পূজা করেন?',
+        type: 'structured',
+        field: 'prayer_frequency',
+        options: ['daily', 'weekly', 'occasionally', 'rarely'],
+      },
+      {
+        id: 'religious_freedom',
+        text: 'আপনার কি মনে হয় ভারতে সব ধর্মের মানুষ তাদের ধর্ম পালন করার পূর্ণ স্বাধীনতা পায়?',
+        type: 'structured',
+        field: 'religious_freedom',
+        options: ['yes_fully', 'mostly', 'somewhat', 'no'],
+      },
+      {
+        id: 'interfaith_neighbor',
+        text: 'যদি আপনার পাড়ায় অন্য ধর্মের কোনো পরিবার আসে, আপনার কেমন লাগবে?',
+        type: 'structured',
+        field: 'interfaith_neighbor',
+        options: ['welcome', 'neutral', 'uncomfortable', 'would_not_accept'],
+      },
+      {
+        id: 'interfaith_marriage',
+        text: 'আন্তঃধর্মীয় বিবাহ সম্পর্কে আপনার মতামত কী?',
+        type: 'structured',
+        field: 'interfaith_marriage',
+        options: ['fully_support', 'depends', 'difficult', 'oppose'],
+      },
+      {
+        id: 'diversity_opinion',
+        text: 'আপনার মতে, ধর্মীয় বৈচিত্র্য কি ভারতকে আরও ভালো করে নাকি চ্যালেঞ্জিং?',
+        type: 'structured',
+        field: 'diversity_opinion',
+        options: ['makes_better', 'both', 'challenging', 'no_effect'],
+      },
+    ],
+    closing: 'অনেক ধন্যবাদ! আপনার উত্তরগুলি আমাদের জন্য অত্যন্ত মূল্যবান। আপনার দিন শুভ হোক!',
+    consent_prompt: 'এই সমীক্ষাটি সম্পূর্ণ গোপনীয়। আপনি কি এতে অংশগ্রহণ করতে চান?',
+  },
+};
+
+/**
+ * Get the system prompt for Claude based on language and survey script
+ */
+export function getSystemPrompt(language, gender) {
+  const script = SURVEY_SCRIPTS[language];
+  if (!script) throw new Error(`Unsupported language: ${language}`);
+
+  const genderNote = language === 'hi'
+    ? (gender === 'female'
+      ? 'Use feminine verb forms: रही हूँ, करती हूँ, बोल रही हूँ'
+      : 'Use masculine verb forms: रहा हूँ, करता हूँ, बोल रहा हूँ')
+    : '';
+
+  return `You are a friendly phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India.
+
+CRITICAL RULES:
+1. Speak ONLY in ${language === 'hi' ? 'Hindi' : 'Bengali'}. Never use English.
+2. Ask ONE question at a time. Wait for the response before asking the next question.
+3. Keep responses to 1-2 sentences maximum. This is a phone call - be very concise and brief.
+4. Be warm, respectful, and conversational. React naturally to answers.
+5. ${genderNote}
+6. Follow the survey question order but adapt naturally based on responses.
+7. NEVER repeat a question you have already asked. Always move forward to the next question.
+8. If someone gives a vague or unclear answer, accept it and move on. Do NOT probe or re-ask.
+9. If someone refuses to answer, politely acknowledge and immediately move to the next question.
+10. After all questions are answered, say the closing message and add [SURVEY_COMPLETE] at the end.
+11. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
+
+IMPORTANT - SPEECH RECOGNITION CONTEXT:
+The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled Hindi text. You MUST:
+- Interpret the transcription generously. For example: "हेंडू" or "हंदू" = "हिंदू", "बते साल" = "बत्तीस साल", "मात्वपोना" = "महत्वपूर्ण", "दिकतनी" = "दिक्कत नहीं", "दरोर" = "ज़रूर"
+- If a response seems like agreement or acknowledgment (e.g., "जी", "हाँ", "अच्छा", "ठीक है"), accept it and move on
+- If text seems garbled or nonsensical, assume the user answered and move to the next question rather than re-asking
+- NEVER say you didn't understand. Just accept whatever was said and continue forward.
+
+SURVEY QUESTIONS (ask in this order):
+${script.questions.map((q, i) => `${i + 1}. ${q.text}`).join('\n')}
+
+CLOSING: ${script.closing}
+
+Remember: Keep moving forward through the questions. Never go backward. Each response you give should contain at most ONE question.`;
+}
+
+/**
+ * Get the data extraction prompt for Claude
+ */
+export function getExtractionPrompt(language) {
+  return `Extract structured survey data from the following conversation transcript.
+Return ONLY valid JSON matching this exact schema:
+
+{
+  "demographics": {
+    "age": <number or null>,
+    "ageGroup": "<18-24|25-34|35-44|45-54|55-64|65+|null>",
+    "religion": "<string or null>",
+    "language": "${language}"
+  },
+  "structured": {
+    "age": <number or null>,
+    "ageGroup": "<same as above>",
+    "religion": "<string or null>",
+    "religionImportance": "<very_important|somewhat_important|not_important|null>",
+    "prayerFrequency": "<daily|weekly|occasionally|rarely|null>",
+    "religiousFreedom": "<yes_fully|mostly|somewhat|no|null>",
+    "interfaithNeighbor": "<welcome|neutral|uncomfortable|would_not_accept|null>",
+    "interfaithMarriage": "<fully_support|depends|difficult|oppose|null>",
+    "diversityOpinion": "<makes_better|both|challenging|no_effect|null>"
+  },
+  "sentiment": {
+    "overall": "<positive|neutral|negative>",
+    "openness": "<high|medium|low>",
+    "religiosity": "<high|medium|low>"
+  },
+  "summary": "<1-2 sentence summary in English>"
+}
+
+Be precise. Map the respondent's answers to the closest option value. If an answer was not given or unclear, use null.`;
+}
+
+/**
+ * Generate a greeting for a custom survey
+ */
+export function generateCustomGreeting(language, gender, surveyName) {
+  if (language === 'hi') {
+    const verb = gender === 'female' ? 'रही' : 'रहा';
+    return `नमस्ते! मैं VoxBharat से बोल ${verb} हूँ। क्या आपके पास कुछ मिनट हैं? हम "${surveyName}" पर एक छोटा सर्वेक्षण कर रहे हैं।`;
+  } else if (language === 'bn') {
+    return `নমস্কার! আমি VoxBharat থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে? আমরা "${surveyName}" নিয়ে একটি ছোট সমীক্ষা করছি।`;
+  }
+  // Fallback to Hindi
+  return `नमस्ते! मैं VoxBharat से बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए?`;
+}
+
+/**
+ * Get system prompt for a custom survey (dynamic questions from builder)
+ */
+export function getCustomSystemPrompt(language, gender, customSurvey) {
+  const langName = language === 'hi' ? 'Hindi' : language === 'bn' ? 'Bengali' : 'Hindi';
+
+  const genderNote = language === 'hi'
+    ? (gender === 'female'
+      ? 'Use feminine verb forms: रही हूँ, करती हूँ, बोल रही हूँ'
+      : 'Use masculine verb forms: रहा हूँ, करता हूँ, बोल रहा हूँ')
+    : '';
+
+  const toneInstruction = customSurvey.tone === 'formal'
+    ? 'Use formal/respectful register (आप, not तुम).'
+    : customSurvey.tone === 'friendly'
+    ? 'Use a warm, friendly register.'
+    : 'Use a warm, conversational tone.';
+
+  const questionsBlock = customSurvey.questions
+    .map((q, i) => {
+      let line = `${i + 1}. ${q.text}`;
+      if (q.options && q.options.length > 0) {
+        line += ` [Options: ${q.options.join(', ')}]`;
+      }
+      return line;
+    })
+    .join('\n');
+
+  return `You are a friendly phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}".
+
+CRITICAL RULES:
+1. Speak ONLY in ${langName}. Never use English.
+2. Ask ONE question at a time. Wait for the response before asking the next question.
+3. Keep responses to 1-2 sentences maximum. This is a phone call - be very concise and brief.
+4. Be warm, respectful, and conversational. React naturally to answers.
+5. ${genderNote}
+6. ${toneInstruction}
+7. Follow the survey question order but adapt naturally based on responses.
+8. NEVER repeat a question you have already asked. Always move forward to the next question.
+9. If someone gives a vague or unclear answer, accept it and move on. Do NOT probe or re-ask.
+10. If someone refuses to answer, politely acknowledge and immediately move to the next question.
+11. After all questions are answered, say a brief thank-you and goodbye, then add [SURVEY_COMPLETE] at the end.
+12. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
+
+IMPORTANT - SPEECH RECOGNITION CONTEXT:
+The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
+- Interpret the transcription generously
+- If a response seems like agreement or acknowledgment (e.g., "जी", "हाँ", "अच्छा", "ठीक है"), accept it and move on
+- If text seems garbled or nonsensical, assume the user answered and move to the next question
+- NEVER say you didn't understand. Just accept whatever was said and continue forward.
+
+SURVEY QUESTIONS (ask in this order):
+${questionsBlock}
+
+After the last question, thank the respondent warmly and end the conversation. Add [SURVEY_COMPLETE] at the very end.
+
+Remember: Keep moving forward through the questions. Never go backward. Each response you give should contain at most ONE question.`;
+}
+
+/**
+ * Get data extraction prompt for a custom survey (dynamic schema)
+ */
+export function getCustomExtractionPrompt(customSurvey) {
+  const fields = customSurvey.questions.map(q => {
+    const fieldName = q.textEn
+      ? q.textEn.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').substring(0, 40)
+      : `question_${q.id}`;
+
+    let valueHint = '<string or null>';
+    if (q.options && q.options.length > 0) {
+      valueHint = `<${q.options.map(o => `"${o}"`).join('|')}|null>`;
+    } else if (q.type === 'rating' || q.type === 'nps') {
+      valueHint = '<number or null>';
+    }
+
+    return `    "${fieldName}": ${valueHint}`;
+  });
+
+  return `Extract structured survey data from the following conversation transcript.
+The survey is called "${customSurvey.name}".
+Return ONLY valid JSON matching this schema:
+
+{
+  "responses": {
+${fields.join(',\n')}
+  },
+  "sentiment": {
+    "overall": "<positive|neutral|negative>",
+    "engagement": "<high|medium|low>"
+  },
+  "summary": "<1-2 sentence summary in English>"
+}
+
+Be precise. Map the respondent's answers to the closest option value when options are provided. If an answer was not given or unclear, use null.`;
+}
