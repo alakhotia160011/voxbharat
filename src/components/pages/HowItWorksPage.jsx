@@ -13,7 +13,7 @@ const steps = [
       'Choose your survey type, target audience, and languages. Our AI helps craft culturally sensitive questions that feel natural in conversation.',
     detail: [
       'Start by choosing from our template library or build from scratch. Select your target audience by geography, demographics, and language. Our builder supports multiple question types including single choice, Likert scales, open-ended questions, and NPS scores.',
-      'Questions are automatically adapted for cultural context — phrasing that works in Hindi may not translate directly to Tamil. Our AI handles these nuances so you get natural, unbiased conversations.',
+      'Questions are automatically adapted for cultural context. Phrasing that works in Hindi may not translate directly to Tamil. Our AI handles these nuances so you get natural, unbiased conversations.',
     ],
   },
   {
@@ -21,10 +21,10 @@ const steps = [
     label: 'Call',
     heading: 'AI Calls Respondents',
     description:
-      'Our voice AI calls respondents in their native language — Hindi, Bengali, Tamil, and 9 more. Natural conversation, not robotic scripts.',
+      'Our voice AI calls respondents in their native language: Hindi, Bengali, Tamil, and 9 more. Natural conversation, not robotic scripts.',
     detail: [
       'Our AI uses Cartesia Sonic 3 for ultra-low-latency speech synthesis. Calls sound natural and human-like, with support for code-switching (mixing languages mid-sentence), regional accents, and conversational flow.',
-      'The AI adapts in real-time — if a respondent gives a short answer, it probes further. If they go off-topic, it gently redirects. Every conversation feels personal, not scripted.',
+      'The AI adapts in real-time. If a respondent gives a short answer, it probes further. If they go off-topic, it gently redirects. Every conversation feels personal, not scripted.',
     ],
   },
   {

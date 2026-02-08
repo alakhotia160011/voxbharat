@@ -27,6 +27,7 @@ const NavBar = ({ currentPage, navigateTo, setShowBuilder }) => {
   };
 
   const navLinks = [
+    { page: 'home', label: 'Home' },
     { page: 'how-it-works', label: 'How It Works' },
     { page: 'about', label: 'About' },
     { page: 'faqs', label: 'FAQs' },

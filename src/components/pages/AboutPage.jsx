@@ -82,17 +82,17 @@ export default function AboutPage({ navigateTo }) {
             <motion.p className="mt-8 text-earth-mid text-lg leading-relaxed" variants={fadeInUp}>
               Language barriers, rural inaccessibility, and cultural hesitance leave hundreds of
               millions unheard. VoxBharat changes that. Using advanced voice AI, we conduct natural
-              phone conversations in 12 Indian languages, reaching respondents where they are — from
+              phone conversations in 12 Indian languages, reaching respondents where they are, from
               Mumbai high-rises to villages in Bihar. No apps to download, no literacy required.
             </motion.p>
             <motion.p className="mt-4 text-earth-mid text-lg leading-relaxed" variants={fadeInUp}>
-              Our AI doesn't just ask questions — it listens. It handles code-switching between
+              Our AI doesn't just ask questions. It listens. It handles code-switching between
               languages, understands regional idioms, and adapts its tone to build genuine rapport.
               The result: higher response rates, richer data, and insights that actually represent
               Bharat.
             </motion.p>
             <motion.p className="mt-4 text-earth-mid text-lg leading-relaxed" variants={fadeInUp}>
-              The result is data that finally represents all of India — not just the
+              The result is data that finally represents all of India, not just the
               English-speaking, urban, online minority. Better data means better decisions, and
               better decisions mean a more representative democracy.
             </motion.p>
@@ -119,7 +119,7 @@ export default function AboutPage({ navigateTo }) {
               {[
                 {
                   title: 'True Multilingual AI',
-                  desc: "Not just translation — our voice models understand cultural context, code-switching, and regional idioms across 12 Indian languages.",
+                  desc: "Not just translation. Our voice models understand cultural context, code-switching, and regional idioms across 12 Indian languages.",
                 },
                 {
                   title: 'Rural-First Design',
@@ -131,7 +131,7 @@ export default function AboutPage({ navigateTo }) {
                 },
                 {
                   title: 'Real-Time Analysis',
-                  desc: 'Responses are transcribed, translated, structured, and analyzed as they come in. No weeks-long processing — see results as calls complete.',
+                  desc: 'Responses are transcribed, translated, structured, and analyzed as they come in. No weeks-long processing. See results as calls complete.',
                 },
               ].map((item, i) => (
                 <motion.div
@@ -163,7 +163,7 @@ export default function AboutPage({ navigateTo }) {
 const faqs = [
   {
     q: 'How does the AI handle different dialects within a language?',
-    a: "Our voice models are trained on diverse regional speech patterns. The AI recognizes dialectal variations in pronunciation, vocabulary, and grammar — whether it's Bhojpuri-influenced Hindi or Sylheti Bengali. It adapts its responses to match the respondent's natural speech.",
+    a: "Our voice models are trained on diverse regional speech patterns. The AI recognizes dialectal variations in pronunciation, vocabulary, and grammar, whether it's Bhojpuri-influenced Hindi or Sylheti Bengali. It adapts its responses to match the respondent's natural speech.",
   },
   {
     q: "What happens if the respondent doesn't want to participate?",
@@ -171,7 +171,7 @@ const faqs = [
   },
   {
     q: 'How accurate are the survey results compared to traditional methods?',
-    a: 'In benchmark studies, our AI-conducted surveys have shown comparable accuracy to in-person interviews, with significantly better reach into underrepresented demographics. The consistent methodology eliminates interviewer bias — a major issue in traditional Indian polling.',
+    a: 'In benchmark studies, our AI-conducted surveys have shown comparable accuracy to in-person interviews, with significantly better reach into underrepresented demographics. The consistent methodology eliminates interviewer bias, a major issue in traditional Indian polling.',
   },
   {
     q: 'Can I customize the survey questions and flow?',
