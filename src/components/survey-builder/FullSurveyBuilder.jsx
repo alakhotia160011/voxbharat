@@ -570,7 +570,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 <label className="block text-sm font-medium text-earth mb-4">Urgency</label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { id: 'standard', name: 'Standard', time: '5-7 days', price: '\u20B938/response', icon: '\u2014' },
+                    { id: 'standard', name: 'Standard', time: '5-7 days', price: '₹38/response', icon: '·' },
                     { id: 'express', name: 'Express', time: '2-3 days', price: '\u20B945/response', icon: '\u00BB' },
                     { id: 'urgent', name: 'Urgent', time: '24-48 hours', price: '\u20B955/response', icon: '!' },
                   ].map(opt => (
@@ -1122,7 +1122,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     )}
                     {testCallStatus === 'connected' && (
                       <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">
-                        <span className="animate-pulse">\u25CF</span> Survey in progress — answer the call!
+                        <span className="animate-pulse">\u25CF</span> Survey in progress, answer the call!
                       </div>
                     )}
                     {testCallStatus === 'completed' && (
@@ -1207,7 +1207,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                                                 value === 'positive' || value === 'high' ? 'bg-green-100 text-green-700' :
                                                 value === 'neutral' || value === 'medium' ? 'bg-yellow-100 text-yellow-700' :
                                                 'bg-red-100 text-red-700'
-                                              }`}>{value != null ? String(value) : '—'}</span>
+                                              }`}>{value != null ? String(value) : '-'}</span>
                                             </div>
                                           ))}
                                         </div>

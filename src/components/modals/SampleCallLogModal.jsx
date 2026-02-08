@@ -162,7 +162,7 @@ export default function SampleCallLogModal({ show, onClose, data }) {
                     {Object.entries(data.extractedData.structured).map(([key, value]) => (
                       <div key={key} className="flex justify-between py-2 border-b border-cream-warm">
                         <span className="text-earth-mid">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()}</span>
-                        <span className="font-medium text-earth">{value !== null ? String(value).replace(/_/g, ' ') : '—'}</span>
+                        <span className="font-medium text-earth">{value !== null ? String(value).replace(/_/g, ' ') : '-'}</span>
                       </div>
                     ))}
                   </div>

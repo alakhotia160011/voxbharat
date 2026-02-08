@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import SectionHeading from '../shared/SectionHeading';
 
 const steps = [
   {
@@ -14,7 +15,7 @@ const steps = [
     label: 'Call',
     heading: 'AI Calls Respondents',
     description:
-      'Our voice AI calls respondents in their native language \u2014 Hindi, Bengali, Tamil, and 9 more. Natural conversation, not robotic scripts.',
+      'Our voice AI calls respondents in their native language: Hindi, Bengali, Tamil, and 9 more. Natural conversation, not robotic scripts.',
   },
   {
     numeral: '\u0969',
@@ -45,6 +46,16 @@ const HowItWorksSection = () => {
   return (
     <section className="py-20 lg:py-40 px-6">
       <div className="max-w-4xl mx-auto">
+        <motion.div
+          className="mb-20"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          <SectionHeading number={4} title="How VoxBharat Works" />
+        </motion.div>
+
         {steps.map((step, i) => (
           <motion.div
             key={step.label}
@@ -55,12 +66,9 @@ const HowItWorksSection = () => {
             viewport={{ once: true, margin: '-50px' }}
             custom={i}
           >
-            {/* Numeral row */}
+            {/* Label + line */}
             <div className="flex items-center gap-4 mb-4">
-              <span className="text-[2.5rem] font-serif-indic text-[#c4a04a] leading-none">
-                {step.numeral}
-              </span>
-              <div className="flex-1 h-px bg-[#c4a04a]/30 self-center" />
+              <div className="flex-1 h-px bg-[#c4a04a]/30" />
               <span className="uppercase text-xs tracking-[0.15em] text-[#6b4c3a]">
                 {step.label}
               </span>

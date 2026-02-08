@@ -10,7 +10,7 @@ export const SURVEY_TYPES = [
 export const QUESTION_TYPES = [
   { id: 'single', name: 'Single Choice', icon: '○' },
   { id: 'multiple', name: 'Multiple Choice', icon: '☐' },
-  { id: 'likert', name: 'Likert Scale', icon: '—' },
+  { id: 'likert', name: 'Likert Scale', icon: '≡' },
   { id: 'rating', name: 'Rating (1-10)', icon: '★' },
   { id: 'nps', name: 'NPS (0-10)', icon: '#' },
   { id: 'open', name: 'Open Ended', icon: '...' },
