@@ -79,29 +79,263 @@ export const BENGALI_CONVERSATION_F = [
   { speaker: 'ai', text: 'বাহ, খুব ভালো। আপনার মূল্যবান সময় দেওয়ার জন্য অনেক অনেক ধন্যবাদ। আপনার উত্তরগুলি আমাদের গবেষণার জন্য খুবই গুরুত্বপূর্ণ। আপনার দিন শুভ হোক, নমস্কার!', translation: 'Wonderful, very good. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
 ];
 
-// Bengali conversation - Male voice version (Bengali verbs are mostly gender-neutral)
-export const BENGALI_CONVERSATION_M = [
-  { speaker: 'ai', text: 'নমস্কার! আমি VoxBharat থেকে বলছি। আমরা ভারতে ধর্ম এবং সামাজিক জীবন নিয়ে একটি গবেষণা সমীক্ষা করছি। এতে মাত্র পাঁচ মিনিট লাগবে এবং আপনার পরিচয় সম্পূর্ণ গোপন থাকবে। আপনি কি অংশ নিতে চান?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
-  { speaker: 'user', text: 'হ্যাঁ, ঠিক আছে, বলুন', translation: 'Yes, okay, go ahead' },
-  { speaker: 'ai', text: 'খুব ভালো, ধন্যবাদ। তাহলে শুরু করা যাক। প্রথমে, আপনার বয়স কত বলবেন?', translation: 'Very good, thank you. So let\'s begin. First, can you tell me your age?' },
-  { speaker: 'user', text: 'জি, আমার বয়স 42', translation: 'Yes, I am 42 years old' },
-  { speaker: 'ai', text: 'ধন্যবাদ। আর আপনার ধর্ম কী?', translation: 'Thank you. And what is your religion?' },
-  { speaker: 'user', text: 'জি, আমি হিন্দু', translation: 'Yes, I am Hindu' },
-  { speaker: 'ai', text: 'আচ্ছা। এখন বলুন, আপনার জীবনে ধর্ম কতটা গুরুত্বপূর্ণ - খুব গুরুত্বপূর্ণ, কিছুটা গুরুত্বপূর্ণ, নাকি বেশি গুরুত্বপূর্ণ নয়?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
-  { speaker: 'user', text: 'আমাদের জন্য খুব গুরুত্বপূর্ণ', translation: 'Very important for us' },
-  { speaker: 'ai', text: 'বুঝলাম। পরের প্রশ্ন - আপনি কতবার প্রার্থনা বা পূজা করেন?', translation: 'I understand. Next question - How often do you pray or worship?' },
-  { speaker: 'user', text: 'মানে কী? বুঝলাম না', translation: 'Meaning? I didn\'t understand' },
-  { speaker: 'ai', text: 'জি জি, কোনো সমস্যা নেই। আমি বলতে চাইছি আপনি কি প্রতিদিন পূজা করেন, সপ্তাহে কয়েকবার করেন, মাসে মাঝে মাঝে, নাকি খুব কম?', translation: 'Yes yes, no problem. I mean do you worship daily, a few times a week, occasionally in a month, or rarely?' },
-  { speaker: 'user', text: 'আচ্ছা আচ্ছা। হ্যাঁ, রোজ সকাল-সন্ধ্যা করি', translation: 'Oh okay. Yes, we do it every morning and evening' },
-  { speaker: 'ai', text: 'খুব ভালো। এখন একটু অন্য বিষয়ে আসি। আপনার মতে, ভারতে অন্য ধর্মের মানুষদের কি তাদের ধর্ম পালনের পূর্ণ স্বাধীনতা আছে?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
-  { speaker: 'user', text: 'হ্যাঁ, সবার স্বাধীনতা আছে এখানে', translation: 'Yes, everyone has freedom here' },
-  { speaker: 'ai', text: 'ঠিক আছে। আর যদি আপনার পাড়ায় কোনো মুসলিম বা খ্রিস্টান পরিবার থাকতে আসে, তাহলে আপনার কেমন লাগবে?', translation: 'Okay. And if a Muslim or Christian family moved into your neighborhood, how would you feel?' },
-  { speaker: 'user', text: 'আরে, কোনো সমস্যা নেই, সবাই মিলেমিশে থাকে', translation: 'Oh, no problem, everyone lives together harmoniously' },
-  { speaker: 'ai', text: 'খুব ভালো। আর যদি আপনার পরিবারে কেউ অন্য ধর্মের কাউকে বিয়ে করতে চায়, তাহলে পরিবারের মতামত কী হবে?', translation: 'Very good. And if someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
-  { speaker: 'user', text: 'এটা তো... দেখুন...', translation: 'Oh this is... well, see...' },
-  { speaker: 'ai', text: 'জি জি, কোনো সমস্যা নেই, আপনি নির্দ্বিধায় বলতে পারেন। কোনো সঠিক বা ভুল উত্তর নেই। পরিবার কি মেনে নেবে, নেবে না, নাকি পরিস্থিতির উপর নির্ভর করে?', translation: 'Yes yes, no worries, you can speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
-  { speaker: 'user', text: 'সত্যি বলতে... আমাদের এখানে একটু কঠিন হবে', translation: 'To be honest... it would be a bit difficult in our family' },
-  { speaker: 'ai', text: 'আপনার সততার জন্য ধন্যবাদ। এখন শুধু শেষ প্রশ্ন। আপনার কি মনে হয় ভারতের বৈচিত্র্য, মানে বিভিন্ন ধর্ম ও সংস্কৃতি, দেশকে ভালো করে নাকি দুর্বল করে?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
-  { speaker: 'user', text: 'ভালো করে, এটাই তো ভারতের আসল পরিচয়', translation: 'Makes it better, that\'s the true identity of India' },
-  { speaker: 'ai', text: 'বাহ, খুব ভালো। আপনার মূল্যবান সময় দেওয়ার জন্য অনেক অনেক ধন্যবাদ। আপনার উত্তরগুলি আমাদের গবেষণার জন্য খুবই গুরুত্বপূর্ণ। আপনার দিন শুভ হোক, নমস্কার!', translation: 'Wonderful, very good. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
+// Gujarati conversation - Female voice version (હું બોલી રહી છું forms)
+export const GUJARATI_CONVERSATION_F = [
+  { speaker: 'ai', text: 'નમસ્તે! હું VoxBharat તરફથી બોલી રહી છું. અમે ભારતમાં ધર્મ અને સામાજિક જીવન પર એક સંશોધન સર્વે કરી રહ્યા છીએ. આમાં ફક્ત પાંચ મિનિટ લાગશે અને તમારી ઓળખ સંપૂર્ણ ગોપનીય રહેશે. શું તમે ભાગ લેવા માંગો છો?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'user', text: 'હા, ઠીક છે, બોલો', translation: 'Yes, okay, go ahead' },
+  { speaker: 'ai', text: 'ખૂબ સારું, ધન્યવાદ. તો ચાલો શરૂ કરીએ. સૌ પ્રથમ, તમારી ઉંમર કેટલી છે?', translation: 'Very good, thank you. So let\'s begin. First of all, can you tell me your age?' },
+  { speaker: 'user', text: 'જી, હું 42 વર્ષનો છું', translation: 'Yes, I am 42 years old' },
+  { speaker: 'ai', text: 'ધન્યવાદ. અને તમારો ધર્મ શું છે?', translation: 'Thank you. And what is your religion?' },
+  { speaker: 'user', text: 'જી, હું હિંદુ છું', translation: 'Yes, I am Hindu' },
+  { speaker: 'ai', text: 'સારું. હવે કહો, તમારા જીવનમાં ધર્મ કેટલો મહત્વપૂર્ણ છે - ખૂબ મહત્વપૂર્ણ, થોડો મહત્વપૂર્ણ, કે વધારે મહત્વપૂર્ણ નથી?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
+  { speaker: 'user', text: 'અમારા માટે ખૂબ મહત્વપૂર્ણ છે', translation: 'Very important for us' },
+  { speaker: 'ai', text: 'સમજી ગઈ. આગળનો સવાલ - તમે કેટલી વાર પ્રાર્થના કે પૂજા કરો છો?', translation: 'I understand. Next question - How often do you pray or worship?' },
+  { speaker: 'user', text: 'એટલે? સમજાયું નહીં', translation: 'Meaning? I didn\'t understand' },
+  { speaker: 'ai', text: 'જી જી, કોઈ વાંધો નહીં. મારો મતલબ છે કે તમે રોજ પૂજા કરો છો, અઠવાડિયામાં થોડી વાર કરો છો, મહિનામાં ક્યારેક, કે ખૂબ ઓછી?', translation: 'Yes yes, no problem. I mean do you worship daily, a few times a week, occasionally in a month, or rarely?' },
+  { speaker: 'user', text: 'અચ્છા અચ્છા. હા, રોજ સવાર-સાંજ કરીએ છીએ', translation: 'Oh okay. Yes, we do it every morning and evening' },
+  { speaker: 'ai', text: 'ખૂબ સારું. હવે થોડા અલગ વિષય પર આવીએ. તમારા મતે, ભારતમાં બીજા ધર્મના લોકોને પોતાનો ધર્મ પાળવાની પૂરી સ્વતંત્રતા છે?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
+  { speaker: 'user', text: 'હા, બધાને સ્વતંત્રતા છે અહીં', translation: 'Yes, everyone has freedom here' },
+  { speaker: 'ai', text: 'ઠીક છે. અને જો તમારા પડોશમાં કોઈ મુસ્લિમ કે ખ્રિસ્તી પરિવાર રહેવા આવે, તો તમને કેવું લાગે?', translation: 'Okay. And if a Muslim or Christian family moved into your neighborhood, how would you feel?' },
+  { speaker: 'user', text: 'અરે, કોઈ તકલીફ નહીં, બધા સાથે મળીને રહે છે', translation: 'Oh, no problem, everyone lives together harmoniously' },
+  { speaker: 'ai', text: 'ખૂબ સારું. અને જો તમારા પરિવારમાં કોઈ બીજા ધર્મની વ્યક્તિ સાથે લગ્ન કરવા માંગે, તો પરિવારનો શું અભિપ્રાય હોય?', translation: 'Very good. And if someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
+  { speaker: 'user', text: 'અરે એ તો... જુઓ ને...', translation: 'Oh this is... well, see...' },
+  { speaker: 'ai', text: 'જી જી, કોઈ વાંધો નહીં, તમે ખુલ્લેઆમ બોલી શકો છો. કોઈ સાચો કે ખોટો જવાબ નથી. શું પરિવાર સ્વીકારશે, નહીં સ્વીકારે, કે પરિસ્થિતિ પર આધાર રાખે છે?', translation: 'Yes yes, no worries, you can speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
+  { speaker: 'user', text: 'સાચું કહું તો... અમારે ત્યાં થોડું મુશ્કેલ હશે', translation: 'To be honest... it would be a bit difficult in our family' },
+  { speaker: 'ai', text: 'તમારી પ્રામાણિકતા માટે આભાર. હવે બસ છેલ્લો સવાલ છે. શું તમને લાગે છે કે ભારતની વિવિધતા, એટલે કે અલગ અલગ ધર્મો અને સંસ્કૃતિઓ, દેશને વધુ સારો બનાવે છે કે નબળો?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
+  { speaker: 'user', text: 'વધુ સારો બનાવે છે, આ જ તો ભારતની અસલી ઓળખ છે', translation: 'Makes it better, that\'s the true identity of India' },
+  { speaker: 'ai', text: 'વાહ, ખૂબ સરસ. તમારો કિંમતી સમય આપવા બદલ ખૂબ ખૂબ ધન્યવાદ. તમારા જવાબો અમારા સંશોધન માટે ખૂબ મહત્વપૂર્ણ છે. તમારો દિવસ શુભ રહે, નમસ્તે!', translation: 'Wonderful, very good. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
 ];
+
+// Gujarati conversation - Male voice version (હું બોલી રહ્યો છું forms)
+export const GUJARATI_CONVERSATION_M = [
+  { speaker: 'ai', text: 'નમસ્તે! હું VoxBharat તરફથી બોલી રહ્યો છું. અમે ભારતમાં ધર્મ અને સામાજિક જીવન પર એક સંશોધન સર્વે કરી રહ્યા છીએ. આમાં ફક્ત પાંચ મિનિટ લાગશે અને તમારી ઓળખ સંપૂર્ણ ગોપનીય રહેશે. શું તમે ભાગ લેવા માંગો છો?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'user', text: 'હા, ઠીક છે, બોલો', translation: 'Yes, okay, go ahead' },
+  { speaker: 'ai', text: 'ખૂબ સારું, ધન્યવાદ. તો ચાલો શરૂ કરીએ. સૌ પ્રથમ, તમારી ઉંમર કેટલી છે?', translation: 'Very good, thank you. So let\'s begin. First of all, can you tell me your age?' },
+  { speaker: 'user', text: 'જી, હું 42 વર્ષનો છું', translation: 'Yes, I am 42 years old' },
+  { speaker: 'ai', text: 'ધન્યવાદ. અને તમારો ધર્મ શું છે?', translation: 'Thank you. And what is your religion?' },
+  { speaker: 'user', text: 'જી, હું હિંદુ છું', translation: 'Yes, I am Hindu' },
+  { speaker: 'ai', text: 'સારું. હવે કહો, તમારા જીવનમાં ધર્મ કેટલો મહત્વપૂર્ણ છે - ખૂબ મહત્વપૂર્ણ, થોડો મહત્વપૂર્ણ, કે વધારે મહત્વપૂર્ણ નથી?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
+  { speaker: 'user', text: 'અમારા માટે ખૂબ મહત્વપૂર્ણ છે', translation: 'Very important for us' },
+  { speaker: 'ai', text: 'સમજી ગયો. આગળનો સવાલ - તમે કેટલી વાર પ્રાર્થના કે પૂજા કરો છો?', translation: 'I understand. Next question - How often do you pray or worship?' },
+  { speaker: 'user', text: 'એટલે? સમજાયું નહીં', translation: 'Meaning? I didn\'t understand' },
+  { speaker: 'ai', text: 'જી જી, કોઈ વાંધો નહીં. મારો મતલબ છે કે તમે રોજ પૂજા કરો છો, અઠવાડિયામાં થોડી વાર કરો છો, મહિનામાં ક્યારેક, કે ખૂબ ઓછી?', translation: 'Yes yes, no problem. I mean do you worship daily, a few times a week, occasionally in a month, or rarely?' },
+  { speaker: 'user', text: 'અચ્છા અચ્છા. હા, રોજ સવાર-સાંજ કરીએ છીએ', translation: 'Oh okay. Yes, we do it every morning and evening' },
+  { speaker: 'ai', text: 'ખૂબ સારું. હવે થોડા અલગ વિષય પર આવીએ. તમારા મતે, ભારતમાં બીજા ધર્મના લોકોને પોતાનો ધર્મ પાળવાની પૂરી સ્વતંત્રતા છે?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
+  { speaker: 'user', text: 'હા, બધાને સ્વતંત્રતા છે અહીં', translation: 'Yes, everyone has freedom here' },
+  { speaker: 'ai', text: 'ઠીક છે. અને જો તમારા પડોશમાં કોઈ મુસ્લિમ કે ખ્રિસ્તી પરિવાર રહેવા આવે, તો તમને કેવું લાગે?', translation: 'Okay. And if a Muslim or Christian family moved into your neighborhood, how would you feel?' },
+  { speaker: 'user', text: 'અરે, કોઈ તકલીફ નહીં, બધા સાથે મળીને રહે છે', translation: 'Oh, no problem, everyone lives together harmoniously' },
+  { speaker: 'ai', text: 'ખૂબ સારું. અને જો તમારા પરિવારમાં કોઈ બીજા ધર્મની વ્યક્તિ સાથે લગ્ન કરવા માંગે, તો પરિવારનો શું અભિપ્રાય હોય?', translation: 'Very good. And if someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
+  { speaker: 'user', text: 'અરે એ તો... જુઓ ને...', translation: 'Oh this is... well, see...' },
+  { speaker: 'ai', text: 'જી જી, કોઈ વાંધો નહીં, તમે ખુલ્લેઆમ બોલી શકો છો. કોઈ સાચો કે ખોટો જવાબ નથી. શું પરિવાર સ્વીકારશે, નહીં સ્વીકારે, કે પરિસ્થિતિ પર આધાર રાખે છે?', translation: 'Yes yes, no worries, you can speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
+  { speaker: 'user', text: 'સાચું કહું તો... અમારે ત્યાં થોડું મુશ્કેલ હશે', translation: 'To be honest... it would be a bit difficult in our family' },
+  { speaker: 'ai', text: 'તમારી પ્રામાણિકતા માટે આભાર. હવે બસ છેલ્લો સવાલ છે. શું તમને લાગે છે કે ભારતની વિવિધતા, એટલે કે અલગ અલગ ધર્મો અને સંસ્કૃતિઓ, દેશને વધુ સારો બનાવે છે કે નબળો?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
+  { speaker: 'user', text: 'વધુ સારો બનાવે છે, આ જ તો ભારતની અસલી ઓળખ છે', translation: 'Makes it better, that\'s the true identity of India' },
+  { speaker: 'ai', text: 'વાહ, ખૂબ સરસ. તમારો કિંમતી સમય આપવા બદલ ખૂબ ખૂબ ધન્યવાદ. તમારા જવાબો અમારા સંશોધન માટે ખૂબ મહત્વપૂર્ણ છે. તમારો દિવસ શુભ રહે, નમસ્તે!', translation: 'Wonderful, very good. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
+];
+
+// Bengali conversation - Male voice version (Bengali verbs are mostly gender-neutral)
+export const BENGALI_CONVERSATION_M = BENGALI_CONVERSATION_F;
+
+// Marathi conversation - Female voice version
+export const MARATHI_CONVERSATION_F = [
+  { speaker: 'ai', text: 'नमस्कार! मी VoxBharat कडून बोलत आहे. आम्ही भारतातील धर्म आणि सामाजिक जीवनावर एक संशोधन सर्वेक्षण करत आहोत. यासाठी फक्त पाच मिनिटे लागतील आणि तुमची ओळख पूर्णपणे गोपनीय राहील. तुम्हाला सहभागी व्हायचे आहे का?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'user', text: 'हो, ठीक आहे, सांगा', translation: 'Yes, okay, go ahead' },
+  { speaker: 'ai', text: 'खूप छान, धन्यवाद. तर चला सुरू करूया. सर्वप्रथम, तुमचे वय किती आहे?', translation: 'Very good, thank you. So let\'s begin. First of all, how old are you?' },
+  { speaker: 'user', text: 'जी, मी 42 वर्षांचा आहे', translation: 'Yes, I am 42 years old' },
+  { speaker: 'ai', text: 'धन्यवाद. आणि तुमचा धर्म कोणता आहे?', translation: 'Thank you. And what is your religion?' },
+  { speaker: 'user', text: 'जी, मी हिंदू आहे', translation: 'Yes, I am Hindu' },
+  { speaker: 'ai', text: 'ठीक आहे. आता सांगा, तुमच्या जीवनात धर्म किती महत्त्वाचा आहे - खूप महत्त्वाचा, थोडा महत्त्वाचा, की फारसा महत्त्वाचा नाही?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
+  { speaker: 'user', text: 'आमच्यासाठी खूप महत्त्वाचा आहे', translation: 'Very important for us' },
+  { speaker: 'ai', text: 'समजले. पुढचा प्रश्न - तुम्ही किती वेळा प्रार्थना किंवा पूजा करता?', translation: 'I understand. Next question - How often do you pray or worship?' },
+  { speaker: 'user', text: 'म्हणजे? समजलं नाही', translation: 'Meaning? I didn\'t understand' },
+  { speaker: 'ai', text: 'जी जी, काही हरकत नाही. म्हणजे तुम्ही रोज पूजा करता, आठवड्यातून काही वेळा, महिन्यातून कधी कधी, की खूप कमी?', translation: 'Yes yes, no problem. I mean do you worship daily, a few times a week, occasionally in a month, or rarely?' },
+  { speaker: 'user', text: 'अच्छा अच्छा. हो, रोज सकाळ-संध्याकाळ करतो', translation: 'Oh okay. Yes, we do it every morning and evening' },
+  { speaker: 'ai', text: 'खूप छान. आता थोड्या वेगळ्या विषयावर येऊया. तुमच्या मते, भारतात इतर धर्मांच्या लोकांना आपला धर्म पाळण्याचे पूर्ण स्वातंत्र्य आहे का?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
+  { speaker: 'user', text: 'हो, सगळ्यांना स्वातंत्र्य आहे इथे', translation: 'Yes, everyone has freedom here' },
+  { speaker: 'ai', text: 'ठीक आहे. आणि जर तुमच्या शेजारी एखादे मुस्लिम किंवा ख्रिश्चन कुटुंब राहायला आले, तर तुम्हाला कसे वाटेल?', translation: 'Okay. And if a Muslim or Christian family moved into your neighborhood, how would you feel?' },
+  { speaker: 'user', text: 'अरे, काही अडचण नाही, सगळे मिळून मिसळून राहतात', translation: 'Oh, no problem, everyone lives together harmoniously' },
+  { speaker: 'ai', text: 'खूप छान. आणि जर तुमच्या कुटुंबातील कोणी दुसऱ्या धर्माच्या व्यक्तीशी लग्न करू इच्छित असेल, तर कुटुंबाचे काय मत असेल?', translation: 'Very good. And if someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
+  { speaker: 'user', text: 'अरे हे तर... बघा ना...', translation: 'Oh this is... well, see...' },
+  { speaker: 'ai', text: 'जी जी, काही हरकत नाही, तुम्ही मोकळेपणाने बोलू शकता. कोणतेही बरोबर किंवा चुकीचे उत्तर नाही. कुटुंब स्वीकारेल, स्वीकारणार नाही, की परिस्थितीवर अवलंबून आहे?', translation: 'Yes yes, no worries, you can speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
+  { speaker: 'user', text: 'खरं सांगायचं तर... आमच्याकडे थोडं कठीण होईल', translation: 'To be honest... it would be a bit difficult in our family' },
+  { speaker: 'ai', text: 'तुमच्या प्रामाणिकपणाबद्दल धन्यवाद. आता फक्त शेवटचा प्रश्न आहे. तुम्हाला वाटते का की भारताची विविधता, म्हणजे वेगवेगळे धर्म आणि संस्कृती, देशाला अधिक चांगला बनवते की कमकुवत करते?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
+  { speaker: 'user', text: 'अधिक चांगला बनवते, हीच तर भारताची खरी ओळख आहे', translation: 'Makes it better, that\'s the true identity of India' },
+  { speaker: 'ai', text: 'वा, खूप छान. तुमचा मौल्यवान वेळ दिल्याबद्दल खूप खूप धन्यवाद. तुमची उत्तरे आमच्या संशोधनासाठी खूप महत्त्वाची आहेत. तुमचा दिवस शुभ जाओ, नमस्कार!', translation: 'Wonderful, very good. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
+];
+
+// Marathi conversation - Male voice version
+export const MARATHI_CONVERSATION_M = MARATHI_CONVERSATION_F;
+
+// Tamil conversation - Female voice version
+export const TAMIL_CONVERSATION_F = [
+  { speaker: 'ai', text: 'வணக்கம்! நான் VoxBharat-இலிருந்து பேசுகிறேன். நாங்கள் இந்தியாவில் மதம் மற்றும் சமூக வாழ்க்கை குறித்த ஒரு ஆராய்ச்சி கருத்துக்கணிப்பு நடத்துகிறோம். இதற்கு ஐந்து நிமிடங்கள் மட்டுமே ஆகும், உங்கள் அடையாளம் முற்றிலும் ரகசியமாக இருக்கும். நீங்கள் பங்கேற்க விரும்புகிறீர்களா?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'user', text: 'ஆமா, சரி, சொல்லுங்க', translation: 'Yes, okay, go ahead' },
+  { speaker: 'ai', text: 'மிக நல்லது, நன்றி. சரி, தொடங்குவோம். முதலில், உங்கள் வயது என்ன?', translation: 'Very good, thank you. So let\'s begin. First, how old are you?' },
+  { speaker: 'user', text: 'எனக்கு 42 வயசு', translation: 'I am 42 years old' },
+  { speaker: 'ai', text: 'நன்றி. உங்கள் மதம் என்ன?', translation: 'Thank you. What is your religion?' },
+  { speaker: 'user', text: 'நான் இந்து', translation: 'I am Hindu' },
+  { speaker: 'ai', text: 'சரி. இப்போது சொல்லுங்கள், உங்கள் வாழ்க்கையில் மதம் எவ்வளவு முக்கியம் - மிக முக்கியம், சற்று முக்கியம், அல்லது அதிகம் முக்கியமில்லை?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
+  { speaker: 'user', text: 'எங்களுக்கு மிக முக்கியம்', translation: 'Very important for us' },
+  { speaker: 'ai', text: 'புரிகிறது. அடுத்த கேள்வி - நீங்கள் எவ்வளவு அடிக்கடி பிரார்த்தனை அல்லது பூஜை செய்வீர்கள்?', translation: 'I understand. Next question - How often do you pray or worship?' },
+  { speaker: 'user', text: 'அதாவது? புரியல', translation: 'Meaning? I didn\'t understand' },
+  { speaker: 'ai', text: 'பரவாயில்லை. அதாவது நீங்கள் தினமும் பூஜை செய்வீர்களா, வாரத்தில் சில முறை, மாதத்தில் எப்போதாவது, அல்லது மிகக் குறைவாக?', translation: 'No problem. I mean do you worship daily, a few times a week, occasionally in a month, or rarely?' },
+  { speaker: 'user', text: 'ஓ சரி. ஆமா, தினமும் காலையும் மாலையும் செய்வோம்', translation: 'Oh okay. Yes, we do it every morning and evening' },
+  { speaker: 'ai', text: 'மிக நல்லது. இப்போது கொஞ்சம் வேறு விஷயத்திற்கு வருவோம். உங்கள் கருத்தில், இந்தியாவில் மற்ற மதத்தவர்களுக்கு தங்கள் மதத்தை கடைப்பிடிக்க முழு சுதந்திரம் உள்ளதா?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
+  { speaker: 'user', text: 'ஆமா, எல்லாருக்கும் சுதந்திரம் இருக்கு இங்கே', translation: 'Yes, everyone has freedom here' },
+  { speaker: 'ai', text: 'சரி. உங்கள் பக்கத்தில் ஒரு முஸ்லிம் அல்லது கிறிஸ்தவ குடும்பம் வந்து குடியேறினால், உங்களுக்கு எப்படி இருக்கும்?', translation: 'Okay. If a Muslim or Christian family moved into your neighborhood, how would you feel?' },
+  { speaker: 'user', text: 'அட, எந்தப் பிரச்சனையும் இல்லை, எல்லாரும் சேர்ந்து வாழ்கிறோம்', translation: 'Oh, no problem, everyone lives together harmoniously' },
+  { speaker: 'ai', text: 'மிக நல்லது. உங்கள் குடும்பத்தில் யாரேனும் வேறு மதத்தைச் சேர்ந்தவரை திருமணம் செய்ய விரும்பினால், குடும்பத்தின் கருத்து என்னவாக இருக்கும்?', translation: 'Very good. If someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
+  { speaker: 'user', text: 'அது... பாருங்க...', translation: 'That is... well, see...' },
+  { speaker: 'ai', text: 'பரவாயில்லை, தாராளமாகச் சொல்லுங்கள். சரி தவறு என்று எதுவும் இல்லை. குடும்பம் ஏற்றுக்கொள்ளும், ஏற்றுக்கொள்ளாது, அல்லது சூழ்நிலையைப் பொறுத்தது?', translation: 'No worries, speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
+  { speaker: 'user', text: 'உண்மையைச் சொன்னா... எங்க வீட்டில் கொஞ்சம் கஷ்டமா இருக்கும்', translation: 'To be honest... it would be a bit difficult in our family' },
+  { speaker: 'ai', text: 'உங்கள் நேர்மைக்கு நன்றி. இப்போது கடைசிக் கேள்வி. இந்தியாவின் பன்முகத்தன்மை, அதாவது பல்வேறு மதங்களும் கலாசாரங்களும், நாட்டை சிறப்பாக்குகிறது என்று நினைக்கிறீர்களா அல்லது பலவீனப்படுத்துகிறது?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
+  { speaker: 'user', text: 'சிறப்பாக்குகிறது, இதுதான் இந்தியாவின் உண்மையான அடையாளம்', translation: 'Makes it better, that\'s the true identity of India' },
+  { speaker: 'ai', text: 'அருமை. உங்கள் விலைமதிப்பற்ற நேரத்தைக் கொடுத்ததற்கு மிக்க நன்றி. உங்கள் பதில்கள் எங்கள் ஆராய்ச்சிக்கு மிகவும் முக்கியமானவை. உங்கள் நாள் நல்லதாக அமையட்டும், வணக்கம்!', translation: 'Wonderful. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
+];
+
+// Telugu conversation - Female voice version
+export const TELUGU_CONVERSATION_F = [
+  { speaker: 'ai', text: 'నమస్కారం! నేను VoxBharat నుండి మాట్లాడుతున్నాను. మేము భారతదేశంలో మతం మరియు సామాజిక జీవితంపై ఒక పరిశోధన సర్వే నిర్వహిస్తున్నాము. దీనికి కేవలం ఐదు నిమిషాలు పడుతుంది మరియు మీ గుర్తింపు పూర్తిగా రహస్యంగా ఉంటుంది. మీరు పాల్గొనాలనుకుంటున్నారా?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'user', text: 'అవును, సరే, చెప్పండి', translation: 'Yes, okay, go ahead' },
+  { speaker: 'ai', text: 'చాలా బాగుంది, ధన్యవాదాలు. అయితే మొదలుపెడదాం. ముందుగా, మీ వయసు ఎంత?', translation: 'Very good, thank you. So let\'s begin. First, how old are you?' },
+  { speaker: 'user', text: 'నాకు 42 ఏళ్ళు', translation: 'I am 42 years old' },
+  { speaker: 'ai', text: 'ధన్యవాదాలు. మీ మతం ఏమిటి?', translation: 'Thank you. What is your religion?' },
+  { speaker: 'user', text: 'నేను హిందువును', translation: 'I am Hindu' },
+  { speaker: 'ai', text: 'సరే. ఇప్పుడు చెప్పండి, మీ జీవితంలో మతం ఎంత ముఖ్యం - చాలా ముఖ్యం, కొంత ముఖ్యం, లేదా అంత ముఖ్యం కాదు?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
+  { speaker: 'user', text: 'మాకు చాలా ముఖ్యం', translation: 'Very important for us' },
+  { speaker: 'ai', text: 'అర్థమైంది. తదుపరి ప్రశ్న - మీరు ఎంత తరచుగా ప్రార్థన లేదా పూజ చేస్తారు?', translation: 'I understand. Next question - How often do you pray or worship?' },
+  { speaker: 'user', text: 'అంటే? అర్థం కాలేదు', translation: 'Meaning? I didn\'t understand' },
+  { speaker: 'ai', text: 'పరవాలేదు. అంటే మీరు రోజూ పూజ చేస్తారా, వారంలో కొన్ని సార్లు, నెలలో అప్పుడప్పుడు, లేదా చాలా తక్కువగా?', translation: 'No problem. I mean do you worship daily, a few times a week, occasionally in a month, or rarely?' },
+  { speaker: 'user', text: 'ఓ అలాగా. అవును, రోజూ ఉదయం సాయంత్రం చేస్తాం', translation: 'Oh okay. Yes, we do it every morning and evening' },
+  { speaker: 'ai', text: 'చాలా బాగుంది. ఇప్పుడు కొంచెం వేరే విషయానికి వద్దాం. మీ అభిప్రాయంలో, భారతదేశంలో ఇతర మతాల వారికి తమ మతాన్ని ఆచరించే పూర్తి స్వేచ్ఛ ఉందా?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
+  { speaker: 'user', text: 'అవును, అందరికీ స్వేచ్ఛ ఉంది ఇక్కడ', translation: 'Yes, everyone has freedom here' },
+  { speaker: 'ai', text: 'సరే. మీ పొరుగులో ఒక ముస్లిం లేదా క్రిస్టియన్ కుటుంబం నివసించడానికి వస్తే, మీకు ఎలా అనిపిస్తుంది?', translation: 'Okay. If a Muslim or Christian family moved into your neighborhood, how would you feel?' },
+  { speaker: 'user', text: 'అరే, ఏ సమస్య లేదు, అందరూ కలిసి మెలిసి ఉంటారు', translation: 'Oh, no problem, everyone lives together harmoniously' },
+  { speaker: 'ai', text: 'చాలా బాగుంది. మీ కుటుంబంలో ఎవరైనా వేరే మతం వ్యక్తిని పెళ్లి చేసుకోవాలనుకుంటే, కుటుంబం అభిప్రాయం ఏమిటి?', translation: 'Very good. If someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
+  { speaker: 'user', text: 'అది... చూడండి...', translation: 'That is... well, see...' },
+  { speaker: 'ai', text: 'పరవాలేదు, స్వేచ్ఛగా చెప్పండి. సరైన లేదా తప్పు సమాధానం లేదు. కుటుంబం అంగీకరిస్తుందా, అంగీకరించదా, లేదా పరిస్థితిపై ఆధారపడి ఉంటుందా?', translation: 'No worries, speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
+  { speaker: 'user', text: 'నిజం చెప్పాలంటే... మా ఇంట్లో కొంచెం కష్టమే', translation: 'To be honest... it would be a bit difficult in our family' },
+  { speaker: 'ai', text: 'మీ నిజాయితీకి ధన్యవాదాలు. ఇప్పుడు చివరి ప్రశ్న. భారతదేశ వైవిధ్యం, అంటే వివిధ మతాలు మరియు సంస్కృతులు, దేశాన్ని మెరుగుపరుస్తాయని భావిస్తున్నారా లేదా బలహీనపరుస్తాయా?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
+  { speaker: 'user', text: 'మెరుగుపరుస్తుంది, ఇదే భారతదేశ నిజమైన గుర్తింపు', translation: 'Makes it better, that\'s the true identity of India' },
+  { speaker: 'ai', text: 'అద్భుతం. మీ విలువైన సమయం ఇచ్చినందుకు చాలా ధన్యవాదాలు. మీ సమాధానాలు మా పరిశోధనకు చాలా ముఖ్యమైనవి. మీ రోజు శుభంగా ఉండాలి, నమస్కారం!', translation: 'Wonderful. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
+];
+
+// Punjabi conversation - Female voice version
+export const PUNJABI_CONVERSATION_F = [
+  { speaker: 'ai', text: 'ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ VoxBharat ਤੋਂ ਬੋਲ ਰਹੀ ਹਾਂ। ਅਸੀਂ ਭਾਰਤ ਵਿੱਚ ਧਰਮ ਅਤੇ ਸਮਾਜਿਕ ਜੀਵਨ ਬਾਰੇ ਇੱਕ ਖੋਜ ਸਰਵੇ ਕਰ ਰਹੇ ਹਾਂ। ਇਸ ਵਿੱਚ ਸਿਰਫ਼ ਪੰਜ ਮਿੰਟ ਲੱਗਣਗੇ ਅਤੇ ਤੁਹਾਡੀ ਪਛਾਣ ਪੂਰੀ ਤਰ੍ਹਾਂ ਗੁਪਤ ਰਹੇਗੀ। ਕੀ ਤੁਸੀਂ ਹਿੱਸਾ ਲੈਣਾ ਚਾਹੋਗੇ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'user', text: 'ਹਾਂ ਜੀ, ਠੀਕ ਹੈ, ਦੱਸੋ', translation: 'Yes, okay, go ahead' },
+  { speaker: 'ai', text: 'ਬਹੁਤ ਵਧੀਆ, ਧੰਨਵਾਦ। ਤਾਂ ਚੱਲੋ ਸ਼ੁਰੂ ਕਰੀਏ। ਸਭ ਤੋਂ ਪਹਿਲਾਂ, ਤੁਹਾਡੀ ਉਮਰ ਕਿੰਨੀ ਹੈ?', translation: 'Very good, thank you. So let\'s begin. First of all, how old are you?' },
+  { speaker: 'user', text: 'ਜੀ, ਮੈਂ 42 ਸਾਲ ਦਾ ਹਾਂ', translation: 'Yes, I am 42 years old' },
+  { speaker: 'ai', text: 'ਧੰਨਵਾਦ। ਅਤੇ ਤੁਹਾਡਾ ਧਰਮ ਕੀ ਹੈ?', translation: 'Thank you. And what is your religion?' },
+  { speaker: 'user', text: 'ਜੀ, ਮੈਂ ਸਿੱਖ ਹਾਂ', translation: 'Yes, I am Sikh' },
+  { speaker: 'ai', text: 'ਠੀਕ ਹੈ ਜੀ। ਹੁਣ ਦੱਸੋ, ਤੁਹਾਡੀ ਜ਼ਿੰਦਗੀ ਵਿੱਚ ਧਰਮ ਕਿੰਨਾ ਮਹੱਤਵਪੂਰਨ ਹੈ - ਬਹੁਤ ਮਹੱਤਵਪੂਰਨ, ਥੋੜ੍ਹਾ ਮਹੱਤਵਪੂਰਨ, ਜਾਂ ਜ਼ਿਆਦਾ ਮਹੱਤਵਪੂਰਨ ਨਹੀਂ?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
+  { speaker: 'user', text: 'ਸਾਡੇ ਲਈ ਬਹੁਤ ਮਹੱਤਵਪੂਰਨ ਹੈ', translation: 'Very important for us' },
+  { speaker: 'ai', text: 'ਸਮਝ ਗਈ। ਅਗਲਾ ਸਵਾਲ - ਤੁਸੀਂ ਕਿੰਨੀ ਵਾਰ ਅਰਦਾਸ ਜਾਂ ਪੂਜਾ ਕਰਦੇ ਹੋ?', translation: 'I understand. Next question - How often do you pray or worship?' },
+  { speaker: 'user', text: 'ਮਤਲਬ? ਸਮਝ ਨਹੀਂ ਆਈ', translation: 'Meaning? I didn\'t understand' },
+  { speaker: 'ai', text: 'ਜੀ ਜੀ, ਕੋਈ ਗੱਲ ਨਹੀਂ। ਮੇਰਾ ਮਤਲਬ ਹੈ ਕਿ ਤੁਸੀਂ ਰੋਜ਼ ਅਰਦਾਸ ਕਰਦੇ ਹੋ, ਹਫ਼ਤੇ ਵਿੱਚ ਕੁਝ ਵਾਰ, ਮਹੀਨੇ ਵਿੱਚ ਕਦੇ-ਕਦੇ, ਜਾਂ ਬਹੁਤ ਘੱਟ?', translation: 'Yes yes, no problem. I mean do you pray daily, a few times a week, occasionally in a month, or rarely?' },
+  { speaker: 'user', text: 'ਅੱਛਾ ਅੱਛਾ। ਹਾਂ, ਰੋਜ਼ ਸਵੇਰੇ-ਸ਼ਾਮ ਕਰਦੇ ਹਾਂ', translation: 'Oh okay. Yes, we do it every morning and evening' },
+  { speaker: 'ai', text: 'ਬਹੁਤ ਵਧੀਆ। ਹੁਣ ਥੋੜ੍ਹਾ ਵੱਖਰੇ ਵਿਸ਼ੇ ਤੇ ਆਈਏ। ਤੁਹਾਡੇ ਹਿਸਾਬ ਨਾਲ, ਭਾਰਤ ਵਿੱਚ ਦੂਜੇ ਧਰਮਾਂ ਦੇ ਲੋਕਾਂ ਨੂੰ ਆਪਣਾ ਧਰਮ ਮੰਨਣ ਦੀ ਪੂਰੀ ਆਜ਼ਾਦੀ ਹੈ?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
+  { speaker: 'user', text: 'ਹਾਂ, ਸਭ ਨੂੰ ਆਜ਼ਾਦੀ ਹੈ ਇੱਥੇ', translation: 'Yes, everyone has freedom here' },
+  { speaker: 'ai', text: 'ਠੀਕ ਹੈ। ਅਤੇ ਜੇ ਤੁਹਾਡੇ ਗੁਆਂਢ ਵਿੱਚ ਕੋਈ ਮੁਸਲਮਾਨ ਜਾਂ ਈਸਾਈ ਪਰਿਵਾਰ ਰਹਿਣ ਆ ਜਾਵੇ, ਤਾਂ ਤੁਹਾਨੂੰ ਕਿਵੇਂ ਲੱਗੇਗਾ?', translation: 'Okay. And if a Muslim or Christian family moved into your neighborhood, how would you feel?' },
+  { speaker: 'user', text: 'ਅਰੇ, ਕੋਈ ਦਿੱਕਤ ਨਹੀਂ, ਸਭ ਮਿਲ ਜੁਲ ਕੇ ਰਹਿੰਦੇ ਹਾਂ', translation: 'Oh, no problem, everyone lives together harmoniously' },
+  { speaker: 'ai', text: 'ਬਹੁਤ ਵਧੀਆ। ਅਤੇ ਜੇ ਤੁਹਾਡੇ ਪਰਿਵਾਰ ਵਿੱਚ ਕੋਈ ਦੂਜੇ ਧਰਮ ਦੇ ਵਿਅਕਤੀ ਨਾਲ ਵਿਆਹ ਕਰਨਾ ਚਾਹੇ, ਤਾਂ ਪਰਿਵਾਰ ਦੀ ਕੀ ਰਾਏ ਹੋਵੇਗੀ?', translation: 'Very good. And if someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
+  { speaker: 'user', text: 'ਅਰੇ ਇਹ ਤਾਂ... ਦੇਖੋ ਜੀ...', translation: 'Oh this is... well, see...' },
+  { speaker: 'ai', text: 'ਜੀ ਜੀ, ਕੋਈ ਗੱਲ ਨਹੀਂ, ਤੁਸੀਂ ਬੇਝਿਜਕ ਬੋਲ ਸਕਦੇ ਹੋ। ਕੋਈ ਸਹੀ ਜਾਂ ਗਲਤ ਜਵਾਬ ਨਹੀਂ ਹੈ। ਕੀ ਪਰਿਵਾਰ ਸਵੀਕਾਰ ਕਰੇਗਾ, ਨਹੀਂ ਕਰੇਗਾ, ਜਾਂ ਇਹ ਗੱਲ ਤੇ ਨਿਰਭਰ ਕਰਦਾ ਹੈ?', translation: 'Yes yes, no worries, you can speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
+  { speaker: 'user', text: 'ਸੱਚ ਦੱਸਾਂ ਤਾਂ... ਸਾਡੇ ਇੱਥੇ ਥੋੜ੍ਹਾ ਮੁਸ਼ਕਲ ਹੋਵੇਗਾ', translation: 'To be honest... it would be a bit difficult in our family' },
+  { speaker: 'ai', text: 'ਤੁਹਾਡੀ ਇਮਾਨਦਾਰੀ ਲਈ ਧੰਨਵਾਦ। ਹੁਣ ਬੱਸ ਆਖ਼ਰੀ ਸਵਾਲ ਹੈ। ਕੀ ਤੁਹਾਨੂੰ ਲੱਗਦਾ ਹੈ ਕਿ ਭਾਰਤ ਦੀ ਵਿਭਿੰਨਤਾ, ਮਤਲਬ ਵੱਖ-ਵੱਖ ਧਰਮ ਅਤੇ ਸੱਭਿਆਚਾਰ, ਦੇਸ਼ ਨੂੰ ਬਿਹਤਰ ਬਣਾਉਂਦੇ ਹਨ ਜਾਂ ਕਮਜ਼ੋਰ?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
+  { speaker: 'user', text: 'ਬਿਹਤਰ ਬਣਾਉਂਦੇ ਹਨ, ਇਹੀ ਤਾਂ ਭਾਰਤ ਦੀ ਅਸਲੀ ਪਛਾਣ ਹੈ', translation: 'Makes it better, that\'s the true identity of India' },
+  { speaker: 'ai', text: 'ਵਾਹ, ਬਹੁਤ ਵਧੀਆ। ਤੁਹਾਡਾ ਕੀਮਤੀ ਸਮਾਂ ਦੇਣ ਲਈ ਬਹੁਤ-ਬਹੁਤ ਧੰਨਵਾਦ। ਤੁਹਾਡੇ ਜਵਾਬ ਸਾਡੀ ਖੋਜ ਲਈ ਬਹੁਤ ਮਹੱਤਵਪੂਰਨ ਹਨ। ਤੁਹਾਡਾ ਦਿਨ ਸ਼ੁਭ ਹੋਵੇ, ਸਤ ਸ੍ਰੀ ਅਕਾਲ!', translation: 'Wonderful, very good. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
+];
+
+// Punjabi conversation - Male voice version
+export const PUNJABI_CONVERSATION_M = PUNJABI_CONVERSATION_F;
+
+// Kannada conversation - Female voice version
+export const KANNADA_CONVERSATION_F = [
+  { speaker: 'ai', text: 'ನಮಸ್ಕಾರ! ನಾನು VoxBharat ಇಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. ನಾವು ಭಾರತದಲ್ಲಿ ಧರ್ಮ ಮತ್ತು ಸಾಮಾಜಿಕ ಜೀವನದ ಕುರಿತು ಒಂದು ಸಂಶೋಧನಾ ಸಮೀಕ್ಷೆ ನಡೆಸುತ್ತಿದ್ದೇವೆ. ಇದಕ್ಕೆ ಕೇವಲ ಐದು ನಿಮಿಷ ತೆಗೆದುಕೊಳ್ಳುತ್ತದೆ ಮತ್ತು ನಿಮ್ಮ ಗುರುತು ಸಂಪೂರ್ಣವಾಗಿ ಗೋಪ್ಯವಾಗಿರುತ್ತದೆ. ನೀವು ಭಾಗವಹಿಸಲು ಬಯಸುತ್ತೀರಾ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'user', text: 'ಹೌದು, ಸರಿ, ಹೇಳಿ', translation: 'Yes, okay, go ahead' },
+  { speaker: 'ai', text: 'ತುಂಬಾ ಒಳ್ಳೆಯದು, ಧನ್ಯವಾದಗಳು. ಹಾಗಾದರೆ ಶುರು ಮಾಡೋಣ. ಮೊದಲನೆಯದಾಗಿ, ನಿಮ್ಮ ವಯಸ್ಸು ಎಷ್ಟು?', translation: 'Very good, thank you. So let\'s begin. First of all, how old are you?' },
+  { speaker: 'user', text: 'ನನಗೆ 42 ವರ್ಷ', translation: 'I am 42 years old' },
+  { speaker: 'ai', text: 'ಧನ್ಯವಾದಗಳು. ನಿಮ್ಮ ಧರ್ಮ ಯಾವುದು?', translation: 'Thank you. What is your religion?' },
+  { speaker: 'user', text: 'ನಾನು ಹಿಂದೂ', translation: 'I am Hindu' },
+  { speaker: 'ai', text: 'ಸರಿ. ಈಗ ಹೇಳಿ, ನಿಮ್ಮ ಜೀವನದಲ್ಲಿ ಧರ್ಮ ಎಷ್ಟು ಮುಖ್ಯ - ತುಂಬಾ ಮುಖ್ಯ, ಸ್ವಲ್ಪ ಮುಖ್ಯ, ಅಥವಾ ಹೆಚ್ಚು ಮುಖ್ಯವಲ್ಲ?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
+  { speaker: 'user', text: 'ನಮಗೆ ತುಂಬಾ ಮುಖ್ಯ', translation: 'Very important for us' },
+  { speaker: 'ai', text: 'ಅರ್ಥವಾಯಿತು. ಮುಂದಿನ ಪ್ರಶ್ನೆ - ನೀವು ಎಷ್ಟು ಬಾರಿ ಪ್ರಾರ್ಥನೆ ಅಥವಾ ಪೂಜೆ ಮಾಡುತ್ತೀರಿ?', translation: 'I understand. Next question - How often do you pray or worship?' },
+  { speaker: 'user', text: 'ಅಂದರೆ? ಅರ್ಥ ಆಗಲಿಲ್ಲ', translation: 'Meaning? I didn\'t understand' },
+  { speaker: 'ai', text: 'ಪರವಾಗಿಲ್ಲ. ಅಂದರೆ ನೀವು ಪ್ರತಿದಿನ ಪೂಜೆ ಮಾಡುತ್ತೀರಾ, ವಾರಕ್ಕೆ ಕೆಲವು ಬಾರಿ, ತಿಂಗಳಲ್ಲಿ ಕೆಲವೊಮ್ಮೆ, ಅಥವಾ ತುಂಬಾ ಕಡಿಮೆ?', translation: 'No problem. I mean do you worship daily, a few times a week, occasionally in a month, or rarely?' },
+  { speaker: 'user', text: 'ಓ ಹಾಗಾ. ಹೌದು, ಪ್ರತಿದಿನ ಬೆಳಿಗ್ಗೆ ಸಂಜೆ ಮಾಡುತ್ತೇವೆ', translation: 'Oh okay. Yes, we do it every morning and evening' },
+  { speaker: 'ai', text: 'ತುಂಬಾ ಒಳ್ಳೆಯದು. ಈಗ ಸ್ವಲ್ಪ ಬೇರೆ ವಿಷಯಕ್ಕೆ ಬರೋಣ. ನಿಮ್ಮ ಅಭಿಪ್ರಾಯದಲ್ಲಿ, ಭಾರತದಲ್ಲಿ ಬೇರೆ ಧರ್ಮದವರಿಗೆ ತಮ್ಮ ಧರ್ಮವನ್ನು ಆಚರಿಸಲು ಪೂರ್ಣ ಸ್ವಾತಂತ್ರ್ಯ ಇದೆಯಾ?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
+  { speaker: 'user', text: 'ಹೌದು, ಎಲ್ಲರಿಗೂ ಸ್ವಾತಂತ್ರ್ಯ ಇದೆ ಇಲ್ಲಿ', translation: 'Yes, everyone has freedom here' },
+  { speaker: 'ai', text: 'ಸರಿ. ನಿಮ್ಮ ನೆರೆಹೊರೆಯಲ್ಲಿ ಒಂದು ಮುಸ್ಲಿಂ ಅಥವಾ ಕ್ರಿಶ್ಚಿಯನ್ ಕುಟುಂಬ ವಾಸಿಸಲು ಬಂದರೆ, ನಿಮಗೆ ಹೇಗೆ ಅನಿಸುತ್ತದೆ?', translation: 'Okay. If a Muslim or Christian family moved into your neighborhood, how would you feel?' },
+  { speaker: 'user', text: 'ಅರೆ, ಯಾವ ತೊಂದರೆಯೂ ಇಲ್ಲ, ಎಲ್ಲರೂ ಒಟ್ಟಿಗೆ ಇರುತ್ತೇವೆ', translation: 'Oh, no problem, everyone lives together harmoniously' },
+  { speaker: 'ai', text: 'ತುಂಬಾ ಒಳ್ಳೆಯದು. ನಿಮ್ಮ ಕುಟುಂಬದಲ್ಲಿ ಯಾರಾದರೂ ಬೇರೆ ಧರ್ಮದ ವ್ಯಕ್ತಿಯನ್ನು ಮದುವೆ ಆಗಬೇಕೆಂದರೆ, ಕುಟುಂಬದ ಅಭಿಪ್ರಾಯ ಏನಾಗಿರುತ್ತದೆ?', translation: 'Very good. If someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
+  { speaker: 'user', text: 'ಅದು... ನೋಡಿ...', translation: 'That is... well, see...' },
+  { speaker: 'ai', text: 'ಪರವಾಗಿಲ್ಲ, ಮುಕ್ತವಾಗಿ ಹೇಳಿ. ಸರಿ ಅಥವಾ ತಪ್ಪು ಉತ್ತರ ಎಂದು ಏನೂ ಇಲ್ಲ. ಕುಟುಂಬ ಒಪ್ಪಿಕೊಳ್ಳುತ್ತದೆ, ಒಪ್ಪಿಕೊಳ್ಳುವುದಿಲ್ಲ, ಅಥವಾ ಸಂದರ್ಭವನ್ನು ಅವಲಂಬಿಸಿರುತ್ತದೆ?', translation: 'No worries, speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
+  { speaker: 'user', text: 'ನಿಜ ಹೇಳಬೇಕೆಂದರೆ... ನಮ್ಮಲ್ಲಿ ಸ್ವಲ್ಪ ಕಷ್ಟ ಆಗುತ್ತದೆ', translation: 'To be honest... it would be a bit difficult in our family' },
+  { speaker: 'ai', text: 'ನಿಮ್ಮ ಪ್ರಾಮಾಣಿಕತೆಗೆ ಧನ್ಯವಾದಗಳು. ಈಗ ಕೊನೆಯ ಪ್ರಶ್ನೆ. ಭಾರತದ ವೈವಿಧ್ಯತೆ, ಅಂದರೆ ವಿವಿಧ ಧರ್ಮಗಳು ಮತ್ತು ಸಂಸ್ಕೃತಿಗಳು, ದೇಶವನ್ನು ಉತ್ತಮಗೊಳಿಸುತ್ತದೆ ಎಂದು ನೀವು ಭಾವಿಸುತ್ತೀರಾ ಅಥವಾ ದುರ್ಬಲಗೊಳಿಸುತ್ತದೆ?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
+  { speaker: 'user', text: 'ಉತ್ತಮಗೊಳಿಸುತ್ತದೆ, ಇದೇ ಭಾರತದ ನಿಜವಾದ ಗುರುತು', translation: 'Makes it better, that\'s the true identity of India' },
+  { speaker: 'ai', text: 'ಅದ್ಭುತ. ನಿಮ್ಮ ಅಮೂಲ್ಯ ಸಮಯ ನೀಡಿದ್ದಕ್ಕೆ ತುಂಬಾ ಧನ್ಯವಾದಗಳು. ನಿಮ್ಮ ಉತ್ತರಗಳು ನಮ್ಮ ಸಂಶೋಧನೆಗೆ ತುಂಬಾ ಮುಖ್ಯವಾಗಿವೆ. ನಿಮ್ಮ ದಿನ ಶುಭವಾಗಿರಲಿ, ನಮಸ್ಕಾರ!', translation: 'Wonderful. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
+];
+
+// Kannada conversation - Male voice version
+export const KANNADA_CONVERSATION_M = KANNADA_CONVERSATION_F;
+
+// Malayalam conversation - Female voice version
+export const MALAYALAM_CONVERSATION_F = [
+  { speaker: 'ai', text: 'നമസ്കാരം! ഞാന്‍ VoxBharat-ല്‍ നിന്ന് വിളിക്കുകയാണ്. ഞങ്ങള്‍ ഇന്ത്യയിലെ മതവും സാമൂഹിക ജീവിതവും സംബന്ധിച്ച ഒരു ഗവേഷണ സര്‍വേ നടത്തുകയാണ്. ഇതിന് വെറും അഞ്ച് മിനിറ്റ് മാത്രമേ എടുക്കൂ, നിങ്ങളുടെ വ്യക്തിത്വം പൂര്‍ണമായും രഹസ്യമായിരിക്കും. നിങ്ങള്‍ പങ്കെടുക്കാന്‍ ആഗ്രഹിക്കുന്നുണ്ടോ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'user', text: 'ഉവ്വ്, ശരി, പറയൂ', translation: 'Yes, okay, go ahead' },
+  { speaker: 'ai', text: 'വളരെ നല്ലത്, നന്ദി. എങ്കില്‍ തുടങ്ങാം. ആദ്യം, നിങ്ങളുടെ വയസ്സ് എത്രയാണ്?', translation: 'Very good, thank you. So let\'s begin. First, how old are you?' },
+  { speaker: 'user', text: 'എനിക്ക് 42 വയസ്സാണ്', translation: 'I am 42 years old' },
+  { speaker: 'ai', text: 'നന്ദി. നിങ്ങളുടെ മതം ഏതാണ്?', translation: 'Thank you. What is your religion?' },
+  { speaker: 'user', text: 'ഞാന്‍ ഹിന്ദുവാണ്', translation: 'I am Hindu' },
+  { speaker: 'ai', text: 'ശരി. ഇപ്പോള്‍ പറയൂ, നിങ്ങളുടെ ജീവിതത്തില്‍ മതം എത്രത്തോളം പ്രധാനമാണ് - വളരെ പ്രധാനം, കുറച്ച് പ്രധാനം, അതോ അത്ര പ്രധാനമല്ല?', translation: 'Okay. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?' },
+  { speaker: 'user', text: 'ഞങ്ങള്‍ക്ക് വളരെ പ്രധാനമാണ്', translation: 'Very important for us' },
+  { speaker: 'ai', text: 'മനസ്സിലായി. അടുത്ത ചോദ്യം - നിങ്ങള്‍ എത്ര തവണ പ്രാര്‍ഥന അല്ലെങ്കില്‍ പൂജ ചെയ്യാറുണ്ട്?', translation: 'I understand. Next question - How often do you pray or worship?' },
+  { speaker: 'user', text: 'അതായത്? മനസ്സിലായില്ല', translation: 'Meaning? I didn\'t understand' },
+  { speaker: 'ai', text: 'സാരമില്ല. അതായത് നിങ്ങള്‍ ദിവസവും പൂജ ചെയ്യുമോ, ആഴ്ചയില്‍ ചില തവണ, മാസത്തില്‍ ഇടയ്ക്കിടെ, അതോ വളരെ കുറവ്?', translation: 'No problem. I mean do you worship daily, a few times a week, occasionally in a month, or rarely?' },
+  { speaker: 'user', text: 'ഓ അങ്ങനെ. ഉവ്വ്, ദിവസവും രാവിലെയും വൈകുന്നേരവും ചെയ്യും', translation: 'Oh okay. Yes, we do it every morning and evening' },
+  { speaker: 'ai', text: 'വളരെ നല്ലത്. ഇപ്പോള്‍ കുറച്ച് വ്യത്യസ്തമായ വിഷയത്തിലേക്ക് വരാം. നിങ്ങളുടെ അഭിപ്രായത്തില്‍, ഇന്ത്യയില്‍ മറ്റ് മതക്കാര്‍ക്ക് അവരുടെ മതം ആചരിക്കാന്‍ പൂര്‍ണ സ്വാതന്ത്ര്യം ഉണ്ടോ?', translation: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions have complete freedom to practice their religion in India?' },
+  { speaker: 'user', text: 'ഉവ്വ്, എല്ലാവര്‍ക്കും സ്വാതന്ത്ര്യം ഉണ്ട് ഇവിടെ', translation: 'Yes, everyone has freedom here' },
+  { speaker: 'ai', text: 'ശരി. നിങ്ങളുടെ അയല്‍പക്കത്ത് ഒരു മുസ്ലിം അല്ലെങ്കില്‍ ക്രിസ്ത്യന്‍ കുടുംബം താമസിക്കാന്‍ വന്നാല്‍, നിങ്ങള്‍ക്ക് എങ്ങനെ തോന്നും?', translation: 'Okay. If a Muslim or Christian family moved into your neighborhood, how would you feel?' },
+  { speaker: 'user', text: 'അയ്യോ, ഒരു പ്രശ്നവുമില്ല, എല്ലാവരും ഒരുമിച്ച് കഴിയുന്നുണ്ട്', translation: 'Oh, no problem, everyone lives together harmoniously' },
+  { speaker: 'ai', text: 'വളരെ നല്ലത്. നിങ്ങളുടെ കുടുംബത്തില്‍ ആരെങ്കിലും മറ്റൊരു മതക്കാരനെ വിവാഹം കഴിക്കാന്‍ ആഗ്രഹിച്ചാല്‍, കുടുംബത്തിന്റെ അഭിപ്രായം എന്തായിരിക്കും?', translation: 'Very good. If someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?' },
+  { speaker: 'user', text: 'അത്... നോക്കൂ...', translation: 'That is... well, see...' },
+  { speaker: 'ai', text: 'സാരമില്ല, സ്വതന്ത്രമായി പറയൂ. ശരിയോ തെറ്റോ ആയ ഉത്തരം ഇല്ല. കുടുംബം സ്വീകരിക്കുമോ, സ്വീകരിക്കില്ല, അതോ സാഹചര്യത്തെ ആശ്രയിച്ചിരിക്കുമോ?', translation: 'No worries, speak freely. There\'s no right or wrong answer. Would the family accept it, not accept it, or does it depend?' },
+  { speaker: 'user', text: 'സത്യം പറഞ്ഞാല്‍... ഞങ്ങളുടെ വീട്ടില്‍ കുറച്ച് ബുദ്ധിമുട്ടായിരിക്കും', translation: 'To be honest... it would be a bit difficult in our family' },
+  { speaker: 'ai', text: 'നിങ്ങളുടെ സത്യസന്ധതയ്ക്ക് നന്ദി. ഇപ്പോള്‍ അവസാന ചോദ്യം. ഇന്ത്യയുടെ വൈവിധ്യം, അതായത് വിവിധ മതങ്ങളും സംസ്കാരങ്ങളും, രാജ്യത്തെ മെച്ചപ്പെടുത്തുന്നു എന്ന് നിങ്ങള്‍ കരുതുന്നുണ്ടോ അതോ ദുര്‍ബലമാക്കുന്നു?', translation: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity, meaning different religions and cultures, makes the country better or weaker?' },
+  { speaker: 'user', text: 'മെച്ചപ്പെടുത്തുന്നു, ഇതാണ് ഇന്ത്യയുടെ യഥാര്‍ഥ അടയാളം', translation: 'Makes it better, that\'s the true identity of India' },
+  { speaker: 'ai', text: 'അതിശയകരം. നിങ്ങളുടെ വിലപ്പെട്ട സമയം നല്‍കിയതിന് വളരെ നന്ദി. നിങ്ങളുടെ ഉത്തരങ്ങള്‍ ഞങ്ങളുടെ ഗവേഷണത്തിന് വളരെ പ്രധാനമാണ്. നിങ്ങളുടെ ദിവസം ശുഭമാകട്ടെ, നമസ്കാരം!', translation: 'Wonderful. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!' },
+];
+
+// Malayalam conversation - Male voice version
+export const MALAYALAM_CONVERSATION_M = MALAYALAM_CONVERSATION_F;
+
+// English conversation - Female voice version
+export const ENGLISH_CONVERSATION_F = [
+  { speaker: 'ai', text: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take five minutes, and your identity will remain completely confidential. Would you like to participate?', translation: '' },
+  { speaker: 'user', text: 'Yes, sure, go ahead', translation: '' },
+  { speaker: 'ai', text: 'Wonderful, thank you. So let\'s begin. First of all, could you tell me your age?', translation: '' },
+  { speaker: 'user', text: 'I\'m 42 years old', translation: '' },
+  { speaker: 'ai', text: 'Thank you. And what is your religion?', translation: '' },
+  { speaker: 'user', text: 'I\'m Hindu', translation: '' },
+  { speaker: 'ai', text: 'Alright. Now tell me, how important is religion in your life - very important, somewhat important, or not very important?', translation: '' },
+  { speaker: 'user', text: 'It\'s very important for us', translation: '' },
+  { speaker: 'ai', text: 'I understand. Next question - how often do you pray or worship?', translation: '' },
+  { speaker: 'user', text: 'What do you mean exactly?', translation: '' },
+  { speaker: 'ai', text: 'No problem. I mean, do you worship daily, a few times a week, occasionally in a month, or rarely?', translation: '' },
+  { speaker: 'user', text: 'Oh okay. Yes, we do it every morning and evening', translation: '' },
+  { speaker: 'ai', text: 'Very good. Now let\'s move to a slightly different topic. In your opinion, do people of other religions in India have complete freedom to practice their faith?', translation: '' },
+  { speaker: 'user', text: 'Yes, everyone has freedom here', translation: '' },
+  { speaker: 'ai', text: 'Alright. And if a Muslim or Christian family were to move into your neighborhood, how would you feel about that?', translation: '' },
+  { speaker: 'user', text: 'Oh, no problem at all, we all live together harmoniously', translation: '' },
+  { speaker: 'ai', text: 'That\'s great. And if someone in your family wanted to marry a person from another religion, what would the family\'s opinion be?', translation: '' },
+  { speaker: 'user', text: 'Well, that\'s... you know...', translation: '' },
+  { speaker: 'ai', text: 'No worries, feel free to speak openly. There\'s no right or wrong answer. Would the family accept it, not accept it, or would it depend on the situation?', translation: '' },
+  { speaker: 'user', text: 'To be honest... it would be a bit difficult in our family', translation: '' },
+  { speaker: 'ai', text: 'Thank you for your honesty. Now just the last question. Do you think India\'s diversity - the different religions and cultures - makes the country better or weaker?', translation: '' },
+  { speaker: 'user', text: 'Makes it better, that\'s the true identity of India', translation: '' },
+  { speaker: 'ai', text: 'Wonderful. Thank you so much for your valuable time. Your responses are very important for our research. Have a great day, goodbye!', translation: '' },
+];
+
+// English conversation - Male voice version
+export const ENGLISH_CONVERSATION_M = ENGLISH_CONVERSATION_F;

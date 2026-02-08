@@ -5,6 +5,20 @@ import {
   HINDI_CONVERSATION_M,
   BENGALI_CONVERSATION_F,
   BENGALI_CONVERSATION_M,
+  GUJARATI_CONVERSATION_F,
+  GUJARATI_CONVERSATION_M,
+  MARATHI_CONVERSATION_F,
+  MARATHI_CONVERSATION_M,
+  TAMIL_CONVERSATION_F,
+  TELUGU_CONVERSATION_F,
+  PUNJABI_CONVERSATION_F,
+  PUNJABI_CONVERSATION_M,
+  KANNADA_CONVERSATION_F,
+  KANNADA_CONVERSATION_M,
+  MALAYALAM_CONVERSATION_F,
+  MALAYALAM_CONVERSATION_M,
+  ENGLISH_CONVERSATION_F,
+  ENGLISH_CONVERSATION_M,
 } from '../../data/conversations';
 import VoiceWave from '../shared/VoiceWave';
 import SectionHeading from '../shared/SectionHeading';
@@ -15,6 +29,20 @@ const CARTESIA_VOICES = [
   { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', gender: 'Male', lang: 'hi' },
   { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', gender: 'Female', lang: 'bn' },
   { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', gender: 'Male', lang: 'bn' },
+  { id: '4590a461-bc68-4a50-8d14-ac04f5923d22', name: 'Gujarati Female', gender: 'Female', lang: 'gu' },
+  { id: '91925fe5-42ee-4ebe-96c1-c84b12a85a32', name: 'Gujarati Male', gender: 'Male', lang: 'gu' },
+  { id: '5c32dce6-936a-4892-b131-bafe474afe5f', name: 'Marathi Female', gender: 'Female', lang: 'mr' },
+  { id: 'f227bc18-3704-47fe-b759-8c78a450fdfa', name: 'Marathi Male', gender: 'Male', lang: 'mr' },
+  { id: '25d2c432-139c-4035-bfd6-9baaabcdd006', name: 'Tamil Female', gender: 'Female', lang: 'ta' },
+  { id: '07bc462a-c644-49f1-baf7-82d5599131be', name: 'Telugu Female', gender: 'Female', lang: 'te' },
+  { id: '991c62ce-631f-48b0-8060-2a0ebecbd15b', name: 'Punjabi Female', gender: 'Female', lang: 'pa' },
+  { id: '8bacd442-a107-4ec1-b6f1-2fcb3f6f4d56', name: 'Punjabi Male', gender: 'Male', lang: 'pa' },
+  { id: '7c6219d2-e8d2-462c-89d8-7ecba7c75d65', name: 'Kannada Female', gender: 'Female', lang: 'kn' },
+  { id: '6baae46d-1226-45b5-a976-c7f9b797aae2', name: 'Kannada Male', gender: 'Male', lang: 'kn' },
+  { id: 'b426013c-002b-4e89-8874-8cd20b68373a', name: 'Malayalam Female', gender: 'Female', lang: 'ml' },
+  { id: '374b80da-e622-4dfc-90f6-1eeb13d331c9', name: 'Malayalam Male', gender: 'Male', lang: 'ml' },
+  { id: 'f8f5f1b2-f02d-4d8e-a40d-fd850a487b3d', name: 'English Female', gender: 'Female', lang: 'en' },
+  { id: '1259b7e3-cb8a-43df-9446-30971a46b8b0', name: 'English Male', gender: 'Male', lang: 'en' },
 ];
 
 const VOICE_LABELS = {
@@ -22,6 +50,20 @@ const VOICE_LABELS = {
   'Hindi Male': 'Hindi \u2642',
   'Bengali Female': 'Bengali \u2640',
   'Bengali Male': 'Bengali \u2642',
+  'Gujarati Female': 'Gujarati \u2640',
+  'Gujarati Male': 'Gujarati \u2642',
+  'Marathi Female': 'Marathi \u2640',
+  'Marathi Male': 'Marathi \u2642',
+  'Tamil Female': 'Tamil \u2640',
+  'Telugu Female': 'Telugu \u2640',
+  'Punjabi Female': 'Punjabi \u2640',
+  'Punjabi Male': 'Punjabi \u2642',
+  'Kannada Female': 'Kannada \u2640',
+  'Kannada Male': 'Kannada \u2642',
+  'Malayalam Female': 'Malayalam \u2640',
+  'Malayalam Male': 'Malayalam \u2642',
+  'English Female': 'English \u2640',
+  'English Male': 'English \u2642',
 };
 
 export default function DemoSection({ onShowSampleReport, onShowSampleCallLog }) {
@@ -50,6 +92,20 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     if (voice.lang === 'hi' && voice.gender === 'Male') return HINDI_CONVERSATION_M;
     if (voice.lang === 'bn' && voice.gender === 'Female') return BENGALI_CONVERSATION_F;
     if (voice.lang === 'bn' && voice.gender === 'Male') return BENGALI_CONVERSATION_M;
+    if (voice.lang === 'gu' && voice.gender === 'Female') return GUJARATI_CONVERSATION_F;
+    if (voice.lang === 'gu' && voice.gender === 'Male') return GUJARATI_CONVERSATION_M;
+    if (voice.lang === 'mr' && voice.gender === 'Female') return MARATHI_CONVERSATION_F;
+    if (voice.lang === 'mr' && voice.gender === 'Male') return MARATHI_CONVERSATION_M;
+    if (voice.lang === 'ta') return TAMIL_CONVERSATION_F;
+    if (voice.lang === 'te') return TELUGU_CONVERSATION_F;
+    if (voice.lang === 'pa' && voice.gender === 'Female') return PUNJABI_CONVERSATION_F;
+    if (voice.lang === 'pa' && voice.gender === 'Male') return PUNJABI_CONVERSATION_M;
+    if (voice.lang === 'kn' && voice.gender === 'Female') return KANNADA_CONVERSATION_F;
+    if (voice.lang === 'kn' && voice.gender === 'Male') return KANNADA_CONVERSATION_M;
+    if (voice.lang === 'ml' && voice.gender === 'Female') return MALAYALAM_CONVERSATION_F;
+    if (voice.lang === 'ml' && voice.gender === 'Male') return MALAYALAM_CONVERSATION_M;
+    if (voice.lang === 'en' && voice.gender === 'Female') return ENGLISH_CONVERSATION_F;
+    if (voice.lang === 'en' && voice.gender === 'Male') return ENGLISH_CONVERSATION_M;
     return HINDI_CONVERSATION_F;
   };
 
@@ -300,32 +356,37 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
 
             <p className="text-[#6b4c3a] text-lg leading-relaxed mt-4 font-body">
               Experience a real voice survey conversation. Our AI conducts natural
-              interviews in Hindi and Bengali &mdash; listen to how it builds trust
-              and adapts to responses.
+              interviews across 9 Indian languages &mdash; listen to how it builds
+              trust and adapts to responses.
             </p>
 
-            {/* Voice selector */}
-            <div className="mt-8 flex flex-wrap gap-2">
-              {CARTESIA_VOICES.map((v) => (
-                <button
-                  key={v.id}
-                  onClick={() => {
-                    if (!demoActive) {
-                      setSelectedVoice(v.id);
-                      setDemoStep(0);
-                      setCallComplete(false);
-                    }
-                  }}
-                  disabled={demoActive}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                    selectedVoice === v.id
-                      ? 'bg-[#e8550f] text-white shadow-md'
-                      : 'border border-[#3d2314]/20 text-[#3d2314] hover:border-[#e8550f]/40 hover:text-[#e8550f]'
-                  } ${demoActive ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  {VOICE_LABELS[v.name]}
-                </button>
-              ))}
+            {/* Voice selector dropdown */}
+            <div className="mt-8">
+              <label htmlFor="voice-select" className="block text-sm text-[#6b4c3a]/70 font-body mb-2">
+                Select voice
+              </label>
+              <select
+                id="voice-select"
+                value={selectedVoice}
+                onChange={(e) => {
+                  if (!demoActive) {
+                    setSelectedVoice(e.target.value);
+                    setDemoStep(0);
+                    setCallComplete(false);
+                  }
+                }}
+                disabled={demoActive}
+                className={`w-full max-w-xs px-4 py-2.5 rounded-xl border border-[#3d2314]/15 bg-white text-[#3d2314] text-sm font-body shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#e8550f]/30 focus:border-[#e8550f]/50 appearance-none bg-[length:16px_16px] bg-[right_12px_center] bg-no-repeat ${
+                  demoActive ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                }`}
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b4c3a' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
+              >
+                {CARTESIA_VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {VOICE_LABELS[v.name]}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* API Key Settings */}
