@@ -112,7 +112,7 @@ const HeroSection = ({ onCreateSurvey, onWatchDemo }) => {
           </h1>
 
           {/* Cycling Translation */}
-          <div className="h-[3rem] lg:h-[4.5rem] relative overflow-hidden">
+          <div className="h-[4rem] lg:h-[6.5rem] relative overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.span
                 key={currentIndex}
@@ -120,7 +120,7 @@ const HeroSection = ({ onCreateSurvey, onWatchDemo }) => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -30 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="absolute left-0 top-0 text-[2rem] lg:text-[3.5rem] font-serif-indic text-[#e8550f] leading-tight"
+                className="absolute left-0 top-0 text-[2rem] lg:text-[3.5rem] font-serif-indic text-[#e8550f] leading-[1.6] pb-2"
               >
                 {listenTranslations[currentIndex]}
               </motion.span>
