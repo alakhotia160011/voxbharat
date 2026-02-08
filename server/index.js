@@ -1,6 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import Database from 'better-sqlite3';
+import Anthropic from '@anthropic-ai/sdk';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -17,151 +18,90 @@ const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || 'sk_car_Hamdih147oPiXJq
 app.use(cors());
 app.use(express.json());
 
-// Initialize SQLite database
-const db = new Database(join(__dirname, 'surveys.db'));
+// Initialize SQLite database (optional — server starts without it)
+let db = null;
+try {
+  const Database = (await import('better-sqlite3')).default;
+  db = new Database(join(__dirname, 'surveys.db'));
+} catch (e) {
+  console.warn('⚠ better-sqlite3 unavailable — survey storage disabled. API routes still work.');
+}
 
-// Create tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS surveys (
-    id TEXT PRIMARY KEY,
-    timestamp TEXT NOT NULL,
-    duration INTEGER,
-    language TEXT,
-    status TEXT,
-    summary TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS responses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    survey_id TEXT NOT NULL,
-    question TEXT,
-    question_original TEXT,
-    answer TEXT,
-    answer_original TEXT,
-    FOREIGN KEY (survey_id) REFERENCES surveys(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS demographics (
-    survey_id TEXT PRIMARY KEY,
-    age INTEGER,
-    age_group TEXT,
-    religion TEXT,
-    language TEXT,
-    FOREIGN KEY (survey_id) REFERENCES surveys(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS structured_data (
-    survey_id TEXT PRIMARY KEY,
-    age INTEGER,
-    age_group TEXT,
-    religion TEXT,
-    religion_importance TEXT,
-    prayer_frequency TEXT,
-    religious_freedom TEXT,
-    interfaith_neighbor TEXT,
-    interfaith_marriage TEXT,
-    diversity_opinion TEXT,
-    FOREIGN KEY (survey_id) REFERENCES surveys(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS sentiment (
-    survey_id TEXT PRIMARY KEY,
-    overall TEXT,
-    openness TEXT,
-    religiosity TEXT,
-    FOREIGN KEY (survey_id) REFERENCES surveys(id)
-  );
-`);
-
-// Prepared statements
-const insertSurvey = db.prepare(`
-  INSERT INTO surveys (id, timestamp, duration, language, status, summary)
-  VALUES (?, ?, ?, ?, ?, ?)
-`);
-
-const insertResponse = db.prepare(`
-  INSERT INTO responses (survey_id, question, question_original, answer, answer_original)
-  VALUES (?, ?, ?, ?, ?)
-`);
-
-const insertDemographics = db.prepare(`
-  INSERT INTO demographics (survey_id, age, age_group, religion, language)
-  VALUES (?, ?, ?, ?, ?)
-`);
-
-const insertStructuredData = db.prepare(`
-  INSERT INTO structured_data (survey_id, age, age_group, religion, religion_importance, prayer_frequency, religious_freedom, interfaith_neighbor, interfaith_marriage, diversity_opinion)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-
-const insertSentiment = db.prepare(`
-  INSERT INTO sentiment (survey_id, overall, openness, religiosity)
-  VALUES (?, ?, ?, ?)
-`);
-
-// Save survey transaction
-const saveSurvey = db.transaction((data) => {
-  // Insert main survey
-  insertSurvey.run(
-    data.id,
-    data.timestamp,
-    data.duration,
-    data.language,
-    data.status,
-    data.summary
-  );
-
-  // Insert responses
-  for (const response of data.responses) {
-    insertResponse.run(
-      data.id,
-      response.question,
-      response.questionOriginal,
-      response.answer,
-      response.answerOriginal
+// Database setup (only if better-sqlite3 loaded)
+let saveSurvey = null;
+if (db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS surveys (
+      id TEXT PRIMARY KEY,
+      timestamp TEXT NOT NULL,
+      duration INTEGER,
+      language TEXT,
+      status TEXT,
+      summary TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
-  }
-
-  // Insert demographics
-  if (data.demographics) {
-    insertDemographics.run(
-      data.id,
-      data.demographics.age,
-      data.demographics.ageGroup,
-      data.demographics.religion,
-      data.demographics.language
+    CREATE TABLE IF NOT EXISTS responses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      survey_id TEXT NOT NULL,
+      question TEXT,
+      question_original TEXT,
+      answer TEXT,
+      answer_original TEXT,
+      FOREIGN KEY (survey_id) REFERENCES surveys(id)
     );
-  }
-
-  // Insert structured data
-  if (data.structured) {
-    insertStructuredData.run(
-      data.id,
-      data.structured.age,
-      data.structured.ageGroup,
-      data.structured.religion,
-      data.structured.religionImportance,
-      data.structured.prayerFrequency,
-      data.structured.religiousFreedom,
-      data.structured.interfaithNeighbor,
-      data.structured.interfaithMarriage,
-      data.structured.diversityOpinion
+    CREATE TABLE IF NOT EXISTS demographics (
+      survey_id TEXT PRIMARY KEY,
+      age INTEGER,
+      age_group TEXT,
+      religion TEXT,
+      language TEXT,
+      FOREIGN KEY (survey_id) REFERENCES surveys(id)
     );
-  }
-
-  // Insert sentiment
-  if (data.sentiment) {
-    insertSentiment.run(
-      data.id,
-      data.sentiment.overall,
-      data.sentiment.openness,
-      data.sentiment.religiosity
+    CREATE TABLE IF NOT EXISTS structured_data (
+      survey_id TEXT PRIMARY KEY,
+      age INTEGER,
+      age_group TEXT,
+      religion TEXT,
+      religion_importance TEXT,
+      prayer_frequency TEXT,
+      religious_freedom TEXT,
+      interfaith_neighbor TEXT,
+      interfaith_marriage TEXT,
+      diversity_opinion TEXT,
+      FOREIGN KEY (survey_id) REFERENCES surveys(id)
     );
-  }
+    CREATE TABLE IF NOT EXISTS sentiment (
+      survey_id TEXT PRIMARY KEY,
+      overall TEXT,
+      openness TEXT,
+      religiosity TEXT,
+      FOREIGN KEY (survey_id) REFERENCES surveys(id)
+    );
+  `);
 
-  return data.id;
-});
+  const insertSurvey = db.prepare(`INSERT INTO surveys (id, timestamp, duration, language, status, summary) VALUES (?, ?, ?, ?, ?, ?)`);
+  const insertResponse = db.prepare(`INSERT INTO responses (survey_id, question, question_original, answer, answer_original) VALUES (?, ?, ?, ?, ?)`);
+  const insertDemographics = db.prepare(`INSERT INTO demographics (survey_id, age, age_group, religion, language) VALUES (?, ?, ?, ?, ?)`);
+  const insertStructuredData = db.prepare(`INSERT INTO structured_data (survey_id, age, age_group, religion, religion_importance, prayer_frequency, religious_freedom, interfaith_neighbor, interfaith_marriage, diversity_opinion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const insertSentiment = db.prepare(`INSERT INTO sentiment (survey_id, overall, openness, religiosity) VALUES (?, ?, ?, ?)`);
+
+  saveSurvey = db.transaction((data) => {
+    insertSurvey.run(data.id, data.timestamp, data.duration, data.language, data.status, data.summary);
+    for (const response of data.responses) {
+      insertResponse.run(data.id, response.question, response.questionOriginal, response.answer, response.answerOriginal);
+    }
+    if (data.demographics) {
+      insertDemographics.run(data.id, data.demographics.age, data.demographics.ageGroup, data.demographics.religion, data.demographics.language);
+    }
+    if (data.structured) {
+      insertStructuredData.run(data.id, data.structured.age, data.structured.ageGroup, data.structured.religion, data.structured.religionImportance, data.structured.prayerFrequency, data.structured.religiousFreedom, data.structured.interfaithNeighbor, data.structured.interfaithMarriage, data.structured.diversityOpinion);
+    }
+    if (data.sentiment) {
+      insertSentiment.run(data.id, data.sentiment.overall, data.sentiment.openness, data.sentiment.religiosity);
+    }
+    return data.id;
+  });
+}
 
 // ============================================
 // API Routes
@@ -217,8 +157,99 @@ app.post('/api/tts', async (req, res) => {
   }
 });
 
+// Generate survey questions via Claude
+app.post('/api/generate-questions', async (req, res) => {
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: 'Anthropic API key not configured' });
+  }
+
+  try {
+    const { config } = req.body;
+    if (!config || !config.type || !config.purpose) {
+      return res.status(400).json({ error: 'Missing required fields: config.type, config.purpose' });
+    }
+
+    const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+    const primaryLanguage = config.languages?.[0] || 'hi';
+    const languageMap = {
+      hi: 'Hindi', bn: 'Bengali', te: 'Telugu', mr: 'Marathi',
+      ta: 'Tamil', gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam',
+      pa: 'Punjabi', or: 'Odia', as: 'Assamese', ur: 'Urdu',
+    };
+    const langName = languageMap[primaryLanguage] || 'Hindi';
+
+    const prompt = `You are a professional survey researcher designing voice survey questions for India.
+
+SURVEY CONFIGURATION:
+- Type: ${config.type}
+- Name: ${config.name || 'Untitled Survey'}
+- Primary Language: ${langName} (${primaryLanguage})
+- Purpose: ${config.purpose}
+- Key Questions to Answer: ${config.keyQuestions || 'Not specified'}
+- Target Audience: ${config.targetAudience || 'General population'}
+- Geography: ${config.geography || 'National'}${config.states?.length ? ` (${config.states.join(', ')})` : ''}
+- Tone: ${config.tone || 'conversational'}
+- Sensitivity Level: ${config.sensitivity || 'low'}
+- Target Duration: ${config.duration || 10} minutes
+- Analysis Goals: ${config.analysisGoals || 'Not specified'}
+- Brand Names (if market research): ${config.brandNames || 'None'}
+
+INSTRUCTIONS:
+1. Generate 5-8 survey questions tailored to this specific survey's purpose, audience, and goals.
+2. Each question MUST be written in ${langName} script as the primary text, with an English translation.
+3. Questions should feel natural for a voice conversation — conversational, not formal or bureaucratic.
+4. Include a mix of question types: single choice, multiple choice, likert scale, rating, open-ended, yes/no as appropriate.
+5. Order questions from easy/comfortable to more sensitive/complex (funnel approach).
+6. If sensitivity is "high", include trust-building phrasing and indirect question techniques.
+7. If tone is "formal", use respectful/formal language (e.g., "aap" forms). If "friendly", use warmer language.
+8. Make questions specific to the stated purpose — do NOT use generic placeholder questions.
+9. Do NOT include demographic questions (age, gender) — those are added automatically.
+
+RESPOND WITH ONLY a JSON array, no other text. Each object must have:
+{
+  "id": <number starting from 1>,
+  "type": "<single|multiple|likert|rating|nps|open|yes_no>",
+  "text": "<question in ${langName} script>",
+  "textEn": "<English translation>",
+  "options": ["<option1>", "<option2>", ...] (only for single/multiple/likert types, omit for open/rating/nps/yes_no),
+  "required": true,
+  "category": "<short category label in English>"
+}
+
+For likert type, always use exactly 5 options from negative to positive.
+For rating type, include "min": 1, "max": 10.
+For nps type, include "min": 0, "max": 10.`;
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = response.content[0].text;
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      throw new Error('No JSON array found in Claude response');
+    }
+
+    const questions = JSON.parse(jsonMatch[0]);
+    res.status(200).json({ questions });
+  } catch (error) {
+    console.error('Question generation error:', error);
+    res.status(500).json({ error: 'Failed to generate questions', message: error.message });
+  }
+});
+
+// Guard middleware for DB-dependent routes
+const requireDb = (req, res, next) => {
+  if (!db) return res.status(503).json({ error: 'Database unavailable in this environment' });
+  next();
+};
+
 // Save a new survey result
-app.post('/api/surveys', (req, res) => {
+app.post('/api/surveys', requireDb, (req, res) => {
   try {
     const data = req.body;
     const id = saveSurvey(data);
@@ -230,7 +261,7 @@ app.post('/api/surveys', (req, res) => {
 });
 
 // Get all surveys (summary view)
-app.get('/api/surveys', (req, res) => {
+app.get('/api/surveys', requireDb, (req, res) => {
   try {
     const surveys = db.prepare(`
       SELECT s.*, d.age, d.age_group, d.religion
@@ -246,7 +277,7 @@ app.get('/api/surveys', (req, res) => {
 });
 
 // Get single survey with all details
-app.get('/api/surveys/:id', (req, res) => {
+app.get('/api/surveys/:id', requireDb, (req, res) => {
   try {
     const survey = db.prepare('SELECT * FROM surveys WHERE id = ?').get(req.params.id);
     if (!survey) {
@@ -272,7 +303,7 @@ app.get('/api/surveys/:id', (req, res) => {
 });
 
 // Get aggregate analytics
-app.get('/api/analytics', (req, res) => {
+app.get('/api/analytics', requireDb, (req, res) => {
   try {
     const totalSurveys = db.prepare('SELECT COUNT(*) as count FROM surveys').get();
 
@@ -342,7 +373,7 @@ app.get('/api/analytics', (req, res) => {
 });
 
 // Export all data as JSON
-app.get('/api/export/json', (req, res) => {
+app.get('/api/export/json', requireDb, (req, res) => {
   try {
     const surveys = db.prepare('SELECT * FROM surveys').all();
     const allData = surveys.map(survey => {
@@ -363,7 +394,7 @@ app.get('/api/export/json', (req, res) => {
 });
 
 // Export as CSV
-app.get('/api/export/csv', (req, res) => {
+app.get('/api/export/csv', requireDb, (req, res) => {
   try {
     const data = db.prepare(`
       SELECT
@@ -398,7 +429,7 @@ app.get('/api/export/csv', (req, res) => {
 });
 
 // Delete a survey
-app.delete('/api/surveys/:id', (req, res) => {
+app.delete('/api/surveys/:id', requireDb, (req, res) => {
   try {
     const deleteTransaction = db.transaction((id) => {
       db.prepare('DELETE FROM responses WHERE survey_id = ?').run(id);

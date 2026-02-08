@@ -26,6 +26,20 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
   const testCallPollRef = useRef(null);
   const audioPreviewRef = useRef(null);
 
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (testCallPollRef.current) clearInterval(testCallPollRef.current);
+    };
+  }, []);
+
+  // Auto-expand test call section when results arrive
+  useEffect(() => {
+    if (testCallStatus === 'completed' || testCallStatus === 'connected' || testCallStatus === 'ringing') {
+      setShowTestCall(true);
+    }
+  }, [testCallStatus]);
+
   const PREVIEW_VOICES = [
     { id: '95d51f79-c397-46f9-b49a-23763d3eaa2d', name: 'Hindi Female', lang: 'hi' },
     { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', lang: 'hi' },
@@ -158,8 +172,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Failed to generate questions');
+        const text = await response.text();
+        let msg = 'Failed to generate questions';
+        try { msg = JSON.parse(text).message || msg; } catch {}
+        throw new Error(msg);
       }
 
       const data = await response.json();
@@ -250,6 +266,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
       testCallPollRef.current = setInterval(async () => {
         try {
           const res = await fetch(`http://localhost:3002/call/${data.callId}`);
+          if (!res.ok) return;
           const callData = await res.json();
           if (callData.status === 'in-progress' || callData.status === 'surveying') {
             setTestCallStatus('connected');
@@ -257,16 +274,23 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
             setTestCallStatus('completed');
             setTestCallResult(callData);
             clearInterval(testCallPollRef.current);
+            testCallPollRef.current = null;
           } else if (callData.status === 'failed') {
             setTestCallStatus('error');
             setTestCallError(callData.error || 'Call failed');
             clearInterval(testCallPollRef.current);
+            testCallPollRef.current = null;
           }
         } catch { /* ignore poll errors */ }
       }, 2000);
 
       // Stop polling after 10 minutes
-      setTimeout(() => { if (testCallPollRef.current) clearInterval(testCallPollRef.current); }, 10 * 60 * 1000);
+      setTimeout(() => {
+        if (testCallPollRef.current) {
+          clearInterval(testCallPollRef.current);
+          testCallPollRef.current = null;
+        }
+      }, 10 * 60 * 1000);
     } catch (err) {
       setTestCallStatus('error');
       setTestCallError(err.message);
@@ -578,7 +602,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
                 <label className="block text-sm font-medium text-earth mb-2">Budget (Optional)</label>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500">\u20B9</span>
+                  <span className="text-gray-500">₹</span>
                   <input
                     type="number"
                     value={config.budget}
@@ -588,7 +612,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   />
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
-                  Estimated: \u20B9{estimatedCost.toLocaleString()} for {config.sampleSize.toLocaleString()} responses
+                  Estimated: ₹{estimatedCost.toLocaleString()} for {config.sampleSize.toLocaleString()} responses
                 </p>
               </div>
 
@@ -646,7 +670,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   type="text"
                   value={config.incentive}
                   onChange={(e) => setConfig({ ...config, incentive: e.target.value })}
-                  placeholder="e.g., \u20B950 mobile recharge, lottery entry..."
+                  placeholder="e.g., ₹50 mobile recharge, lottery entry..."
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                 />
               </div>
@@ -1011,7 +1035,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="text-sm text-white/70">Estimated Total Cost</div>
-                    <div className="text-4xl font-bold">\u20B9{estimatedCost.toLocaleString()}</div>
+                    <div className="text-4xl font-bold">₹{estimatedCost.toLocaleString()}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-white/70">Delivery</div>
@@ -1021,7 +1045,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   </div>
                 </div>
                 <div className="text-sm text-white/60">
-                  {config.sampleSize.toLocaleString()} responses × \u20B9{config.urgency === 'urgent' ? 55 : config.urgency === 'express' ? 45 : 38}/response
+                  {config.sampleSize.toLocaleString()} responses × ₹{config.urgency === 'urgent' ? 55 : config.urgency === 'express' ? 45 : 38}/response
                 </div>
               </div>
 
@@ -1103,10 +1127,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     )}
                     {testCallStatus === 'completed' && (
                       <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-3 rounded-lg font-medium">
                           \u2713 Test call completed!
                           {testCallResult?.connectedAt && testCallResult?.endedAt && (
-                            <span className="text-green-600 ml-1">
+                            <span className="text-green-600 ml-1 font-normal">
                               ({Math.round((new Date(testCallResult.endedAt) - new Date(testCallResult.connectedAt)) / 1000)}s)
                             </span>
                           )}
@@ -1116,68 +1140,91 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           <div className="space-y-4">
                             {/* AI Summary */}
                             {testCallResult.extractedData?.summary && (
-                              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-gray-700 italic">
+                              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-gray-700 italic">
                                 "{testCallResult.extractedData.summary}"
                               </div>
                             )}
 
                             {/* Transcript */}
-                            <div>
-                              <h4 className="text-sm font-semibold text-earth mb-2">Conversation Transcript</h4>
-                              <div className="bg-cream-warm rounded-xl p-3 space-y-2 max-h-60 overflow-y-auto">
-                                {(testCallResult.transcript || []).map((msg, i) => (
-                                  <div key={i} className={`flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
-                                    <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs ${
-                                      msg.role === 'assistant'
-                                        ? 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
-                                        : 'bg-saffron text-white rounded-br-md'
-                                    }`}>
-                                      <div className="text-[9px] uppercase tracking-wider mb-0.5 opacity-60">
-                                        {msg.role === 'assistant' ? 'AI' : 'You'}
+                            {Array.isArray(testCallResult.transcript) && testCallResult.transcript.length > 0 && (
+                              <div>
+                                <h4 className="text-sm font-semibold text-earth mb-2">Conversation Transcript</h4>
+                                <div className="bg-cream-warm rounded-xl p-3 space-y-2 max-h-72 overflow-y-auto">
+                                  {testCallResult.transcript.map((msg, i) => (
+                                    <div key={i} className={`flex ${msg?.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
+                                      <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs ${
+                                        msg?.role === 'assistant'
+                                          ? 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
+                                          : 'bg-saffron text-white rounded-br-md'
+                                      }`}>
+                                        <div className="text-[9px] uppercase tracking-wider mb-0.5 opacity-60">
+                                          {msg?.role === 'assistant' ? 'AI' : 'You'}
+                                        </div>
+                                        {msg?.content || ''}
                                       </div>
-                                      {msg.content}
                                     </div>
-                                  </div>
-                                ))}
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-
+                            )}
 
                             {/* Extracted Data */}
-                            {testCallResult.extractedData && (
+                            {testCallResult.extractedData && typeof testCallResult.extractedData === 'object' && (
                               <div>
                                 <h4 className="text-sm font-semibold text-earth mb-2">Extracted Data</h4>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   {/* Responses */}
-                                  <div className="bg-white border rounded-xl p-4">
-                                    <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-3 font-medium">Responses</div>
-                                    <div className="space-y-3">
-                                      {Object.entries(testCallResult.extractedData.responses || testCallResult.extractedData.structured || {}).map(([key, value]) => (
-                                        <div key={key} className="border-b border-gray-100 pb-2.5 last:border-0 last:pb-0">
-                                          <div className="text-[11px] text-gray-400 capitalize mb-1">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}</div>
-                                          <div className="text-sm font-medium text-earth">{value !== null ? String(value).replace(/_/g, ' ') : <span className="text-gray-300 italic">No response</span>}</div>
+                                  {(() => {
+                                    const responses = testCallResult.extractedData.responses || testCallResult.extractedData.structured;
+                                    if (!responses || typeof responses !== 'object') return null;
+                                    return (
+                                      <div className="bg-white border rounded-xl p-4">
+                                        <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-3 font-medium">Responses</div>
+                                        <div className="space-y-3">
+                                          {Object.entries(responses).map(([key, value]) => (
+                                            <div key={key} className="border-b border-gray-100 pb-2.5 last:border-0 last:pb-0">
+                                              <div className="text-[11px] text-gray-400 capitalize mb-1">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()}</div>
+                                              <div className="text-sm font-medium text-earth">{value !== null && value !== undefined ? String(value).replace(/_/g, ' ') : <span className="text-gray-300 italic">No response</span>}</div>
+                                            </div>
+                                          ))}
                                         </div>
-                                      ))}
-                                    </div>
-                                  </div>
+                                      </div>
+                                    );
+                                  })()}
 
                                   {/* Sentiment */}
-                                  <div className="bg-white border rounded-xl p-3">
-                                    <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2 font-medium">Sentiment</div>
-                                    <div className="space-y-1.5 text-xs">
-                                      {Object.entries(testCallResult.extractedData.sentiment || {}).map(([key, value]) => (
-                                        <div key={key} className="flex justify-between py-1 border-b border-gray-50 last:border-0">
-                                          <span className="text-gray-500 capitalize">{key}</span>
-                                          <span className={`font-medium px-2 py-0.5 rounded-full text-[10px] ${
-                                            value === 'positive' || value === 'high' ? 'bg-green-100 text-green-700' :
-                                            value === 'neutral' || value === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                                            'bg-red-100 text-red-700'
-                                          }`}>{value}</span>
+                                  {(() => {
+                                    const sentiment = testCallResult.extractedData.sentiment;
+                                    if (!sentiment || typeof sentiment !== 'object') return null;
+                                    return (
+                                      <div className="bg-white border rounded-xl p-3">
+                                        <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2 font-medium">Sentiment</div>
+                                        <div className="space-y-1.5 text-xs">
+                                          {Object.entries(sentiment).map(([key, value]) => (
+                                            <div key={key} className="flex justify-between py-1 border-b border-gray-50 last:border-0">
+                                              <span className="text-gray-500 capitalize">{key}</span>
+                                              <span className={`font-medium px-2 py-0.5 rounded-full text-[10px] ${
+                                                value === 'positive' || value === 'high' ? 'bg-green-100 text-green-700' :
+                                                value === 'neutral' || value === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                                'bg-red-100 text-red-700'
+                                              }`}>{value != null ? String(value) : '—'}</span>
+                                            </div>
+                                          ))}
                                         </div>
-                                      ))}
-                                    </div>
-                                  </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
+                              </div>
+                            )}
+
+                            {/* Raw JSON fallback if no structured data */}
+                            {testCallResult && !testCallResult.extractedData && !testCallResult.transcript && (
+                              <div>
+                                <h4 className="text-sm font-semibold text-earth mb-2">Call Data</h4>
+                                <pre className="bg-cream-warm rounded-xl p-3 text-xs overflow-auto max-h-60 whitespace-pre-wrap">
+                                  {JSON.stringify(testCallResult, null, 2)}
+                                </pre>
                               </div>
                             )}
 

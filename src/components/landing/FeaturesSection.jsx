@@ -49,25 +49,22 @@ const FeaturesSection = () => {
           className="mb-20"
         />
 
-        <div className="space-y-12">
+        <div className="space-y-0 divide-y divide-cream-warm">
           {pairs.map((pair, i) => (
             <motion.div
               key={i}
-              className="flex flex-col md:flex-row items-start gap-8 md:gap-16"
+              className="grid grid-cols-[1fr_auto_1fr] items-center gap-6 py-5"
               variants={pairVariants}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: '-30px' }}
               custom={i}
             >
-              {/* Problem */}
-              <p className="flex-1 font-display text-xl text-[#6b4c3a]/60 line-through decoration-[#e8550f]/40 decoration-2">
+              <p className="font-display text-base md:text-lg text-earth-mid/40 line-through decoration-saffron/30 decoration-1 text-right italic">
                 {pair.problem}
               </p>
-
-              {/* Solution */}
-              <p className="flex-1 font-body text-lg text-[#3d2314] font-medium">
-                <span className="inline-block w-2 h-2 rounded-full bg-[#e8550f] mr-2 relative -top-px" />
+              <span className="w-2 h-2 rounded-full bg-saffron flex-shrink-0" />
+              <p className="font-body text-base md:text-lg text-earth font-medium">
                 {pair.solution}
               </p>
             </motion.div>
