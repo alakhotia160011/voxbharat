@@ -292,7 +292,7 @@ async function initSession(callId, call, ws, streamSid) {
 
   // Create Cartesia STT - uses sessionObj directly (no separate closure vars)
   const stt = new CartesiaSTT(CARTESIA_KEY, {
-    language: call.autoDetectLanguage ? 'auto' : call.language,
+    language: call.autoDetectLanguage ? 'en' : call.language,
     onTranscript: ({ text, isFinal }) => {
       if (sessionObj.isEnding) return;
 
