@@ -39,8 +39,11 @@ export class ClaudeConversation {
         : "Hello! I'm calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
     } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name);
-    } else {
+    } else if (SURVEY_SCRIPTS[this.language]) {
       greeting = SURVEY_SCRIPTS[this.language].greeting;
+    } else {
+      // For languages without hardcoded scripts, use the custom greeting generator with a generic survey name
+      greeting = generateCustomGreeting(this.language, this.gender, 'VoxBharat Survey');
     }
     // Add greeting to message history so Claude knows it was already spoken
     this.messages.push({ role: 'assistant', content: greeting });
@@ -176,6 +179,19 @@ export class ClaudeConversation {
   _getFallback() {
     const askedCount = this.messages.filter(m => m.role === 'assistant').length;
 
+    const closings = {
+      hi: 'बहुत-बहुत धन्यवाद! आपका दिन शुभ हो!',
+      bn: 'অনেক ধন্যবাদ! আপনার দিন শুভ হোক!',
+      te: 'చాలా ధన్యవాదాలు! మీ రోజు శుభంగా ఉండాలి!',
+      mr: 'खूप खूप धन्यवाद! तुमचा दिवस शुभ असो!',
+      ta: 'மிக்க நன்றி! உங்கள் நாள் நல்லதாக அமையட்டும்!',
+      gu: 'ખૂબ ખૂબ ધન્યવાદ! તમારો દિવસ શુભ રહે!',
+      kn: 'ತುಂಬಾ ಧನ್ಯವಾದಗಳು! ನಿಮ್ಮ ದಿನ ಶುಭವಾಗಿರಲಿ!',
+      ml: 'വളരെ നന്ദി! നിങ്ങളുടെ ദിവസം ശുഭമാകട്ടെ!',
+      pa: 'ਬਹੁਤ-ਬਹੁਤ ਧੰਨਵਾਦ! ਤੁਹਾਡਾ ਦਿਨ ਸ਼ੁਭ ਹੋਵੇ!',
+      en: 'Thank you so much! Have a wonderful day!',
+    };
+
     if (this.customSurvey) {
       if (askedCount < this.customSurvey.questions.length) {
         const nextQ = this.customSurvey.questions[askedCount];
@@ -183,22 +199,25 @@ export class ClaudeConversation {
         return nextQ.text;
       }
       this.isComplete = true;
-      const closing = this.language === 'hi'
-        ? 'बहुत-बहुत धन्यवाद! आपका दिन शुभ हो!'
-        : 'অনেক ধন্যবাদ! আপনার দিন শুভ হোক!';
+      const closing = closings[this.language] || closings.hi;
       this.messages.push({ role: 'assistant', content: closing });
       return closing;
     }
 
     const script = SURVEY_SCRIPTS[this.language];
-    if (askedCount < script.questions.length) {
+    if (script && askedCount < script.questions.length) {
       const nextQ = script.questions[askedCount];
       this.messages.push({ role: 'assistant', content: nextQ.text });
       return nextQ.text;
     }
 
     this.isComplete = true;
-    this.messages.push({ role: 'assistant', content: script.closing });
-    return script.closing;
+    if (script) {
+      this.messages.push({ role: 'assistant', content: script.closing });
+      return script.closing;
+    }
+    const fallbackClosing = closings[this.language] || closings.hi;
+    this.messages.push({ role: 'assistant', content: fallbackClosing });
+    return fallbackClosing;
   }
 }

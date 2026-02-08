@@ -1,6 +1,15 @@
 // Survey question scripts for AI voice surveys
 // Matches the existing demo conversation structure in the frontend
 
+/**
+ * Full language map for all supported languages
+ */
+export const LANGUAGE_MAP = {
+  hi: 'Hindi', bn: 'Bengali', te: 'Telugu', mr: 'Marathi',
+  ta: 'Tamil', gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam',
+  pa: 'Punjabi', en: 'English',
+};
+
 export const SURVEY_SCRIPTS = {
   hi: {
     name: 'Hindi Religious Harmony Survey',
@@ -130,26 +139,61 @@ export const SURVEY_SCRIPTS = {
 };
 
 /**
+ * Get gender-aware instruction for any language
+ */
+function getGenderNote(language, gender) {
+  if (language === 'hi') {
+    return gender === 'female'
+      ? 'Use feminine verb forms in Hindi: रही हूँ, करती हूँ, बोल रही हूँ'
+      : 'Use masculine verb forms in Hindi: रहा हूँ, करता हूँ, बोल रहा हूँ';
+  }
+  if (language === 'mr') {
+    return gender === 'female'
+      ? 'Use feminine verb forms in Marathi: करते, बोलते (female forms).'
+      : 'Use masculine verb forms in Marathi: करतो, बोलतो (male forms).';
+  }
+  // Languages with gendered verbs — instruct Claude generically
+  if (['pa', 'gu', 'bn'].includes(language)) {
+    return `Adapt verb forms appropriately for a ${gender} speaker in ${LANGUAGE_MAP[language]}.`;
+  }
+  // Tamil, Telugu, Kannada, Malayalam, English — less verb-gender sensitivity
+  return '';
+}
+
+/**
  * Get the system prompt for Claude based on language and survey script
  */
 export function getSystemPrompt(language, gender) {
-  const script = SURVEY_SCRIPTS[language];
-  if (!script) throw new Error(`Unsupported language: ${language}`);
+  const langName = LANGUAGE_MAP[language] || 'Hindi';
+  const script = SURVEY_SCRIPTS[language]; // may be undefined for non-hi/bn
 
-  const genderNote = language === 'hi'
-    ? (gender === 'female'
-      ? 'Use feminine verb forms: रही हूँ, करती हूँ, बोल रही हूँ'
-      : 'Use masculine verb forms: रहा हूँ, करता हूँ, बोल रहा हूँ')
-    : '';
+  const genderNote = getGenderNote(language, gender);
+
+  // For hi/bn we have hardcoded questions; for others, provide English questions and instruct Claude to translate
+  const questionsBlock = script
+    ? script.questions.map((q, i) => `${i + 1}. ${q.text}`).join('\n')
+    : `(Ask these questions naturally in ${langName}):
+1. First, can you tell me your age?
+2. What is your religion?
+3. How important is religion in your daily life?
+4. How often do you pray or worship?
+5. Do you think people of all religions in India have complete freedom to practice their faith?
+6. If a family of another religion moved into your neighborhood, how would you feel?
+7. What is your opinion on inter-faith marriage?
+8. In your view, does religious diversity make India better or more challenging?`;
+
+  const closingLine = script
+    ? `CLOSING: ${script.closing}`
+    : `CLOSING: Thank them warmly for their time and wish them a good day — in ${langName}.`;
 
   return `You are a friendly phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India.
 
 CRITICAL RULES:
-1. Speak ONLY in ${language === 'hi' ? 'Hindi' : 'Bengali'}. Never use English.
+1. Speak ONLY in ${langName}. Never use English.
 2. Ask ONE question at a time. Wait for the response before asking the next question.
 3. Keep responses to 1-2 sentences maximum. This is a phone call - be very concise and brief.
 4. Be warm, respectful, and conversational. React naturally to answers.
-5. ${genderNote}
+${genderNote ? `5. ${genderNote}` : ''}
 6. Follow the survey question order but adapt naturally based on responses.
 7. NEVER repeat a question you have already asked. Always move forward to the next question.
 8. If someone gives a vague or unclear answer, accept it and move on. Do NOT probe or re-ask.
@@ -163,16 +207,16 @@ RESPONDENT WILLINGNESS:
 - NEVER pressure or persuade someone to continue. Respect their decision immediately and end gracefully.
 
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
-The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled Hindi text. You MUST:
-- Interpret the transcription generously. For example: "हेंडू" or "हंदू" = "हिंदू", "बते साल" = "बत्तीस साल", "मात्वपोना" = "महत्वपूर्ण", "दिकतनी" = "दिक्कत नहीं", "दरोर" = "ज़रूर"
-- If a response seems like agreement or acknowledgment (e.g., "जी", "हाँ", "अच्छा", "ठीक है"), accept it and move on
+The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
+- Interpret the transcription generously — the text may be a rough phonetic approximation
+- If a response seems like agreement or acknowledgment, accept it and move on
 - If text seems garbled or nonsensical, assume the user answered and move to the next question rather than re-asking
 - NEVER say you didn't understand. Just accept whatever was said and continue forward.
 
 SURVEY QUESTIONS (ask in this order):
-${script.questions.map((q, i) => `${i + 1}. ${q.text}`).join('\n')}
+${questionsBlock}
 
-CLOSING: ${script.closing}
+${closingLine}
 
 Remember: Keep moving forward through the questions. Never go backward. Each response you give should contain at most ONE question.`;
 }
@@ -217,30 +261,36 @@ Be precise. Map the respondent's answers to the closest option value. If an answ
  * Generate a greeting for a custom survey
  */
 export function generateCustomGreeting(language, gender, surveyName) {
-  if (language === 'hi') {
-    const verb = gender === 'female' ? 'रही' : 'रहा';
-    return `नमस्ते! मैं VoxBharat से बोल ${verb} हूँ। क्या आपके पास कुछ मिनट हैं? हम "${surveyName}" पर एक छोटा सर्वेक्षण कर रहे हैं।`;
-  } else if (language === 'bn') {
-    return `নমস্কার! আমি VoxBharat থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে? আমরা "${surveyName}" নিয়ে একটি ছোট সমীক্ষা করছি।`;
-  }
-  // Fallback to Hindi
-  return `नमस्ते! मैं VoxBharat से बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए?`;
+  const greetings = {
+    hi: () => {
+      const verb = gender === 'female' ? 'रही' : 'रहा';
+      return `नमस्ते! मैं VoxBharat से बोल ${verb} हूँ। क्या आपके पास कुछ मिनट हैं? हम "${surveyName}" पर एक छोटा सर्वेक्षण कर रहे हैं।`;
+    },
+    bn: () => `নমস্কার! আমি VoxBharat থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে? আমরা "${surveyName}" নিয়ে একটি ছোট সমীক্ষা করছি।`,
+    te: () => `నమస్కారం! నేను VoxBharat నుండి మాట్లాడుతున్నాను. "${surveyName}" గురించి ఒక చిన్న సర్వే కోసం మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
+    mr: () => `नमस्कार! मी VoxBharat कडून बोलत आहे. "${surveyName}" बद्दल एक छोटा सर्वे घेत आहोत. तुमच्याकडे काही मिनिटे आहेत का?`,
+    ta: () => `வணக்கம்! நான் VoxBharat-இலிருந்து பேசுகிறேன். "${surveyName}" பற்றிய ஒரு சிறிய கருத்துக்கணிப்புக்கு சில நிமிடங்கள் இருக்கிறதா?`,
+    gu: () => `નમસ્તે! હું VoxBharat તરફથી બોલી રહ્યો છું. "${surveyName}" વિશે એક ટૂંકા સર્વેક્ષણ માટે તમારી પાસે થોડી મિનિટ છે?`,
+    kn: () => `ನಮಸ್ಕಾರ! ನಾನು VoxBharat ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಒಂದು ಸಣ್ಣ ಸಮೀಕ್ಷೆಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
+    ml: () => `നമസ്കാരം! ഞാൻ VoxBharat-ൽ നിന്ന് വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ഒരു ചെറിയ സർവേയ്ക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
+    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ VoxBharat ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਇੱਕ ਛੋਟੇ ਸਰਵੇ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
+    en: () => `Hello! I'm calling from VoxBharat. Do you have a few minutes for a short survey about "${surveyName}"?`,
+  };
+
+  const greetingFn = greetings[language] || greetings.hi;
+  return greetingFn();
 }
 
 /**
  * Get system prompt for a custom survey (dynamic questions from builder)
  */
 export function getCustomSystemPrompt(language, gender, customSurvey) {
-  const langName = language === 'hi' ? 'Hindi' : language === 'bn' ? 'Bengali' : 'Hindi';
+  const langName = LANGUAGE_MAP[language] || 'Hindi';
 
-  const genderNote = language === 'hi'
-    ? (gender === 'female'
-      ? 'Use feminine verb forms: रही हूँ, करती हूँ, बोल रही हूँ'
-      : 'Use masculine verb forms: रहा हूँ, करता हूँ, बोल रहा हूँ')
-    : '';
+  const genderNote = getGenderNote(language, gender);
 
   const toneInstruction = customSurvey.tone === 'formal'
-    ? 'Use formal/respectful register (आप, not तुम).'
+    ? 'Use formal/respectful register.'
     : customSurvey.tone === 'friendly'
     ? 'Use a warm, friendly register.'
     : 'Use a warm, conversational tone.';
