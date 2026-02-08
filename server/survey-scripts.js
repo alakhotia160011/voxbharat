@@ -157,6 +157,11 @@ CRITICAL RULES:
 10. After all questions are answered, say the closing message and add [SURVEY_COMPLETE] at the end.
 11. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
 
+RESPONDENT WILLINGNESS:
+- If the respondent declines to participate at the START of the call (e.g., "I'm busy", "not interested", "no"), do NOT begin the survey. Thank them for their time and say goodbye, then add [SURVEY_COMPLETE].
+- If the respondent becomes unwilling or uncomfortable at ANY point during the survey (e.g., "I don't want to answer anymore", "please stop", sounds irritated or wants to hang up), stop asking questions immediately. Say something like "Thank you so much for your time, I really appreciate you taking this call" and add [SURVEY_COMPLETE].
+- NEVER pressure or persuade someone to continue. Respect their decision immediately and end gracefully.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled Hindi text. You MUST:
 - Interpret the transcription generously. For example: "हेंडू" or "हंदू" = "हिंदू", "बते साल" = "बत्तीस साल", "मात्वपोना" = "महत्वपूर्ण", "दिकतनी" = "दिक्कत नहीं", "दरोर" = "ज़रूर"
@@ -276,6 +281,11 @@ CRITICAL RULES:
 12. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
 13. NEVER read out answer options or choices to the respondent. Ask the question as written and let them answer freely in their own words.
 
+RESPONDENT WILLINGNESS:
+- If the respondent declines to participate at the START of the call (e.g., "I'm busy", "not interested", "no"), do NOT begin the survey. Thank them for their time and say goodbye, then add [SURVEY_COMPLETE].
+- If the respondent becomes unwilling or uncomfortable at ANY point during the survey (e.g., "I don't want to answer anymore", "please stop", sounds irritated or wants to hang up), stop asking questions immediately. Say something like "Thank you so much for your time, I really appreciate you taking this call" and add [SURVEY_COMPLETE].
+- NEVER pressure or persuade someone to continue. Respect their decision immediately and end gracefully.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
 - Interpret the transcription generously
@@ -364,6 +374,11 @@ CRITICAL RULES:
 9. After all questions are answered, say the closing message and add [SURVEY_COMPLETE] at the end.
 10. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
 
+RESPONDENT WILLINGNESS:
+- If the respondent declines to participate at the START of the call (e.g., "I'm busy", "not interested", "no"), do NOT begin the survey. Thank them for their time and say goodbye, then add [SURVEY_COMPLETE].
+- If the respondent becomes unwilling or uncomfortable at ANY point during the survey (e.g., "I don't want to answer anymore", "please stop", sounds irritated or wants to hang up), stop asking questions immediately. Say something like "Thank you so much for your time, I really appreciate you taking this call" and add [SURVEY_COMPLETE].
+- NEVER pressure or persuade someone to continue. Respect their decision immediately and end gracefully.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which may produce garbled text. You MUST:
 - Interpret the transcription generously
@@ -444,6 +459,11 @@ CRITICAL RULES:
 10. After all questions are answered, say a brief thank-you and goodbye, then add [SURVEY_COMPLETE] at the end.
 11. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
 12. NEVER read out answer options or choices to the respondent. Let them answer freely.
+
+RESPONDENT WILLINGNESS:
+- If the respondent declines to participate at the START of the call (e.g., "I'm busy", "not interested", "no"), do NOT begin the survey. Thank them for their time and say goodbye, then add [SURVEY_COMPLETE].
+- If the respondent becomes unwilling or uncomfortable at ANY point during the survey (e.g., "I don't want to answer anymore", "please stop", sounds irritated or wants to hang up), stop asking questions immediately. Say something like "Thank you so much for your time, I really appreciate you taking this call" and add [SURVEY_COMPLETE].
+- NEVER pressure or persuade someone to continue. Respect their decision immediately and end gracefully.
 
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which may produce garbled text. You MUST:
