@@ -8,7 +8,5 @@ export const LANGUAGES = [
   { code: 'kn', native: 'ಕನ್ನಡ', english: 'Kannada', speakers: '44M' },
   { code: 'ml', native: 'മലയാളം', english: 'Malayalam', speakers: '37M' },
   { code: 'pa', native: 'ਪੰਜਾਬੀ', english: 'Punjabi', speakers: '33M' },
-  { code: 'or', native: 'ଓଡ଼ିଆ', english: 'Odia', speakers: '35M' },
-  { code: 'as', native: 'অসমীয়া', english: 'Assamese', speakers: '15M' },
-  { code: 'ur', native: 'اردو', english: 'Urdu', speakers: '51M' },
+  { code: 'en', native: 'English', english: 'English', speakers: '130M' },
 ];
