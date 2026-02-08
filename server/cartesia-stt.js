@@ -8,7 +8,7 @@ import WebSocket from 'ws';
 export class CartesiaSTT {
   constructor(apiKey, options = {}) {
     this.apiKey = apiKey;
-    this.language = options.language || 'hi';
+    this.language = options.language || 'hi'; // 'auto' = omit language for auto-detection
     this.ws = null;
     this.isConnected = false;
     this.onTranscript = options.onTranscript || (() => {});
@@ -23,14 +23,18 @@ export class CartesiaSTT {
    */
   async connect() {
     return new Promise((resolve, reject) => {
-      const params = new URLSearchParams({
+      const paramObj = {
         model: 'ink-whisper',
-        language: this.language,
         encoding: 'pcm_s16le',
         sample_rate: '16000',
         api_key: this.apiKey,
         cartesia_version: '2025-04-16',
-      });
+      };
+      // Omit language for auto-detection mode
+      if (this.language && this.language !== 'auto') {
+        paramObj.language = this.language;
+      }
+      const params = new URLSearchParams(paramObj);
 
       const url = `wss://api.cartesia.ai/stt/websocket?${params}`;
 
@@ -39,7 +43,7 @@ export class CartesiaSTT {
       this.ws.on('open', () => {
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        console.log(`[STT] Connected, language=${this.language}`);
+        console.log(`[STT] Connected, language=${this.language === 'auto' ? 'auto-detect' : this.language}`);
         resolve();
       });
 

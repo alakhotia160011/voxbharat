@@ -119,6 +119,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     name: '',
     type: '',
     languages: ['hi'],
+    autoDetectLanguage: false,
 
     // Audience
     geography: 'national',
@@ -241,8 +242,9 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phoneNumber: testPhoneNumber.trim(),
-          language: config.languages[0] || 'hi',
+          language: config.autoDetectLanguage ? 'en' : (config.languages[0] || 'hi'),
           gender: 'female',
+          autoDetectLanguage: config.autoDetectLanguage,
           customSurvey: {
             name: config.name || 'Custom Survey',
             tone: config.tone || 'conversational',
@@ -432,6 +434,29 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-sm font-medium text-earth">Auto-detect language</span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Start in English, then automatically switch to whatever language the respondent speaks
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.autoDetectLanguage}
+                    onChange={(e) => setConfig({ ...config, autoDetectLanguage: e.target.checked })}
+                    className="w-5 h-5 accent-saffron"
+                  />
+                </label>
+                {config.autoDetectLanguage && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
+                    The AI will greet in English and detect the respondent's language from their first reply.
+                    Supports: Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, English.
+                  </div>
+                )}
               </div>
 
               {config.type === 'market' && (
