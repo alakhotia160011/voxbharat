@@ -25,11 +25,12 @@ export default async function handler(req, res) {
 
     const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-    const primaryLanguage = config.languages?.[0] || 'hi';
+    const autoDetect = config.autoDetectLanguage || false;
+    const primaryLanguage = autoDetect ? 'en' : (config.languages?.[0] || 'hi');
     const languageMap = {
       hi: 'Hindi', bn: 'Bengali', te: 'Telugu', mr: 'Marathi',
       ta: 'Tamil', gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam',
-      pa: 'Punjabi', or: 'Odia', as: 'Assamese', ur: 'Urdu',
+      pa: 'Punjabi', en: 'English',
     };
     const langName = languageMap[primaryLanguage] || 'Hindi';
 

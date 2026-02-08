@@ -67,14 +67,14 @@ app.get('/call/health', (req, res) => {
 
 // Initiate an outbound call
 app.post('/call/initiate', async (req, res) => {
-  const { phoneNumber, language = 'hi', gender = 'female', customSurvey = null } = req.body;
+  const { phoneNumber, language = 'hi', gender = 'female', customSurvey = null, autoDetectLanguage = false } = req.body;
 
   if (!phoneNumber) {
     return res.status(400).json({ error: 'phoneNumber is required' });
   }
 
   // Create call record
-  const call = createCall({ phoneNumber, language, gender, customSurvey });
+  const call = createCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage });
 
   try {
     // Make outbound call via Twilio
@@ -271,6 +271,7 @@ async function initSession(callId, call, ws, streamSid) {
     language: call.language,
     gender: call.gender,
     customSurvey: call.customSurvey || null,
+    autoDetectLanguage: call.autoDetectLanguage || false,
   });
 
   // Session object created first so STT callback can reference it
@@ -286,11 +287,12 @@ async function initSession(callId, call, ws, streamSid) {
     isEnding: false,
     accumulatedText: [],
     call,
+    currentLanguage: call.autoDetectLanguage ? 'en' : call.language,
   };
 
   // Create Cartesia STT - uses sessionObj directly (no separate closure vars)
   const stt = new CartesiaSTT(CARTESIA_KEY, {
-    language: call.language,
+    language: call.autoDetectLanguage ? 'auto' : call.language,
     onTranscript: ({ text, isFinal }) => {
       if (sessionObj.isEnding) return;
 
@@ -372,6 +374,16 @@ async function processUserSpeech(callId, text) {
     return;
   }
 
+  // Update language if auto-detect switched it
+  if (session.conversation.autoDetectLanguage) {
+    const newLang = session.conversation.currentLanguage;
+    if (newLang !== session.currentLanguage) {
+      console.log(`[Call:${callId}] Language switched: ${session.currentLanguage} → ${newLang}`);
+      session.currentLanguage = newLang;
+      updateCall(callId, { detectedLanguage: newLang });
+    }
+  }
+
   console.log(`[Call:${callId}] AI: "${response.substring(0, 50)}..."`);
 
   // Add to transcript
@@ -416,12 +428,16 @@ async function speakAndStream(session, text) {
 
   session.isAiSpeaking = true;
 
+  // Use currentLanguage (tracks auto-detect switches) with fallback to call.language
+  const ttsLanguage = session.currentLanguage || session.call.language;
+  const ttsGender = session.call.gender;
+
   try {
     // Generate TTS audio
     const mulawBase64 = await generateSpeech(
       text,
-      session.call.language,
-      session.call.gender,
+      ttsLanguage,
+      ttsGender,
       CARTESIA_KEY
     );
 
@@ -452,8 +468,8 @@ async function speakAndStream(session, text) {
     try {
       const mulawBase64 = await generateSpeech(
         text,
-        session.call.language,
-        session.call.gender,
+        ttsLanguage,
+        ttsGender,
         CARTESIA_KEY
       );
       const chunks = chunkAudio(mulawBase64);

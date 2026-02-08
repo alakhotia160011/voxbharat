@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import {
   getSystemPrompt, getExtractionPrompt, SURVEY_SCRIPTS,
   getCustomSystemPrompt, getCustomExtractionPrompt, generateCustomGreeting,
+  getAutoDetectSystemPrompt, getAutoDetectCustomSystemPrompt,
 } from './survey-scripts.js';
 
 export class ClaudeConversation {
@@ -11,11 +12,20 @@ export class ClaudeConversation {
     this.language = options.language || 'hi';
     this.gender = options.gender || 'female';
     this.customSurvey = options.customSurvey || null;
+    this.autoDetectLanguage = options.autoDetectLanguage || false;
+    this.currentLanguage = this.autoDetectLanguage ? 'en' : this.language;
     this.messages = [];
     this.isComplete = false;
-    this.systemPrompt = this.customSurvey
-      ? getCustomSystemPrompt(this.language, this.gender, this.customSurvey)
-      : getSystemPrompt(this.language, this.gender);
+
+    if (this.autoDetectLanguage) {
+      this.systemPrompt = this.customSurvey
+        ? getAutoDetectCustomSystemPrompt(this.gender, this.customSurvey)
+        : getAutoDetectSystemPrompt(this.gender);
+    } else {
+      this.systemPrompt = this.customSurvey
+        ? getCustomSystemPrompt(this.language, this.gender, this.customSurvey)
+        : getSystemPrompt(this.language, this.gender);
+    }
   }
 
   /**
@@ -23,7 +33,11 @@ export class ClaudeConversation {
    */
   getGreeting() {
     let greeting;
-    if (this.customSurvey) {
+    if (this.autoDetectLanguage) {
+      greeting = this.customSurvey
+        ? `Hello! I'm calling from VoxBharat to conduct a survey about ${this.customSurvey.name}. Do you have a few minutes to share your thoughts?`
+        : "Hello! I'm calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
+    } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name);
     } else {
       greeting = SURVEY_SCRIPTS[this.language].greeting;
@@ -59,7 +73,8 @@ export class ClaudeConversation {
       }
 
       // Store assistant response (without the completion token)
-      const cleanText = assistantText.replace('[SURVEY_COMPLETE]', '').trim();
+      let cleanText = assistantText.replace('[SURVEY_COMPLETE]', '').trim();
+      cleanText = this._parseLanguageTag(cleanText);
       this.messages.push({ role: 'assistant', content: cleanText });
 
       return cleanText;
@@ -77,7 +92,8 @@ export class ClaudeConversation {
         if (assistantText.includes('[SURVEY_COMPLETE]')) {
           this.isComplete = true;
         }
-        const cleanText = assistantText.replace('[SURVEY_COMPLETE]', '').trim();
+        let cleanText = assistantText.replace('[SURVEY_COMPLETE]', '').trim();
+        cleanText = this._parseLanguageTag(cleanText);
         this.messages.push({ role: 'assistant', content: cleanText });
         return cleanText;
       } catch (retryError) {
@@ -133,6 +149,25 @@ export class ClaudeConversation {
       role: m.role,
       content: m.content,
     }));
+  }
+
+  /**
+   * Parse [LANG:xx] tag from Claude's response (auto-detect mode only)
+   * Updates currentLanguage and strips the tag from the text
+   */
+  _parseLanguageTag(text) {
+    if (!this.autoDetectLanguage) return text;
+
+    const langMatch = text.match(/^\[LANG:([a-z]{2})\]\s*/i);
+    if (langMatch) {
+      const detectedLang = langMatch[1].toLowerCase();
+      if (detectedLang !== this.currentLanguage) {
+        console.log(`[Claude] Language switch: ${this.currentLanguage} → ${detectedLang}`);
+        this.currentLanguage = detectedLang;
+      }
+      return text.slice(langMatch[0].length);
+    }
+    return text;
   }
 
   /**
