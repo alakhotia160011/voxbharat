@@ -179,6 +179,33 @@ export default function SampleCallLogModal({ show, onClose, data }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
+                    const rows = [['Section', 'Key', 'Value']];
+                    rows.push(['Call Info', 'ID', data.id]);
+                    rows.push(['Call Info', 'Timestamp', data.timestamp]);
+                    rows.push(['Call Info', 'Duration (s)', data.duration]);
+                    rows.push(['Call Info', 'Language', data.language]);
+                    rows.push(['Call Info', 'Status', data.status]);
+                    rows.push(['Call Info', 'Phone', data.phone]);
+                    rows.push(['Summary', 'AI Summary', data.summary]);
+                    data.transcript.forEach((msg, i) => rows.push(['Transcript', `${msg.role} (#${i + 1})`, msg.content]));
+                    Object.entries(data.extractedData.demographics || {}).forEach(([k, v]) => rows.push(['Demographics', k.replace(/([A-Z])/g, ' $1').trim(), v]));
+                    Object.entries(data.extractedData.structured || {}).forEach(([k, v]) => rows.push(['Responses', k.replace(/([A-Z])/g, ' $1').trim(), v !== null ? String(v).replace(/_/g, ' ') : '']));
+                    Object.entries(data.extractedData.sentiment || {}).forEach(([k, v]) => rows.push(['Sentiment', k, v]));
+                    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'voxbharat-sample-call-log.csv';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="px-3 py-1.5 text-sm bg-saffron text-white rounded-lg hover:bg-saffron-deep cursor-pointer"
+                >
+                  ↓ CSV
+                </button>
+                <button
+                  onClick={() => {
                     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -189,7 +216,7 @@ export default function SampleCallLogModal({ show, onClose, data }) {
                   }}
                   className="px-3 py-1.5 text-sm bg-saffron text-white rounded-lg hover:bg-saffron-deep cursor-pointer"
                 >
-                  ↓ Download JSON
+                  ↓ JSON
                 </button>
                 <button
                   onClick={onClose}

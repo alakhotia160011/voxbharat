@@ -258,6 +258,32 @@ export default function SampleReportModal({ show, onClose, data, onCreateSurvey 
               <div className="flex gap-2">
                 <button
                   onClick={() => {
+                    const rows = [['Section', 'Category', 'Label', 'Value', 'Percentage']];
+                    data.demographics.byAge.forEach(r => rows.push(['Demographics', 'Age', r.group, r.count, r.pct + '%']));
+                    data.demographics.byReligion.forEach(r => rows.push(['Demographics', 'Religion', r.group, r.count, r.pct + '%']));
+                    data.demographics.byLanguage.forEach(r => rows.push(['Demographics', 'Language', r.group, r.count, r.pct + '%']));
+                    data.demographics.byGender.forEach(r => rows.push(['Demographics', 'Gender', r.group, r.count, r.pct + '%']));
+                    data.keyFindings.forEach(f => {
+                      f.breakdown.forEach(b => rows.push(['Key Findings', f.metric, b.label, '', b.pct + '%']));
+                    });
+                    data.crosstabs.ageVsInterfaithMarriage.forEach(r => rows.push(['Cross-tab: Age vs Marriage', r.age, 'Accept/Difficult/Reject/Depends', '', `${r.accept}%/${r.difficult}%/${r.reject}%/${r.depends}%`]));
+                    data.crosstabs.religionVsInterfaithMarriage.forEach(r => rows.push(['Cross-tab: Religion vs Marriage', r.religion, 'Accept/Difficult/Reject/Depends', '', `${r.accept}%/${r.difficult}%/${r.reject}%/${r.depends}%`]));
+                    Object.entries(data.methodology).forEach(([k, v]) => rows.push(['Methodology', k.replace(/([A-Z])/g, ' $1').trim(), '', v, '']));
+                    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'voxbharat-sample-report.csv';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="px-3 py-1.5 text-sm bg-saffron text-white rounded-lg hover:bg-saffron-deep cursor-pointer"
+                >
+                  ↓ CSV
+                </button>
+                <button
+                  onClick={() => {
                     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -268,7 +294,7 @@ export default function SampleReportModal({ show, onClose, data, onCreateSurvey 
                   }}
                   className="px-3 py-1.5 text-sm bg-saffron text-white rounded-lg hover:bg-saffron-deep cursor-pointer"
                 >
-                  ↓ Download Report
+                  ↓ JSON
                 </button>
                 <button
                   onClick={onClose}
