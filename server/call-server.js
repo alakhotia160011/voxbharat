@@ -535,7 +535,7 @@ function cleanupSession(callId) {
 // Start Server
 // ============================================
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`
   ╔═══════════════════════════════════════════════╗
   ║     VoxBharat Call Server Running             ║
