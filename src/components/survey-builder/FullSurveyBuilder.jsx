@@ -227,6 +227,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     setEditingQuestion(newQ.id);
   };
 
+  const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || 'http://localhost:3002';
+
   const initiateTestCall = async () => {
     if (!testPhoneNumber.trim()) return;
     setTestCallStatus('calling');
@@ -234,7 +236,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     setTestCallResult(null);
 
     try {
-      const response = await fetch('http://localhost:3002/call/initiate', {
+      const response = await fetch(`${CALL_SERVER}/call/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -265,7 +267,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
       if (testCallPollRef.current) clearInterval(testCallPollRef.current);
       testCallPollRef.current = setInterval(async () => {
         try {
-          const res = await fetch(`http://localhost:3002/call/${data.callId}`);
+          const res = await fetch(`${CALL_SERVER}/call/${data.callId}`);
           if (!res.ok) return;
           const callData = await res.json();
           if (callData.status === 'in-progress' || callData.status === 'surveying') {
@@ -293,7 +295,12 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
       }, 10 * 60 * 1000);
     } catch (err) {
       setTestCallStatus('error');
-      setTestCallError(err.message);
+      const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError';
+      setTestCallError(
+        isNetworkError
+          ? 'Call server is not reachable. Make sure the call server is running and VITE_CALL_SERVER_URL is set correctly.'
+          : err.message
+      );
     }
   };
 
