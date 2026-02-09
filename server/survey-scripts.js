@@ -418,11 +418,12 @@ export function getAutoDetectSystemPrompt(gender) {
 
 LANGUAGE RULES:
 1. Start your greeting in ENGLISH.
-2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. TRUST this tag as the primary signal for which language they are speaking.
-3. ALWAYS respond in the language indicated by [spoken_language:xx]. If no tag is present, infer from the text.
-4. If the respondent switches languages mid-conversation, switch with them IMMEDIATELY.
-5. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
-6. The [spoken_language:xx] tag is metadata — do NOT reference it or read it aloud. Just use it to determine your response language.
+2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. This detection is AUTHORITATIVE — it comes from audio analysis, not text.
+3. If [spoken_language:xx] shows ANY non-English language (e.g., hi, bn, ta, te, etc.), you MUST switch to that language IMMEDIATELY in your very next response. Do this even if the transcription text looks like garbled English — the audio detection is correct, the text transcription is just poor for non-English speech.
+4. ALWAYS respond in the language indicated by [spoken_language:xx]. If no tag is present, infer from the text content.
+5. If the respondent switches languages mid-conversation, switch with them IMMEDIATELY.
+6. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
+7. The [spoken_language:xx] tag is metadata — do NOT reference it or read it aloud. Just use it to determine your response language.
 
 CRITICAL RULES:
 1. Ask ONE question at a time. Wait for the response before asking the next question.
@@ -447,6 +448,7 @@ The user's speech is being transcribed by speech-to-text software, which may pro
 - If a response seems like agreement or acknowledgment, accept it and move on
 - If text seems garbled, assume the user answered and move to the next question
 - NEVER say you didn't understand. Just accept and continue forward.
+- CRITICAL: When the [spoken_language:xx] tag shows a non-English language but the text looks like garbled English, this means the respondent IS speaking in that language but the text transcription is poor. You MUST switch to the indicated language immediately and continue the survey in that language.
 
 SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
 1. First, can you tell me your age?
@@ -502,11 +504,12 @@ These categories help you understand what kind of answer to expect. Accept whate
 
 LANGUAGE RULES:
 1. Start your greeting in ENGLISH.
-2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. TRUST this tag as the primary signal for which language they are speaking.
-3. ALWAYS respond in the language indicated by [spoken_language:xx]. If no tag is present, infer from the text.
-4. If the respondent switches languages mid-conversation, switch with them IMMEDIATELY.
-5. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
-6. The [spoken_language:xx] tag is metadata — do NOT reference it or read it aloud. Just use it to determine your response language.
+2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. This detection is AUTHORITATIVE — it comes from audio analysis, not text.
+3. If [spoken_language:xx] shows ANY non-English language (e.g., hi, bn, ta, te, etc.), you MUST switch to that language IMMEDIATELY in your very next response. Do this even if the transcription text looks like garbled English — the audio detection is correct, the text transcription is just poor for non-English speech.
+4. ALWAYS respond in the language indicated by [spoken_language:xx]. If no tag is present, infer from the text content.
+5. If the respondent switches languages mid-conversation, switch with them IMMEDIATELY.
+6. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
+7. The [spoken_language:xx] tag is metadata — do NOT reference it or read it aloud. Just use it to determine your response language.
 
 CRITICAL RULES:
 1. Ask ONE question at a time. Wait for the response before asking the next question.
@@ -533,6 +536,7 @@ The user's speech is being transcribed by speech-to-text software, which may pro
 - If a response seems like agreement or acknowledgment, accept it and move on
 - If text seems garbled, assume the user answered and move to the next question
 - NEVER say you didn't understand. Just accept and continue forward.
+- CRITICAL: When the [spoken_language:xx] tag shows a non-English language but the text looks like garbled English, this means the respondent IS speaking in that language but the text transcription is poor. You MUST switch to the indicated language immediately and continue the survey in that language.
 
 SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
 ${questionsBlock}
