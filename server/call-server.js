@@ -292,7 +292,7 @@ async function initSession(callId, call, ws, streamSid) {
 
   // Create Cartesia STT - uses sessionObj directly (no separate closure vars)
   const stt = new CartesiaSTT(CARTESIA_KEY, {
-    language: call.autoDetectLanguage ? 'en' : call.language,
+    language: call.autoDetectLanguage ? 'auto' : call.language,
     onTranscript: ({ text, isFinal }) => {
       if (sessionObj.isEnding) return;
 
@@ -387,13 +387,7 @@ async function processUserSpeech(callId, text) {
       console.log(`[Call:${callId}] Language switched: ${session.currentLanguage} → ${newLang}`);
       session.currentLanguage = newLang;
       updateCall(callId, { detectedLanguage: newLang });
-
-      // Switch STT language hint to improve transcription quality
-      if (session.stt && newLang !== 'en') {
-        session.stt.switchLanguage(newLang).catch(err => {
-          console.error(`[Call:${callId}] STT language switch failed:`, err.message);
-        });
-      }
+      // STT stays in 'auto' mode — no need to reconnect
     }
   }
 
