@@ -128,6 +128,30 @@ export class CartesiaSTT {
   }
 
   /**
+   * Switch to a new language by reconnecting with updated params
+   * @param {string} newLanguage - ISO 639-1 language code
+   */
+  async switchLanguage(newLanguage) {
+    if (newLanguage === this.language) return;
+    console.log(`[STT] Switching language: ${this.language} → ${newLanguage}`);
+    this.language = newLanguage;
+
+    // Close current connection (prevent auto-reconnect)
+    const prevMaxReconnects = this.maxReconnects;
+    this.maxReconnects = 0;
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send('done');
+      this.ws.close();
+    }
+    this.ws = null;
+    this.isConnected = false;
+
+    // Reconnect with new language
+    this.maxReconnects = prevMaxReconnects;
+    await this.connect();
+  }
+
+  /**
    * Close the STT connection gracefully
    */
   close() {
