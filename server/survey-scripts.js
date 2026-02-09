@@ -186,10 +186,14 @@ export function getSystemPrompt(language, gender) {
     ? `CLOSING: ${script.closing}`
     : `CLOSING: Thank them warmly for their time and wish them a good day — in ${langName}.`;
 
+  const languageRule = language === 'en'
+    ? '1. Speak ONLY in English.'
+    : `1. Speak ONLY in ${langName}. Never switch to English or any other language.`;
+
   return `You are a friendly phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India.
 
 CRITICAL RULES:
-1. Speak ONLY in ${langName}. Never use English.
+${languageRule}
 2. Ask ONE question at a time. Wait for the response before asking the next question.
 3. Keep responses to 1-2 sentences maximum. This is a phone call - be very concise and brief.
 4. Be warm, respectful, and conversational. React naturally to answers.
@@ -314,10 +318,14 @@ ${optionsGuide}
 These categories help you understand what kind of answer to expect. Accept whatever the respondent says naturally and move on.`
     : '';
 
+  const languageRule = language === 'en'
+    ? '1. Speak ONLY in English.'
+    : `1. Speak ONLY in ${langName}. Never switch to English or any other language.`;
+
   return `You are a friendly phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}".
 
 CRITICAL RULES:
-1. Speak ONLY in ${langName}. Never use English.
+${languageRule}
 2. Ask ONE question at a time. Wait for the response before asking the next question.
 3. Keep responses to 1-2 sentences maximum. This is a phone call - be very concise and brief.
 4. Be warm, respectful, and conversational. React naturally to answers.
@@ -339,7 +347,7 @@ RESPONDENT WILLINGNESS:
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
 - Interpret the transcription generously
-- If a response seems like agreement or acknowledgment (e.g., "जी", "हाँ", "अच्छा", "ठीक है"), accept it and move on
+- If a response seems like agreement or acknowledgment, accept it and move on
 - If text seems garbled or nonsensical, assume the user answered and move to the next question
 - NEVER say you didn't understand. Just accept whatever was said and continue forward.
 

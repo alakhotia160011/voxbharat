@@ -66,20 +66,21 @@ const VOICE_LABELS = {
   'English Male': 'English \u2642',
 };
 
+
 export default function DemoSection({ onShowSampleReport, onShowSampleCallLog }) {
   const [selectedVoice, setSelectedVoice] = useState('95d51f79-c397-46f9-b49a-23763d3eaa2d');
   const [demoActive, setDemoActive] = useState(false);
   const [demoStep, setDemoStep] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [callComplete, setCallComplete] = useState(false);
-  const [apiKey, setApiKey] = useState('sk_car_Hamdih147oPiXJqLhbNs9w');
-  const [showApiSettings, setShowApiSettings] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [voiceDropdownOpen, setVoiceDropdownOpen] = useState(false);
 
   const audioRef = useRef(null);
   const abortRef = useRef(null);
   const timersRef = useRef([]);
   const conversationRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   // ── Helpers ──
 
@@ -190,23 +191,13 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
       try {
         setIsSpeaking(true);
 
-        const res = await fetch('https://api.cartesia.ai/tts/bytes', {
+        const res = await fetch('/api/tts', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Cartesia-Version': '2024-06-10',
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model_id: 'sonic-3',
-            transcript: msg.text,
-            voice: { mode: 'id', id: voiceId },
+            text: msg.text,
+            voiceId: voiceId,
             language: language,
-            output_format: {
-              container: 'wav',
-              encoding: 'pcm_f32le',
-              sample_rate: 44100,
-            },
           }),
           signal: abortRef.current.signal,
         });
@@ -215,7 +206,13 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
           throw new Error(`API error ${res.status}`);
         }
 
-        const blob = await res.blob();
+        const data = await res.json();
+        const binaryStr = atob(data.audio);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: data.contentType });
         const url = URL.createObjectURL(blob);
 
         // Play audio and wait for it to finish
@@ -330,6 +327,18 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     }
   }, [demoStep]);
 
+  // ── Close dropdown on outside click ──
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setVoiceDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // ── Derived state ──
 
   const conversation = getConversation();
@@ -356,77 +365,74 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
 
             <p className="text-[#6b4c3a] text-lg leading-relaxed mt-4 font-body">
               Experience a real voice survey conversation. Our AI conducts natural
-              interviews across 9 Indian languages &mdash; listen to how it builds
+              interviews across 10 Indian languages &mdash; listen to how it builds
               trust and adapts to responses.
             </p>
 
-            {/* Voice selector dropdown */}
-            <div className="mt-8">
-              <label htmlFor="voice-select" className="block text-sm text-[#6b4c3a]/70 font-body mb-2">
+            {/* Voice selector — custom dropdown */}
+            <div className="mt-8 relative" ref={dropdownRef}>
+              <label className="block text-sm text-[#6b4c3a]/70 font-body mb-2">
                 Select voice
               </label>
-              <select
-                id="voice-select"
-                value={selectedVoice}
-                onChange={(e) => {
-                  if (!demoActive) {
-                    setSelectedVoice(e.target.value);
-                    setDemoStep(0);
-                    setCallComplete(false);
-                  }
-                }}
-                disabled={demoActive}
-                className={`w-full max-w-xs px-4 py-2.5 rounded-xl border border-[#3d2314]/15 bg-white text-[#3d2314] text-sm font-body shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#e8550f]/30 focus:border-[#e8550f]/50 appearance-none bg-[length:16px_16px] bg-[right_12px_center] bg-no-repeat ${
-                  demoActive ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
-                }`}
-                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b4c3a' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")` }}
-              >
-                {CARTESIA_VOICES.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {VOICE_LABELS[v.name]}
-                  </option>
-                ))}
-              </select>
-            </div>
 
-            {/* API Key Settings */}
-            <div className="mt-6">
+              {/* Trigger button */}
               <button
-                onClick={() => setShowApiSettings(!showApiSettings)}
-                className="text-xs text-[#6b4c3a]/50 hover:text-[#e8550f] transition-colors font-body flex items-center gap-1"
+                onClick={() => !demoActive && setVoiceDropdownOpen(!voiceDropdownOpen)}
+                disabled={demoActive}
+                className={`w-full max-w-xs px-4 py-2.5 rounded-xl border bg-white text-sm font-body shadow-sm transition-all focus:outline-none flex items-center justify-between ${
+                  voiceDropdownOpen
+                    ? 'border-[#e8550f]/50 ring-2 ring-[#e8550f]/20'
+                    : 'border-[#3d2314]/15 hover:border-[#3d2314]/30'
+                } ${demoActive ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
               >
+                <span className="text-[#3d2314]">
+                  {VOICE_LABELS[voice?.name] || 'Select voice'}
+                </span>
                 <svg
-                  className={`w-3 h-3 transition-transform ${showApiSettings ? 'rotate-90' : ''}`}
+                  className={`w-4 h-4 text-[#6b4c3a]/50 transition-transform ${voiceDropdownOpen ? 'rotate-180' : ''}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   strokeWidth={2}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
-                Settings
               </button>
 
+              {/* Dropdown panel */}
               <AnimatePresence>
-                {showApiSettings && (
+                {voiceDropdownOpen && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 mt-1.5 w-full max-w-xs bg-white border border-[#3d2314]/12 rounded-xl shadow-lg overflow-hidden z-50"
                   >
-                    <div className="mt-3">
-                      <label className="block text-sm text-[#6b4c3a]/70 font-body mb-1">
-                        Cartesia API Key
-                      </label>
-                      <input
-                        type="text"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="sk_car_..."
-                        className="w-full max-w-sm text-sm rounded-lg border border-[#3d2314]/15 py-2 px-3 font-body text-[#3d2314] placeholder:text-[#6b4c3a]/30 focus:outline-none focus:ring-2 focus:ring-[#e8550f]/30 focus:border-[#e8550f]/50 bg-white"
-                      />
+                    <div className="max-h-64 overflow-y-auto py-1">
+                      {CARTESIA_VOICES.map((v) => (
+                        <button
+                          key={v.id}
+                          onClick={() => {
+                            setSelectedVoice(v.id);
+                            setVoiceDropdownOpen(false);
+                            setDemoStep(0);
+                            setCallComplete(false);
+                          }}
+                          className={`w-full px-4 py-2.5 text-left text-sm font-body transition-colors flex items-center justify-between ${
+                            selectedVoice === v.id
+                              ? 'bg-[#e8550f]/8 text-[#e8550f]'
+                              : 'text-[#3d2314] hover:bg-[#faf8f5]'
+                          }`}
+                        >
+                          <span>{VOICE_LABELS[v.name]}</span>
+                          {selectedVoice === v.id && (
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
                     </div>
                   </motion.div>
                 )}

@@ -444,6 +444,7 @@ async function speakAndStream(session, text) {
   // Use currentLanguage (tracks auto-detect switches) with fallback to call.language
   const ttsLanguage = session.currentLanguage || session.call.language;
   const ttsGender = session.call.gender;
+  console.log(`[TTS] Generating speech: lang=${ttsLanguage}, gender=${ttsGender}, text="${text.substring(0, 60)}..."`);
 
   try {
     // Generate TTS audio
@@ -474,7 +475,7 @@ async function speakAndStream(session, text) {
       mark: { name: 'tts-done' },
     }));
   } catch (error) {
-    console.error(`[TTS] Error:`, error.message);
+    console.error(`[TTS] Error (lang=${ttsLanguage}, gender=${ttsGender}):`, error.message);
     session.isAiSpeaking = false;
 
     // Retry once
@@ -500,7 +501,7 @@ async function speakAndStream(session, text) {
         mark: { name: 'tts-done' },
       }));
     } catch (retryErr) {
-      console.error(`[TTS] Retry failed:`, retryErr.message);
+      console.error(`[TTS] Retry failed (lang=${ttsLanguage}, gender=${ttsGender}):`, retryErr.message);
       session.isAiSpeaking = false;
     }
   }

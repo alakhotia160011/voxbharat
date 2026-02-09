@@ -82,7 +82,7 @@ export default function AboutPage({ navigateTo }) {
             <motion.p className="mt-8 text-earth-mid text-lg leading-relaxed" variants={fadeInUp}>
               Language barriers, rural inaccessibility, and cultural hesitance leave hundreds of
               millions unheard. VoxBharat changes that. Using advanced voice AI, we conduct natural
-              phone conversations in 12 Indian languages, reaching respondents where they are, from
+              phone conversations in 10 Indian languages, reaching respondents where they are, from
               Mumbai high-rises to villages in Bihar. No apps to download, no literacy required.
             </motion.p>
             <motion.p className="mt-4 text-earth-mid text-lg leading-relaxed" variants={fadeInUp}>
@@ -119,7 +119,7 @@ export default function AboutPage({ navigateTo }) {
               {[
                 {
                   title: 'True Multilingual AI',
-                  desc: "Not just translation. Our voice models understand cultural context, code-switching, and regional idioms across 12 Indian languages.",
+                  desc: "Not just translation. Our voice models understand cultural context, code-switching, and regional idioms across 10 Indian languages.",
                 },
                 {
                   title: 'Rural-First Design',
@@ -179,7 +179,7 @@ const faqs = [
   },
   {
     q: 'What languages are currently supported?',
-    a: "We currently support 12 languages: Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, Odia, Assamese, and Urdu. Together these cover over 95% of India's population. More languages are being added regularly.",
+    a: "We currently support 10 languages: Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, and English. Together these cover over 95% of India's population. More languages are being added regularly.",
   },
   {
     q: 'How long does it take to get results?',
