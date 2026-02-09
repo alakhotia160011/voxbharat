@@ -17,45 +17,24 @@ const VideoSection = () => {
           <span className="text-[#e8550f] font-bold"> 1,652 </span>
           <span className="text-[#faf8f5]/60">Languages.</span>
           <br />
-          <span className="text-[#faf8f5]">We Listen in 12. And Counting.</span>
+          <span className="text-[#faf8f5]">We Listen in 10. And Counting.</span>
         </motion.h2>
 
-        {/* Video placeholder */}
+        {/* Video */}
         <motion.div
-          className="mt-12 aspect-video rounded-2xl overflow-hidden bg-[#2a1f1a] border border-white/10 flex flex-col items-center justify-center"
+          className="mt-12 aspect-video rounded-2xl overflow-hidden border border-white/10"
           initial={{ opacity: 0, scale: 0.97 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
         >
-          {/* Play button */}
-          <button
-            className="w-20 h-20 rounded-full border-2 border-[#faf8f5]/20 flex items-center justify-center hover:border-[#e8550f]/60 transition-colors duration-300 cursor-pointer"
-            aria-label="Play video"
-          >
-            <svg
-              width="28"
-              height="32"
-              viewBox="0 0 28 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="ml-1"
-            >
-              <path
-                d="M2 2L26 16L2 30V2Z"
-                fill="#faf8f5"
-                fillOpacity="0.6"
-                stroke="#faf8f5"
-                strokeOpacity="0.3"
-                strokeWidth="2"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-
-          <p className="mt-4 text-sm text-[#faf8f5]/40">
-            Coming soon &mdash; cultural storytelling powered by Google Veo
-          </p>
+          <iframe
+            src="https://www.youtube.com/embed/r0nV6kFUF3M"
+            title="VoxBharat Demo"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+          />
         </motion.div>
 
         {/* Poetic paragraph */}
