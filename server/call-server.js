@@ -57,6 +57,25 @@ app.use(express.urlencoded({ extended: true }));
 const callSessions = new Map();
 
 /**
+ * Check if STT text is likely echo of recently spoken TTS audio.
+ * On phone calls, the phone mic can pick up the AI's voice from the speaker.
+ */
+function isLikelyEcho(sttText, recentTtsTexts) {
+  if (!recentTtsTexts || recentTtsTexts.length === 0) return false;
+  const stt = sttText.toLowerCase().trim();
+  if (stt.length < 3) return true; // Too short, treat as noise
+
+  for (const tts of recentTtsTexts) {
+    const ttsLower = tts.toLowerCase();
+    // If STT text is fully contained within recent TTS text, it's echo
+    if (ttsLower.includes(stt)) return true;
+    // If first 12 chars match, likely same sentence being echoed back
+    if (stt.length >= 12 && ttsLower.startsWith(stt.substring(0, 12))) return true;
+  }
+  return false;
+}
+
+/**
  * Convert Anthropic SDK event-based stream to async iterator of text deltas.
  * SDK v0.73.0 doesn't have .textStream — uses .on('text') events instead.
  */
@@ -329,6 +348,7 @@ async function initSession(callId, call, ws, streamSid) {
     isEnding: false,
     greetingDone: false,
     accumulatedText: [],
+    recentTtsTexts: [],
     call,
     currentLanguage: call.autoDetectLanguage ? 'en' : call.language,
   };
@@ -384,46 +404,52 @@ async function initSession(callId, call, ws, streamSid) {
         }
       }
 
-      if (isFinal && text.trim()) {
-        let trimmed = text.trim();
+      // --- BARGE-IN: Detect user speech during AI playback (partial + final) ---
+      if (sessionObj.isAiSpeaking && sessionObj.greetingDone) {
+        const bargeText = (text || '').trim();
+        if (bargeText.length < 3) return; // Too short, noise
 
-        // Filter out Whisper looping/hallucination artifacts
-        // Detects repeated character or syllable patterns (e.g., "गगगगग..." or "वादावादावादा...")
-        trimmed = trimmed.replace(/(.{2,6}?)\1{4,}/g, '$1');
-        if (trimmed.length < 2) return; // Skip if only garbage remained
+        // Echo detection: check if STT text matches recently spoken TTS audio
+        if (isLikelyEcho(bargeText, sessionObj.recentTtsTexts)) return;
 
-        // --- BARGE-IN: User spoke while AI is speaking ---
-        if (sessionObj.isAiSpeaking) {
-          // Filter echo: ignore short fragments (likely AI audio picked up by mic)
-          if (trimmed.length < 20) return;
+        // Real user speech during AI playback — trigger barge-in
+        console.log(`[Barge-in:${callId}] User interrupted (${isFinal ? 'final' : 'partial'}): "${bargeText}"`);
 
-          console.log(`[Barge-in:${callId}] User interrupted: "${trimmed}"`);
+        // Clear Twilio audio buffer to stop playback immediately
+        if (sessionObj.ws.readyState === 1) {
+          sessionObj.ws.send(JSON.stringify({
+            event: 'clear',
+            streamSid: sessionObj.streamSid,
+          }));
+        }
+        sessionObj.isAiSpeaking = false;
+        sessionObj.interrupted = true;
+        // Clear echo tracking since we stopped playback
+        sessionObj.recentTtsTexts = [];
 
-          // Clear Twilio audio buffer to stop playback immediately
-          if (sessionObj.ws.readyState === 1) {
-            sessionObj.ws.send(JSON.stringify({
-              event: 'clear',
-              streamSid: sessionObj.streamSid,
-            }));
+        // Only accumulate final transcripts for Claude processing
+        if (isFinal) {
+          let cleaned = bargeText.replace(/(.{2,6}?)\1{4,}/g, '$1');
+          if (cleaned.length >= 2) {
+            sessionObj.accumulatedText.push(cleaned);
           }
-          sessionObj.isAiSpeaking = false;
-          sessionObj.interrupted = true;
-
-          // Accumulate the interruption text
-          sessionObj.accumulatedText.push(trimmed);
-
-          // If not currently processing (unusual), start immediately
           if (!sessionObj.isProcessing) {
             const fullText = sessionObj.accumulatedText.join(' ');
             sessionObj.accumulatedText = [];
             processUserSpeech(callId, fullText);
           }
-          // If processing, the interrupted flag will stop the streaming loop
-          // and accumulated text will be processed after cleanup
-          return;
         }
+        return;
+      }
 
-        // --- Normal flow: accumulate text and wait for silence ---
+      // --- NORMAL FLOW: only process final transcripts ---
+      if (isFinal && text.trim()) {
+        let trimmed = text.trim();
+
+        // Filter out Whisper looping/hallucination artifacts
+        trimmed = trimmed.replace(/(.{2,6}?)\1{4,}/g, '$1');
+        if (trimmed.length < 2) return;
+
         sessionObj.accumulatedText.push(trimmed);
         console.log(`[STT:${callId}] Accumulated: "${trimmed}" (lang=${detectedLang || '?'}, total: ${sessionObj.accumulatedText.length}, processing: ${sessionObj.isProcessing})`);
 
@@ -629,32 +655,44 @@ async function speakSentence(session, text, language) {
   const gender = session.call.gender;
   console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, "${text.substring(0, 50)}..."`);
 
+  // Track for echo detection (keep last 5 sentences)
+  session.recentTtsTexts.push(text);
+  if (session.recentTtsTexts.length > 5) session.recentTtsTexts.shift();
+
   try {
-    const mulawBase64 = await generateSpeech(text, language, gender, CARTESIA_KEY);
+    const mulawBase64 = await generateSpeech(text, language, gender, CARTESIA_KEY, { speed: 0.85 });
     const chunks = chunkAudio(mulawBase64);
 
-    for (const chunk of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
       if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
       session.ws.send(JSON.stringify({
         event: 'media',
         streamSid: session.streamSid,
-        media: { payload: chunk },
+        media: { payload: chunks[i] },
       }));
+      // Yield control every 40 chunks (~800ms audio) so event loop can
+      // process STT callbacks for barge-in detection mid-sentence
+      if ((i + 1) % 40 === 0) {
+        await new Promise(r => setImmediate(r));
+      }
     }
   } catch (error) {
     console.error(`[TTS] Sentence error (${language}/${gender}): ${error.message}`);
     // Try English fallback if language-specific voice is unavailable
     if (language !== 'en') {
       try {
-        const fallbackBase64 = await generateSpeech(text, 'en', gender, CARTESIA_KEY);
+        const fallbackBase64 = await generateSpeech(text, 'en', gender, CARTESIA_KEY, { speed: 0.85 });
         const chunks = chunkAudio(fallbackBase64);
-        for (const chunk of chunks) {
-          if (session.ws.readyState !== 1 || session.isEnding) break;
+        for (let i = 0; i < chunks.length; i++) {
+          if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
           session.ws.send(JSON.stringify({
             event: 'media',
             streamSid: session.streamSid,
-            media: { payload: chunk },
+            media: { payload: chunks[i] },
           }));
+          if ((i + 1) % 40 === 0) {
+            await new Promise(r => setImmediate(r));
+          }
         }
       } catch (fbErr) {
         console.error(`[TTS] Fallback also failed: ${fbErr.message}`);

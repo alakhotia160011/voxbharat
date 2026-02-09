@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CARTESIA_API_KEY}`,
-        'Cartesia-Version': '2025-04-16',
+        'Cartesia-Version': '2025-11-04',
       },
       body: JSON.stringify({
         model_id: 'sonic-3-2026-01-12',
@@ -42,6 +42,7 @@ export default async function handler(req, res) {
         voice: { mode: 'id', id: voiceId },
         language: language || 'hi',
         output_format: { container: 'mp3', bit_rate: 128000, sample_rate: 44100 },
+        generation_config: { speed: 0.85 },
       }),
     });
 
