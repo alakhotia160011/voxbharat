@@ -418,11 +418,11 @@ export function getAutoDetectSystemPrompt(gender) {
 
 LANGUAGE RULES:
 1. Start your greeting in ENGLISH.
-2. After the respondent replies, detect what language they are speaking.
-3. Switch to that language IMMEDIATELY and continue the entire survey in it.
-4. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
-5. If the respondent mixes languages, use whichever they speak more of.
-6. Your very first greeting should also be prefixed: [LANG:en]
+2. Detect what language the respondent is speaking in EACH reply.
+3. ALWAYS respond in the same language the respondent just used.
+4. If the respondent switches languages mid-conversation (e.g. from Hindi to English, or English to Bengali), switch with them IMMEDIATELY.
+5. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
+6. If the respondent mixes languages in a single reply, use whichever they speak more of.
 
 CRITICAL RULES:
 1. Ask ONE question at a time. Wait for the response before asking the next question.
@@ -448,7 +448,7 @@ The user's speech is being transcribed by speech-to-text software, which may pro
 - If text seems garbled, assume the user answered and move to the next question
 - NEVER say you didn't understand. Just accept and continue forward.
 
-SURVEY QUESTIONS (translate naturally into the respondent's language):
+SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
 1. First, can you tell me your age?
 2. What is your religion?
 3. How important is religion in your daily life?
@@ -502,11 +502,11 @@ These categories help you understand what kind of answer to expect. Accept whate
 
 LANGUAGE RULES:
 1. Start your greeting in ENGLISH.
-2. After the respondent replies, detect what language they are speaking.
-3. Switch to that language IMMEDIATELY and continue the entire survey in it.
-4. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
-5. If the respondent mixes languages, use whichever they speak more of.
-6. Your very first greeting should also be prefixed: [LANG:en]
+2. Detect what language the respondent is speaking in EACH reply.
+3. ALWAYS respond in the same language the respondent just used.
+4. If the respondent switches languages mid-conversation (e.g. from Hindi to English, or English to Bengali), switch with them IMMEDIATELY.
+5. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
+6. If the respondent mixes languages in a single reply, use whichever they speak more of.
 
 CRITICAL RULES:
 1. Ask ONE question at a time. Wait for the response before asking the next question.
@@ -534,7 +534,7 @@ The user's speech is being transcribed by speech-to-text software, which may pro
 - If text seems garbled, assume the user answered and move to the next question
 - NEVER say you didn't understand. Just accept and continue forward.
 
-SURVEY QUESTIONS (translate naturally into the respondent's language):
+SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
 ${questionsBlock}
 ${optionsSection}
 
