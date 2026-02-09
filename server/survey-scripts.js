@@ -418,11 +418,11 @@ export function getAutoDetectSystemPrompt(gender) {
 
 LANGUAGE RULES:
 1. Start your greeting in ENGLISH.
-2. Detect what language the respondent is speaking in EACH reply.
-3. ALWAYS respond in the same language the respondent just used.
-4. If the respondent switches languages mid-conversation (e.g. from Hindi to English, or English to Bengali), switch with them IMMEDIATELY.
+2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. TRUST this tag as the primary signal for which language they are speaking.
+3. ALWAYS respond in the language indicated by [spoken_language:xx]. If no tag is present, infer from the text.
+4. If the respondent switches languages mid-conversation, switch with them IMMEDIATELY.
 5. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
-6. If the respondent mixes languages in a single reply, use whichever they speak more of.
+6. The [spoken_language:xx] tag is metadata — do NOT reference it or read it aloud. Just use it to determine your response language.
 
 CRITICAL RULES:
 1. Ask ONE question at a time. Wait for the response before asking the next question.
@@ -502,11 +502,11 @@ These categories help you understand what kind of answer to expect. Accept whate
 
 LANGUAGE RULES:
 1. Start your greeting in ENGLISH.
-2. Detect what language the respondent is speaking in EACH reply.
-3. ALWAYS respond in the same language the respondent just used.
-4. If the respondent switches languages mid-conversation (e.g. from Hindi to English, or English to Bengali), switch with them IMMEDIATELY.
+2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. TRUST this tag as the primary signal for which language they are speaking.
+3. ALWAYS respond in the language indicated by [spoken_language:xx]. If no tag is present, infer from the text.
+4. If the respondent switches languages mid-conversation, switch with them IMMEDIATELY.
 5. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
-6. If the respondent mixes languages in a single reply, use whichever they speak more of.
+6. The [spoken_language:xx] tag is metadata — do NOT reference it or read it aloud. Just use it to determine your response language.
 
 CRITICAL RULES:
 1. Ask ONE question at a time. Wait for the response before asking the next question.
