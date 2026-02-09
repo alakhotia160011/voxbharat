@@ -293,8 +293,13 @@ async function initSession(callId, call, ws, streamSid) {
   // Create Cartesia STT - uses sessionObj directly (no separate closure vars)
   const stt = new CartesiaSTT(CARTESIA_KEY, {
     language: call.autoDetectLanguage ? 'auto' : call.language,
-    onTranscript: ({ text, isFinal }) => {
+    onTranscript: ({ text, isFinal, language: detectedLang }) => {
       if (sessionObj.isEnding) return;
+
+      // Track STT-detected language for auto-detect mode
+      if (detectedLang && sessionObj.call.autoDetectLanguage) {
+        sessionObj.sttDetectedLanguage = detectedLang;
+      }
 
       if (isFinal && text.trim()) {
         let trimmed = text.trim();
@@ -305,7 +310,7 @@ async function initSession(callId, call, ws, streamSid) {
         if (trimmed.length < 2) return; // Skip if only garbage remained
 
         sessionObj.accumulatedText.push(trimmed);
-        console.log(`[STT:${callId}] Accumulated: "${trimmed}" (total: ${sessionObj.accumulatedText.length}, processing: ${sessionObj.isProcessing})`);
+        console.log(`[STT:${callId}] Accumulated: "${trimmed}" (lang=${detectedLang || '?'}, total: ${sessionObj.accumulatedText.length}, processing: ${sessionObj.isProcessing})`);
 
         // Reset silence timer
         if (sessionObj.silenceTimer) clearTimeout(sessionObj.silenceTimer);
@@ -361,7 +366,14 @@ async function processUserSpeech(callId, text) {
 
   session.isProcessing = true;
 
-  console.log(`[Call:${callId}] User: "${text}"`);
+  // In auto-detect mode, prepend STT-detected language hint for Claude
+  const sttLang = session.sttDetectedLanguage;
+  const langHint = (session.call.autoDetectLanguage && sttLang) ? sttLang : null;
+  if (langHint) {
+    console.log(`[Call:${callId}] User: "${text}" [STT detected: ${langHint}]`);
+  } else {
+    console.log(`[Call:${callId}] User: "${text}"`);
+  }
 
   // Add to transcript
   const call = getCall(callId);
@@ -371,8 +383,11 @@ async function processUserSpeech(callId, text) {
 
   updateCall(callId, { status: 'surveying' });
 
-  // Get Claude's response
-  const response = await session.conversation.getResponse(text);
+  // Get Claude's response — pass STT language hint if available
+  const textForClaude = langHint
+    ? `[spoken_language:${langHint}] ${text}`
+    : text;
+  const response = await session.conversation.getResponse(textForClaude);
 
   if (!response) {
     session.isProcessing = false;
