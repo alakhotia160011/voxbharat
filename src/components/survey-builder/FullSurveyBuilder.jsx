@@ -463,7 +463,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                   />
                 </label>
                 {config.autoDetectLanguage && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
+                  <div className="mt-3 p-3 bg-saffron/5 border border-saffron/20 rounded-lg text-xs text-earth/70">
                     The AI will greet in English and detect the respondent's language from their first reply.
                     Supports: Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, English.
                   </div>
