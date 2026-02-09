@@ -34,10 +34,10 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CARTESIA_API_KEY}`,
-        'Cartesia-Version': '2024-06-10',
+        'Cartesia-Version': '2025-04-16',
       },
       body: JSON.stringify({
-        model_id: 'sonic-multilingual',
+        model_id: 'sonic-3-2026-01-12',
         transcript: text,
         voice: { mode: 'id', id: voiceId },
         language: language || 'hi',
