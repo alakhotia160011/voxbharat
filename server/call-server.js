@@ -56,6 +56,47 @@ app.use(express.urlencoded({ extended: true }));
 // Per-call state: conversation instances, STT sessions, timers
 const callSessions = new Map();
 
+/**
+ * Convert Anthropic SDK event-based stream to async iterator of text deltas.
+ * SDK v0.73.0 doesn't have .textStream — uses .on('text') events instead.
+ */
+function textIteratorFromStream(stream) {
+  const queue = [];
+  let done = false;
+  let waitResolve = null;
+
+  stream.on('text', (text) => {
+    queue.push(text);
+    if (waitResolve) { waitResolve(); waitResolve = null; }
+  });
+
+  stream.on('message', () => {
+    done = true;
+    if (waitResolve) { waitResolve(); waitResolve = null; }
+  });
+
+  stream.on('error', () => {
+    done = true;
+    if (waitResolve) { waitResolve(); waitResolve = null; }
+  });
+
+  return {
+    [Symbol.asyncIterator]() {
+      return {
+        async next() {
+          while (queue.length === 0 && !done) {
+            await new Promise(r => { waitResolve = r; });
+          }
+          if (queue.length > 0) {
+            return { value: queue.shift(), done: false };
+          }
+          return { done: true, value: undefined };
+        }
+      };
+    }
+  };
+}
+
 // ============================================
 // HTTP Endpoints
 // ============================================
@@ -222,8 +263,11 @@ wss.on('connection', (ws) => {
             console.log(`[WS] Media packets: ${mediaPackets}, isAiSpeaking: ${session.isAiSpeaking}, STT connected: ${session.stt.isConnected}`);
           }
 
+          // Skip STT during greeting to avoid echo (AI voice picked up by mic)
+          // After greeting, keep STT active during AI speech for barge-in detection
+          if (session.isAiSpeaking && !session.greetingDone) break;
+
           // Convert mulaw 8kHz -> PCM s16le 16kHz and send to STT
-          // Keep sending even while AI speaks — enables barge-in detection
           const pcmAudio = mulawToPcm16k(msg.media.payload);
           session.stt.sendAudio(pcmAudio);
           break;
@@ -283,6 +327,7 @@ async function initSession(callId, call, ws, streamSid) {
     isAiSpeaking: false,
     isProcessing: false,
     isEnding: false,
+    greetingDone: false,
     accumulatedText: [],
     call,
     currentLanguage: call.autoDetectLanguage ? 'en' : call.language,
@@ -350,7 +395,7 @@ async function initSession(callId, call, ws, streamSid) {
         // --- BARGE-IN: User spoke while AI is speaking ---
         if (sessionObj.isAiSpeaking) {
           // Filter echo: ignore short fragments (likely AI audio picked up by mic)
-          if (trimmed.length < 10) return;
+          if (trimmed.length < 20) return;
 
           console.log(`[Barge-in:${callId}] User interrupted: "${trimmed}"`);
 
@@ -427,6 +472,8 @@ async function sendGreeting(session) {
     clearTimeout(session.silenceTimer);
     session.silenceTimer = null;
   }
+
+  session.greetingDone = true;
 }
 
 async function processUserSpeech(callId, text) {
@@ -474,7 +521,7 @@ async function processUserSpeech(callId, text) {
   let langTagParsed = false;
 
   try {
-    for await (const delta of stream.textStream) {
+    for await (const delta of textIteratorFromStream(stream)) {
       if (session.isEnding || session.interrupted) break;
 
       fullResponse += delta;
