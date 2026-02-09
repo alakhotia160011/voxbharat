@@ -852,5 +852,807 @@
       "overall": "positive",
       "engagement": "high"
     }
+  },
+  {
+    "id": "c59c522e-2bb0-4efc-bbb4-e483355c12cf",
+    "timestamp": "2026-02-07T19:29:15.071Z",
+    "duration": 128,
+    "language": "hi",
+    "status": "completed",
+    "summary": "A 24-year-old male respondent is aware of Brand A and Brand B, has used Brand A in the past 3 months, and is neutral about repurchasing the product.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा बताई एए क्याची एपो"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो चलिए शुरू करते हैं। \n\nआप Brand A, Brand B, या Brand C - इनमें से कौन से brands जानते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "मैं ब्राइंड A जानता हूं और B जानता हूं वटेवादा"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो आप Brand A और Brand B दोनों जानते हैं।\n\nअब बताइए, पिछले 3 महीने में आपने इनमें से कौन सा brand इस्तेमाल किया है?"
+      },
+      {
+        "role": "user",
+        "content": "ब्रांड ए"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है! तो आपने Brand A इस्तेमाल किया।\n\nअब बताइए, क्या आप इस product को फिर से खरीदने की सोच रहे हैं - बहुत कम संभावना, कम संभावना, तटस्थ, ज्यादा संभावना, या बहुत ज्यादा संभावना?"
+      },
+      {
+        "role": "user",
+        "content": "अज़ पदा नहीं देखंगे?"
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा, कोई बात नहीं। तो आप neutral हैं या फिर ज्यादा संभावना है?"
+      },
+      {
+        "role": "user",
+        "content": "न्यूट्रल समर्ये"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है! बहुत अच्छा।\n\nअब बताइए, आपकी उम्र क्या है - 18-25, 26-35, 36-45, 46-55, या 55 से ऊपर?"
+      },
+      {
+        "role": "user",
+        "content": "मैं 24 साल गाँ जी"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो आप 18-25 के बीच हैं।\n\nअब आखिरी सवाल - आपका लिंग क्या है - Male, Female, या Other?"
+      },
+      {
+        "role": "user",
+        "content": "में मेलों पुरुष दि"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! आपने हमारे सर्वेक्षण में भाग लिया, इसके लिए बहुत-बहुत शुक्रिया। आपका समय देने के लिए धन्यवाद!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "medium"
+    }
+  },
+  {
+    "id": "8a7f6ce2-1e72-4eb1-9b25-96f82ac25eae",
+    "timestamp": "2026-02-07T21:36:28.603Z",
+    "duration": 124,
+    "language": "hi",
+    "status": "completed",
+    "summary": "The respondent, a 24-year-old male, identifies cleanliness as the main issue in his area and expresses support for BJP. He is satisfied with the current government and believes the country is heading in the right direction.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अचा जी बताईये"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत बढ़िया! तो बताइए, आपके क्षेत्र में सबसे बड़ी समस्या क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मैं तो कहूंगा गंदगी है सबसी बड़ी सा मसी यह दो"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, बिल्कुल समझ गई। तो गंदगी एक बड़ी समस्या है आपके क्षेत्र में।\n\nअगर आज चुनाव हों, तो आप किस पार्टी को वोट देंगे?"
+      },
+      {
+        "role": "user",
+        "content": "बीजेबी को दूंगा मैं अगर आज चुनाव हो तो"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, आप BJP को वोट देंगे।\n\nआप वर्तमान सरकार के काम से कितने संतुष्ट हैं?"
+      },
+      {
+        "role": "user",
+        "content": "अब अब अब अब अब मैं दस में से ते साद दूंग अँने"
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा, समझ गई। आप संतुष्ट हैं।\n\nक्या आपको लगता है कि देश सही दिशा में जा रहा है?"
+      },
+      {
+        "role": "user",
+        "content": "जी हाँ देश सही दिशा में जा रहा है"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो प्रधानमंत्री के काम को 1 से 10 में कितने अंक देंगे आप?"
+      },
+      {
+        "role": "user",
+        "content": "अख़गगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगगग� साथ, साथ देशे ताउ है?"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, आपका जवाब नोट हो गया।\n\nआपकी उम्र क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मैं 24 साल गाओ"
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा, 24 साल। अंतिम सवाल - आपका लिंग क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मैं बोरुश मेल"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद बहुत! आपने हमारे सर्वेक्षण में भाग लिया। आपका समय देने के लिए शुक्रिया!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "positive",
+      "engagement": "medium"
+    }
+  },
+  {
+    "id": "ae16c308-d0ac-4a06-a37d-43e9c60f0a24",
+    "timestamp": "2026-02-07T23:46:04.089Z",
+    "duration": 153,
+    "language": "hi",
+    "status": "completed",
+    "summary": "A 20-year-old male respondent who watches Bollywood films considers Hrithik Roshan the hottest actor in 2025, valuing body and fitness as the most important aspect of attractiveness while also acknowledging the importance of off-screen personality.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा बताईये क्या ज़िये आपको?"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! तो बस मुझे बताइए - क्या आप बॉलीवुड या भारतीय फिल्में देखते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "जी हाम इन बोली हुट मूवी देक तो वटेवार वटेवार वटेवार"
+      },
+      {
+        "role": "assistant",
+        "content": "बिल्कुल, धन्यवाद! तो २०२५ में आपके हिसाब से सबसे हॉट एक्टर कौन है?"
+      },
+      {
+        "role": "user",
+        "content": "कि दो हजार पच्चिस में सबसे होडा कि"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, तो आपके लिए २०२५ में कौन सा एक्टर सबसे हॉट है?"
+      },
+      {
+        "role": "user",
+        "content": "जी, रितिक रोशन."
+      },
+      {
+        "role": "assistant",
+        "content": "शानदार! रणवीर सिंह तो बहुत अच्छा चुनाव है। अब बताइए - आपके लिए 'हॉटनेस' का मतलब क्या है? आपके लिए सबसे ज़रूरी चीज़ क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "बोडी अच्छी होनी चहिए वाज"
+      },
+      {
+        "role": "assistant",
+        "content": "बिल्कुल, बॉडी महत्वपूर्ण है! तो १ से १० के स्केल पर, रितिक रोशन की हॉटनेस को आप कितने नंबर देंगे?"
+      },
+      {
+        "role": "user",
+        "content": "नो"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है! तो क्या आप इस बात से सहमत हैं कि किसी एक्टर की हॉटनेस उनकी ऑफ-स्क्रीन पर्सनैलिटी पर भी निर्भर करती है?"
+      },
+      {
+        "role": "user",
+        "content": "अधादी दरूर वो भी बहुत जरोरी है."
+      },
+      {
+        "role": "assistant",
+        "content": "बिल्कुल सही कहा! तो क्या आपकी राय पिछले साल से बदली है? मतलब २०२४ में कोई और एक्टर सबसे हॉट था?"
+      },
+      {
+        "role": "user",
+        "content": "आण नहीं मुझे तो यही आखे दिन चे पसंद है"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है! तो आपकी उम्र क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मैं 20 साल गाउं"
+      },
+      {
+        "role": "assistant",
+        "content": "शुक्रिया! और आपका लिंग क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मैं आदमी हूं मर्द करें मेल"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद बहुत! आपके जवाब के लिए धन्यवाद। आपका समय देने के लिए बहुत-बहुत शुक्रिया और VoxBharat को सपोर्ट करने के लिए भी धन्यवाद!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "positive",
+      "engagement": "medium"
+    }
+  },
+  {
+    "id": "b9917c01-6806-4d25-a376-169301c3de98",
+    "timestamp": "2026-02-07T23:57:05.144Z",
+    "duration": 145,
+    "language": "hi",
+    "status": "completed",
+    "summary": "Respondent considers Varun Dhawan the hottest actor of 2025, rating him 9/10, primarily due to his physique and personality. Limited clarity on some responses due to unclear audio/speech.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छाब देखा बड़ाई ये"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो शुरू करते हैं। बताइए, क्या आप बॉलीवूड या भारतीय सिनेमा की फ़िल्में देखते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "झाल"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है! तो आपके हिसाब से 2025 में सबसे हॉट एक्टर कौन है?"
+      },
+      {
+        "role": "user",
+        "content": "वरुन दावन क्योंगा मैं तो"
+      },
+      {
+        "role": "assistant",
+        "content": "वाह, बहुत अच्छा! तो अब बताइए, 1 से 10 के स्केल पर आप वरुण धवन को कितनी रेटिंग देंगे, जहाँ 1 बिल्कुल हॉट नहीं है और 10 बेहद हॉट है?"
+      },
+      {
+        "role": "user",
+        "content": "नौ के गरीब दूँगा मैं तो"
+      },
+      {
+        "role": "assistant",
+        "content": "शानदार! तो 9 रेटिंग दी आपने। अब बताइए, वरुण धवन को हॉट बनाने वाली मुख्य चीज़ें क्या हैं?"
+      },
+      {
+        "role": "user",
+        "content": "तो उसकी बॉडी अथी है, परसनालिटी भी अथी वटे बस् ये इसको चलता है."
+      },
+      {
+        "role": "assistant",
+        "content": "बिल्कुल! उनकी बॉडी और परसनालिटी ही उन्हें खास बनाती है। अब बताइए, वरुण धवन की कौन सी फ़िल्म या रोल में वो सबसे ज़्यादा हॉट लगे आपको?"
+      },
+      {
+        "role": "user",
+        "content": "अजया वाइब वाइब वाँ"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है! अब मुझे आपकी उम्र बताइए कृपया - आप किस आयु वर्ग में हैं?"
+      },
+      {
+        "role": "user",
+        "content": "student of the year में"
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा! तो अब आपकी उम्र क्या है - क्या आप 18-25, 26-35, 36-45, 46-55, या 55 से ऊपर हैं?"
+      },
+      {
+        "role": "user",
+        "content": "मैं जो बसा ओरो जी"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है! अब आखिरी सवाल - आपका लिंग क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मेर बोरुश मेल"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत-बहुत धन्यवाद आपका! आपने हमारे सर्वे में भाग लिया, इसके लिए हम आपके आभारी हैं। आपका दिन शुभ हो!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "positive",
+      "engagement": "medium"
+    }
+  },
+  {
+    "id": "7885ae27-de16-49d4-a7cd-f4a150fac757",
+    "timestamp": "2026-02-08T00:04:18.278Z",
+    "duration": 132,
+    "language": "hi",
+    "status": "completed",
+    "summary": "Respondent prefers summer in India and enjoys activities like eating mangoes and swimming in rivers. They would like to visit Goa to enjoy their favorite season.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा वाता ये क्या जाना जाते है अब बादा"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, बिल्कुल! तो चलिए शुरू करते हैं। \n\nभारत में आपको कौन सा मौसम सबसे ज्यादा पसंद है?"
+      },
+      {
+        "role": "user",
+        "content": "मुझे गर्मी का वसम बहुत पसंद है"
+      },
+      {
+        "role": "assistant",
+        "content": "वाह, गर्मी! बहुत अच्छा। \n\nतो आप अपने पसंदीदा मौसम को 1 से 10 के पैमाने पर कितने नंबर देंगे?"
+      },
+      {
+        "role": "user",
+        "content": "मैं रदस तुम एक दो"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है! धन्यवाद। \n\nआपको यह मौसम क्यों सबसे अच्छा लगता है? कृपया बताइए।"
+      },
+      {
+        "role": "user",
+        "content": "आम कासा एना वो समय उसलिए"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, बिल्कुल समझ गई। \n\nइस मौसम में आप कौन-कौन सी चीज़ें करना पसंद करते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "मैं आम खाना पसंद करता हूं नदी में तैरना पसंद करता हूं वटेवादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादादाद"
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा, आम खाना और नदी में तैरना - बहुत अच्छा!\n\nमौसम आपके दैनिक जीवन और मूड को कितना प्रभावित करता है?"
+      },
+      {
+        "role": "user",
+        "content": "काफी जाद अप्टावायुद करते हैं"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, समझ गई।\n\nअगर आप भारत में कहीं भी जा सकते हैं अपने पसंदीदा मौसम का मज़ा लेने के लिए, तो कहाँ जाएंगे?"
+      },
+      {
+        "role": "user",
+        "content": "मैं तो भई देखिये गवा जाओंगा"
+      },
+      {
+        "role": "assistant",
+        "content": "गोवा! बहुत अच्छा।\n\nआपकी उम्र क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "बड़ बड़ वटवावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावावा मैं 24 साल गहूँ"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, 24 साल।\n\nआपका लिंग क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मैं बोरो शो मेल"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! आपके जवाबों के लिए बहुत-बहुत शुक्रिया। आपका समय देने के लिए हम आपकी सराहना करती हैं। आपका दिन शुभ हो!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "positive",
+      "engagement": "medium"
+    }
+  },
+  {
+    "id": "69fbd00b-e972-4ebf-a9f0-16a952e87c3e",
+    "timestamp": "2026-02-08T03:59:04.510Z",
+    "duration": 30,
+    "language": "en",
+    "status": "completed",
+    "summary": "The respondent did not provide substantive responses to survey questions, only responding with 'Hello' and incomplete phrases, indicating lack of engagement or language barrier.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "What"
+      },
+      {
+        "role": "assistant",
+        "content": "आप हिंदी बोलते हैं न? मैं बंगाल के चुनावों के बारे में कुछ सवाल पूछना चाहती हूँ।\n\nतो पहला सवाल - क्या आप बंगाल की राजनीति और चुनावों में रुचि रखते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "Hello. I'm going to"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, ठीक है! तो बताइए - क्या आप बंगाल की राजनीति और चुनावों में रुचि रखते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "Hello."
+      },
+      {
+        "role": "assistant",
+        "content": "जी नमस्ते! क्या आप बंगाल की राजनीति और चुनावों में रुचि रखते हैं?"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "caebbc30-cf59-44d7-86fb-4d90cf1888b3",
+    "timestamp": "2026-02-08T21:19:03.000Z",
+    "duration": 189,
+    "language": "hi",
+    "status": "completed",
+    "summary": "The respondent plans to vote in the upcoming elections and would vote for BJP if elections were held today. Their main concerns are cleanliness, farmer issues, and employment, with hopes for better jobs and family happiness.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अज्छा बताईए"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! तो मेरा पहला सवाल है - क्या आप अगले चुनाव में वोट देने की योजना बना रहे हैं?"
+      },
+      {
+        "role": "user",
+        "content": "हागी जरूर मैं वोड़त दूँगा"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो अगर आज चुनाव हों, तो आप किस पार्टी को वोट देना चाहेंगे?"
+      },
+      {
+        "role": "user",
+        "content": "मुझे लगता है मैं BJP कोई वोट दूंगा है अगर चनाव अभी होतो है."
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, धन्यवाद! आपके विचार में, आज के समय में सबसे बड़ी समस्या क्या है जिसे सरकार को सुलझाना चाहिए?"
+      },
+      {
+        "role": "user",
+        "content": "मैं तो कहूँगा गंदगी सबसी बड़े समस्या है मेरे अजय है अजय"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, समझ गई। तो अब मैं आपसे पूछना चाहती हूँ - रोजगार, महंगाई, शिक्षा, स्वास्थ्य, बिजली, भ्रष्टाचार, सुरक्षा, या किसानों की समस्याओं में से कौन से तीन मुद्दे आपके लिए सबसे महत्वपूर्ण हैं?"
+      },
+      {
+        "role": "user",
+        "content": "मैं तो बोलूँगा किसान हो रोजगार बेरोजगारी की जो"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा, किसान और रोजगार - ये दोनों आपके लिए महत्वपूर्ण हैं। तो अब बताइए, 1 से 10 के पैमाने पर, आप वर्तमान सरकार के काम से कितने संतुष्ट हैं?"
+      },
+      {
+        "role": "user",
+        "content": "और मैं बुलुम एफाद"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, धन्यवाद। अब बताइए, कोई एक नेता जिन्हें आप पसंद करते हैं और क्यों?"
+      },
+      {
+        "role": "user",
+        "content": "मैं अमिद शा को पसंद करता हूँ"
+      },
+      {
+        "role": "assistant",
+        "content": "अच्छा, और बताइए - कोई एक नेता जिन्हें आप पसंद नहीं करते और क्यों?"
+      },
+      {
+        "role": "user",
+        "content": "मुझे मम्दाव अनर जी नहीं पसंद है वोग नहें"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है। अब मेरा अगला सवाल है - आने वाले 5 सालों में आप अपने और अपने परिवार के लिए क्या उम्मीद करते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "कि सब खुश रहे से फ्रहे"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! तो अब बताइए, आपकी उम्र क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "और अच्छी नौकरी लगे सबकी मैं चौब बेज साल काऊंगा"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, समझ गई। तो आपकी उम्र क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "मैं चाबब साल काउ"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है। और अंत में, आपका लिंग क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "में पूरो शो मेल"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत धन्यवाद! आपने हमारे सर्वेक्षण में भाग लिया, इसके लिए धन्यवाद। आपका समय देने के लिए VoxBharat की ओर से आभारी हूँ। आपका दिन अच्छा रहे!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "medium"
+    }
+  },
+  {
+    "id": "2fc1c7dc-7bc9-46a8-8f6a-85c8ffc0ad5a",
+    "timestamp": "2026-02-08T21:23:09.207Z",
+    "duration": 40,
+    "language": "hi",
+    "status": "completed",
+    "summary": "The respondent was initially reluctant to participate in the survey and expressed unwillingness to engage. The interview was just beginning when the data ends, with no substantive responses collected.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "क्यों को आनो आप क्यों फोन कर रहे हैं मुझे मुझे नहीं बात करनी"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, मैं समझ गई। आपका समय मूल्यवान है। बस कुछ ही मिनटों में हम आपके विचार जान लेंगे, जो हमारे सर्वे के लिए बहुत जरूरी हैं। क्या आप हमारी मदद कर सकते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "में"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! तो चलिए शुरू करते हैं। क्या आप अगले चुनाव में वोट देने की योजना बना रहे हैं?"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "negative",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "07555f6d-8dd4-46e5-9364-66cbffc889aa",
+    "timestamp": "2026-02-08T23:50:34.177Z",
+    "duration": 142,
+    "language": "hi",
+    "status": "completed",
+    "summary": "The respondent participated in the survey but provided mostly unclear or unintelligible responses. Only one clear answer was obtained - confirmation of voting in the previous Bengal election.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "अच्छा बताईए क्या चाहिए आपको"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! तो मेरा पहला सवाल है - क्या आप बंगाल चुनाव में वोट करने के लिए पंजीकृत हैं?"
+      },
+      {
+        "role": "user",
+        "content": "झाल"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, धन्यवाद! तो क्या आप पिछले बंगाल चुनाव में वोट देने गए थे?"
+      },
+      {
+        "role": "user",
+        "content": "हाँ मैं गया था पिछले समय वोट देने के लिए"
+      },
+      {
+        "role": "assistant",
+        "content": "बहुत अच्छा! आप बंगाल की वर्तमान सरकार के कामकाज से कितने संतुष्ट हैं?"
+      },
+      {
+        "role": "user",
+        "content": "अब बोड़ियो"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है। तो बंगाल चुनाव में आपके लिए सबसे महत्वपूर्ण मुद्दे कौन से हैं? आप तीन तक बता सकते हैं।"
+      },
+      {
+        "role": "user",
+        "content": "इव मेस का उन्वास तफाई बेरो जड़ाई"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, धन्यवाद! अगर आज चुनाव हो, तो आप किस पार्टी को वोट देने की सोच रहे हैं?"
+      },
+      {
+        "role": "user",
+        "content": "सेफ़ी, सेफ़ी,"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, समझ गई। अब बताइए, 1 से 10 के पैमाने पर, आप बंगाल के विकास को कितने नंबर देंगे? जहाँ 1 का मतलब बिल्कुल नहीं हुआ और 10 का मतलब बहुत अच्छा हुआ।"
+      },
+      {
+        "role": "user",
+        "content": "मैं ढूंग जए"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है। आपके हिसाब से बंगाल का मुख्यमंत्री कौन होना चाहिए?"
+      },
+      {
+        "role": "user",
+        "content": "अब अब"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, ठीक है। अगर आप बंगाल की सरकार को एक सुझाव दे सकें, तो वो क्या होगा?"
+      },
+      {
+        "role": "user",
+        "content": "पता निया आरे मन लोगोटिया हो"
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, धन्यवाद! अब बताइए, आपकी उम्र क्या है?"
+      },
+      {
+        "role": "user",
+        "content": "कि यो थोड़े बेरोजगारी में ज्यादा मैं जोब इसाला हूँ."
+      },
+      {
+        "role": "assistant",
+        "content": "जी, समझ गई। तो आपकी उम्र कितनी है?"
+      },
+      {
+        "role": "user",
+        "content": "पर मेरे से ज़्यादा बात मत करिये हो गया बहुत हो गया"
+      },
+      {
+        "role": "assistant",
+        "content": "बिल्कुल, मैं समझ गई! आपका समय देने के लिए बहुत-बहुत धन्यवाद। आपके जवाब हमारे लिए बहुत महत्वपूर्ण हैं। अच्छा, फिर मिलेंगे!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "41491b23-41fe-4db9-aeb4-a2caaf45eb94",
+    "timestamp": "2026-02-09T01:11:33.168Z",
+    "duration": 22,
+    "language": "en",
+    "status": "completed",
+    "summary": "Survey interaction just initiated; respondent provided minimal engagement with only a greeting in English. No substantive survey responses collected yet.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Hello."
+      },
+      {
+        "role": "assistant",
+        "content": "नमस्ते! क्या आप हिंदी बोलते हैं? मैं बंगाल चुनावों के बारे में एक सर्वेक्षण कर रही हूँ।\n\nतो पहला सवाल - क्या आप बंगाल चुनाव में वोट डालने की योजना बना रहे हैं?"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "795b2e6b-ff72-41db-8722-775f4a258581",
+    "timestamp": "2026-02-09T01:39:39.525Z",
+    "duration": 39,
+    "language": "bn",
+    "autoDetectLanguage": false,
+    "status": "completed",
+    "summary": "The respondent provided only non-committal responses ('মাক') throughout the interview, making it impossible to extract meaningful survey data. The interview was incomplete with no substantive answers provided.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "মাক"
+      },
+      {
+        "role": "assistant",
+        "content": "ধন্যবাদ! তাহলে আমরা শুরু করি।\n\nআপনি কি আগামী বাংলা নির্বাচনে ভোট দেওয়ার পরিকল্পনা করছেন?"
+      },
+      {
+        "role": "user",
+        "content": "মাক"
+      },
+      {
+        "role": "assistant",
+        "content": "ভালো, ধন্যবাদ।\n\n১ থেকে ১০ এর স্কেলে, আপনি বর্তমান রাজ্য সরকারের কাজের প্রতি কতটা সন্তুষ্ট? ১ মানে একদম অসন্তুষ্ট এবং ১০ মানে খুবই সন্তুষ্ট।"
+      },
+      {
+        "role": "user",
+        "content": "মাক মাক"
+      },
+      {
+        "role": "assistant",
+        "content": "ঠিক আছে, ধন্যবাদ।\n\nআপনার মতে, বাংলায় এই মুহূর্তে সবচেয়ে গুরুত্বপূর্ণ সমস্যা কোনটি?"
+      },
+      {
+        "role": "user",
+        "content": "মাক"
+      },
+      {
+        "role": "assistant",
+        "content": "ঠিক আছে।\n\nবাংলার উন্নয়ন সঠিক দিকে এগিয়ে চলেছে - এই বক্তব্যের সাথে আপনি কতটা একমত?"
+      },
+      {
+        "role": "user",
+        "content": "মাক"
+      },
+      {
+        "role": "assistant",
+        "content": "ধন্যবাদ।\n\nআপনি যদি আজ ভোট দিতেন, তাহলে কোন দলকে ভোট দিতেন?"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_planning_to_vote_in_the_upcoming": null,
+      "on_a_scale_of_1_to_10_how_satisfied_are_": null,
+      "in_your_opinion_what_is_the_most_importa": null,
+      "bengal_s_development_is_moving_in_the_ri": null,
+      "if_you_were_to_vote_today_which_party_wo": null,
+      "which_factors_influence_your_decision_wh": null,
+      "what_is_your_age": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
   }
 ]
