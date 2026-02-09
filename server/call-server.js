@@ -297,7 +297,13 @@ async function initSession(callId, call, ws, streamSid) {
       if (sessionObj.isEnding) return;
 
       if (isFinal && text.trim()) {
-        const trimmed = text.trim();
+        let trimmed = text.trim();
+
+        // Filter out Whisper looping/hallucination artifacts
+        // Detects repeated character or syllable patterns (e.g., "गगगगग..." or "वादावादावादा...")
+        trimmed = trimmed.replace(/(.{2,6}?)\1{4,}/g, '$1');
+        if (trimmed.length < 2) return; // Skip if only garbage remained
+
         sessionObj.accumulatedText.push(trimmed);
         console.log(`[STT:${callId}] Accumulated: "${trimmed}" (total: ${sessionObj.accumulatedText.length}, processing: ${sessionObj.isProcessing})`);
 
@@ -381,6 +387,13 @@ async function processUserSpeech(callId, text) {
       console.log(`[Call:${callId}] Language switched: ${session.currentLanguage} → ${newLang}`);
       session.currentLanguage = newLang;
       updateCall(callId, { detectedLanguage: newLang });
+
+      // Switch STT language hint to improve transcription quality
+      if (session.stt && newLang !== 'en') {
+        session.stt.switchLanguage(newLang).catch(err => {
+          console.error(`[Call:${callId}] STT language switch failed:`, err.message);
+        });
+      }
     }
   }
 

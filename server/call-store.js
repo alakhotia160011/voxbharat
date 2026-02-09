@@ -114,6 +114,7 @@ export function saveCallToFile(call) {
     transcript: call.transcript,
     demographics: call.extractedData.demographics || null,
     structured: call.extractedData.structured || null,
+    responses: call.extractedData.responses || null,
     sentiment: call.extractedData.sentiment || null,
   };
 
