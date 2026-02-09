@@ -29,7 +29,7 @@ const VideoSection = () => {
           transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
         >
           <iframe
-            src="https://www.youtube.com/embed/r0nV6kFUF3M"
+            src="https://www.youtube-nocookie.com/embed/r0nV6kFUF3M?rel=0&modestbranding=1&showinfo=0&iv_load_policy=3"
             title="VoxBharat Demo"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
