@@ -299,6 +299,46 @@ async function initSession(callId, call, ws, streamSid) {
       // Track STT-detected language for auto-detect mode
       if (detectedLang && sessionObj.call.autoDetectLanguage) {
         sessionObj.sttDetectedLanguage = detectedLang;
+        console.log(`[STT:${callId}] Language field from Cartesia: "${detectedLang}"`);
+
+        // On first non-English detection, reconnect STT with that specific language
+        // Auto-detect mode gives us the language but garbles the transcription —
+        // reconnecting with the correct language gives clean text for subsequent utterances
+        if (detectedLang !== 'en' && !sessionObj.sttLanguageLocked) {
+          sessionObj.sttLanguageLocked = true;
+          console.log(`[STT:${callId}] Detected ${detectedLang} from audio — reconnecting STT for better transcription...`);
+          sessionObj.stt.switchLanguage(detectedLang).catch(err => {
+            console.error(`[STT:${callId}] Language switch failed:`, err.message);
+            sessionObj.sttLanguageLocked = false; // Allow retry
+          });
+        }
+      }
+
+      // Fallback: if no language field from Cartesia, detect Indic scripts in the text
+      if (!detectedLang && sessionObj.call.autoDetectLanguage && !sessionObj.sttLanguageLocked && isFinal && text) {
+        const scriptLangMap = [
+          { pattern: /[\u0980-\u09FF]/, lang: 'bn' }, // Bengali
+          { pattern: /[\u0A80-\u0AFF]/, lang: 'gu' }, // Gujarati
+          { pattern: /[\u0A00-\u0A7F]/, lang: 'pa' }, // Gurmukhi (Punjabi)
+          { pattern: /[\u0C80-\u0CFF]/, lang: 'kn' }, // Kannada
+          { pattern: /[\u0D00-\u0D7F]/, lang: 'ml' }, // Malayalam
+          { pattern: /[\u0B00-\u0B7F]/, lang: 'or' }, // Odia
+          { pattern: /[\u0B80-\u0BFF]/, lang: 'ta' }, // Tamil
+          { pattern: /[\u0C00-\u0C7F]/, lang: 'te' }, // Telugu
+          { pattern: /[\u0900-\u097F]/, lang: 'hi' }, // Devanagari (Hindi/Marathi)
+        ];
+        for (const { pattern, lang } of scriptLangMap) {
+          if (pattern.test(text)) {
+            console.log(`[STT:${callId}] No language field — detected ${lang} from script in text`);
+            sessionObj.sttDetectedLanguage = lang;
+            sessionObj.sttLanguageLocked = true;
+            sessionObj.stt.switchLanguage(lang).catch(err => {
+              console.error(`[STT:${callId}] Script-based language switch failed:`, err.message);
+              sessionObj.sttLanguageLocked = false;
+            });
+            break;
+          }
+        }
       }
 
       if (isFinal && text.trim()) {
