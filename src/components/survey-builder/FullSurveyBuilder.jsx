@@ -910,7 +910,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           {q.required && <span className="text-red-500 text-xs">Required</span>}
                         </div>
                         <p className="font-medium text-earth truncate">{q.text || 'Untitled'}</p>
-                        {q.textEn && <p className="text-sm text-gray-500 truncate">{q.textEn}</p>}
+                        {q.textEn && config.languages[0] !== 'en' && <p className="text-sm text-gray-500 truncate">{q.textEn}</p>}
                       </div>
 
                       <button
@@ -1067,6 +1067,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                       <span className="w-6 h-6 rounded-full bg-saffron/10 flex items-center justify-center text-xs text-saffron font-medium flex-shrink-0">{i + 1}</span>
                       <div className="min-w-0">
                         <p className="text-sm truncate">{q.text}</p>
+                        {q.textEn && config.languages[0] !== 'en' && <p className="text-xs text-gray-400 truncate">{q.textEn}</p>}
                         <p className="text-xs text-gray-400">{q.type}</p>
                       </div>
                     </div>
@@ -1416,7 +1417,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                         </button>
                       </div>
                       <p className="text-sm font-medium">{q.text}</p>
-                      <p className="text-xs text-gray-500 mt-1">{q.textEn}</p>
+                      {q.textEn && config.languages[0] !== 'en' && <p className="text-xs text-gray-500 mt-1">{q.textEn}</p>}
                       {q.options && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {q.options.slice(0, 4).map((opt, j) => (
