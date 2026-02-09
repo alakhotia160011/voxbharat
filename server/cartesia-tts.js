@@ -31,21 +31,25 @@ const VOICES = {
  * @param {string} language - 'hi' or 'bn'
  * @param {string} gender - 'male' or 'female'
  * @param {string} apiKey - Cartesia API key
+ * @param {object} options - Optional TTS settings
+ * @param {number} options.speed - Speech speed 0.6-1.5 (default 0.85)
  * @returns {Promise<string>} base64 mulaw audio
  */
-export async function generateSpeech(text, language, gender, apiKey) {
+export async function generateSpeech(text, language, gender, apiKey, options = {}) {
   const voiceKey = `${language}_${gender}`;
   const voiceId = VOICES[voiceKey];
   if (!voiceId) {
     throw new Error(`No voice found for ${voiceKey}`);
   }
 
+  const speed = options.speed ?? 0.85;
+
   const response = await fetch(CARTESIA_TTS_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
-      'Cartesia-Version': '2025-04-16',
+      'Cartesia-Version': '2025-11-04',
     },
     body: JSON.stringify({
       model_id: 'sonic-3-2026-01-12',
@@ -57,6 +61,7 @@ export async function generateSpeech(text, language, gender, apiKey) {
         encoding: 'pcm_s16le',
         sample_rate: 16000,
       },
+      generation_config: { speed },
     }),
   });
 

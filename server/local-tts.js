@@ -1,11 +1,12 @@
 // Simple TTS proxy server for local development
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 
 const app = express();
 const PORT = 3001;
 
-const CARTESIA_API_KEY = 'sk_car_Hamdih147oPiXJqLhbNs9w';
+const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY;
 
 app.use(cors());
 app.use(express.json());
@@ -31,10 +32,10 @@ app.post('/api/tts', async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CARTESIA_API_KEY}`,
-        'Cartesia-Version': '2024-06-10',
+        'Cartesia-Version': '2025-11-04',
       },
       body: JSON.stringify({
-        model_id: 'sonic-multilingual',
+        model_id: 'sonic-3-2026-01-12',
         transcript: text,
         voice: { mode: 'id', id: voiceId },
         language: language || 'hi',
@@ -43,6 +44,7 @@ app.post('/api/tts', async (req, res) => {
           bit_rate: 128000,
           sample_rate: 44100
         },
+        generation_config: { speed: 0.85 },
       }),
     });
 
