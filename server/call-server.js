@@ -222,10 +222,8 @@ wss.on('connection', (ws) => {
             console.log(`[WS] Media packets: ${mediaPackets}, isAiSpeaking: ${session.isAiSpeaking}, STT connected: ${session.stt.isConnected}`);
           }
 
-          // Skip STT while AI is speaking (echo suppression)
-          if (session.isAiSpeaking) break;
-
           // Convert mulaw 8kHz -> PCM s16le 16kHz and send to STT
+          // Keep sending even while AI speaks — enables barge-in detection
           const pcmAudio = mulawToPcm16k(msg.media.payload);
           session.stt.sendAudio(pcmAudio);
           break;
@@ -349,6 +347,38 @@ async function initSession(callId, call, ws, streamSid) {
         trimmed = trimmed.replace(/(.{2,6}?)\1{4,}/g, '$1');
         if (trimmed.length < 2) return; // Skip if only garbage remained
 
+        // --- BARGE-IN: User spoke while AI is speaking ---
+        if (sessionObj.isAiSpeaking) {
+          // Filter echo: ignore short fragments (likely AI audio picked up by mic)
+          if (trimmed.length < 10) return;
+
+          console.log(`[Barge-in:${callId}] User interrupted: "${trimmed}"`);
+
+          // Clear Twilio audio buffer to stop playback immediately
+          if (sessionObj.ws.readyState === 1) {
+            sessionObj.ws.send(JSON.stringify({
+              event: 'clear',
+              streamSid: sessionObj.streamSid,
+            }));
+          }
+          sessionObj.isAiSpeaking = false;
+          sessionObj.interrupted = true;
+
+          // Accumulate the interruption text
+          sessionObj.accumulatedText.push(trimmed);
+
+          // If not currently processing (unusual), start immediately
+          if (!sessionObj.isProcessing) {
+            const fullText = sessionObj.accumulatedText.join(' ');
+            sessionObj.accumulatedText = [];
+            processUserSpeech(callId, fullText);
+          }
+          // If processing, the interrupted flag will stop the streaming loop
+          // and accumulated text will be processed after cleanup
+          return;
+        }
+
+        // --- Normal flow: accumulate text and wait for silence ---
         sessionObj.accumulatedText.push(trimmed);
         console.log(`[STT:${callId}] Accumulated: "${trimmed}" (lang=${detectedLang || '?'}, total: ${sessionObj.accumulatedText.length}, processing: ${sessionObj.isProcessing})`);
 
@@ -358,15 +388,14 @@ async function initSession(callId, call, ws, streamSid) {
         // If Claude is busy, just accumulate (it will be processed when Claude finishes)
         if (sessionObj.isProcessing) return;
 
-        // Wait 2s of silence after last final transcript, then send everything to Claude
-        // The discard-on-speak fix prevents misattribution even if we process too early
+        // Wait 1.2s of silence after last final transcript, then send everything to Claude
         sessionObj.silenceTimer = setTimeout(() => {
           if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
             const fullText = sessionObj.accumulatedText.join(' ');
             sessionObj.accumulatedText = [];
             processUserSpeech(callId, fullText);
           }
-        }, 2000);
+        }, 1200);
       }
     },
     onError: (msg) => console.error(`[STT:${callId}]`, msg),
@@ -405,6 +434,7 @@ async function processUserSpeech(callId, text) {
   if (!session || session.isEnding || session.isProcessing) return;
 
   session.isProcessing = true;
+  session.interrupted = false;
 
   // In auto-detect mode, prepend STT-detected language hint for Claude
   const sttLang = session.sttDetectedLanguage;
@@ -423,43 +453,102 @@ async function processUserSpeech(callId, text) {
 
   updateCall(callId, { status: 'surveying' });
 
-  // Get Claude's response — pass STT language hint if available
+  // Build text with language hint for Claude
   const textForClaude = langHint
     ? `[spoken_language:${langHint}] ${text}`
     : text;
-  const response = await session.conversation.getResponse(textForClaude);
 
-  if (!response) {
+  // --- Streaming pipeline: Claude → sentence TTS → Twilio ---
+  const stream = session.conversation.startResponseStream(textForClaude);
+  if (!stream) {
     session.isProcessing = false;
     await handleCallEnd(callId, 'completed');
     return;
   }
 
-  // Update language if auto-detect switched it
-  if (session.conversation.autoDetectLanguage) {
-    const newLang = session.conversation.currentLanguage;
-    if (newLang !== session.currentLanguage) {
-      console.log(`[Call:${callId}] Language switched: ${session.currentLanguage} → ${newLang}`);
-      session.currentLanguage = newLang;
-      updateCall(callId, { detectedLanguage: newLang });
-      // STT stays in 'auto' mode — no need to reconnect
+  session.isAiSpeaking = true;
+
+  let fullResponse = '';
+  let pendingText = '';
+  let ttsLanguage = session.currentLanguage || session.call.language;
+  let langTagParsed = false;
+
+  try {
+    for await (const delta of stream.textStream) {
+      if (session.isEnding || session.interrupted) break;
+
+      fullResponse += delta;
+      pendingText += delta;
+
+      // Parse [LANG:xx] tag from the beginning of response
+      if (!langTagParsed) {
+        const match = fullResponse.match(/^\[LANG:([a-z]{2})\]\s*/i);
+        if (match) {
+          ttsLanguage = match[1].toLowerCase();
+          if (ttsLanguage !== session.currentLanguage) {
+            console.log(`[Call:${callId}] Language: ${session.currentLanguage} → ${ttsLanguage}`);
+            session.currentLanguage = ttsLanguage;
+            updateCall(callId, { detectedLanguage: ttsLanguage });
+          }
+          // Strip the tag from pending text
+          pendingText = fullResponse.slice(match[0].length);
+          langTagParsed = true;
+        } else if (fullResponse.length > 15 || !/^\[/.test(fullResponse)) {
+          langTagParsed = true; // No tag present
+        }
+      }
+
+      // Send TTS at sentence boundaries for lower perceived latency
+      if (langTagParsed && pendingText.trim().length > 5) {
+        const sentenceEnd = /[.!?।]\s*$/.test(pendingText);
+        const clauseBreak = pendingText.trim().length > 80 && /[,;:]\s*$/.test(pendingText);
+
+        if (sentenceEnd || clauseBreak) {
+          const sentence = pendingText.trim();
+          pendingText = '';
+          await speakSentence(session, sentence, ttsLanguage);
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`[Call:${callId}] Stream error:`, error.message);
+  }
+
+  // Speak any remaining text
+  let remaining = pendingText;
+  if (!langTagParsed) {
+    const match = remaining.match(/^\[LANG:([a-z]{2})\]\s*/i);
+    if (match) {
+      ttsLanguage = match[1].toLowerCase();
+      session.currentLanguage = ttsLanguage;
+      remaining = remaining.slice(match[0].length);
     }
   }
-
-  console.log(`[Call:${callId}] AI: "${response.substring(0, 50)}..."`);
-
-  // Add to transcript
-  if (call) {
-    call.transcript.push({ role: 'assistant', content: response });
+  remaining = remaining.replace(/\[SURVEY_COMPLETE\]/g, '').trim();
+  if (remaining && !session.isEnding) {
+    await speakSentence(session, remaining, ttsLanguage);
   }
 
-  // Speak the response
-  await speakAndStream(session, response);
+  // Send final mark to know when all audio finishes playing
+  if (session.ws.readyState === 1) {
+    session.ws.send(JSON.stringify({
+      event: 'mark',
+      streamSid: session.streamSid,
+      mark: { name: 'tts-done' },
+    }));
+  }
 
-  // Discard any speech that accumulated while AI was speaking —
-  // it was spoken BEFORE the user heard this question, so it can't be an answer to it
-  if (session.accumulatedText.length > 0) {
-    console.log(`[Call:${callId}] Discarding ${session.accumulatedText.length} pre-question segments: "${session.accumulatedText.join(' ')}"`);
+  // Finalize conversation history
+  const cleanResponse = session.conversation.finalizeStreamedResponse(fullResponse);
+  console.log(`[Call:${callId}] AI: "${(cleanResponse || '').substring(0, 60)}..."`);
+
+  if (call && cleanResponse) {
+    call.transcript.push({ role: 'assistant', content: cleanResponse });
+  }
+
+  // Discard any speech accumulated while AI was speaking (unless barge-in)
+  if (session.accumulatedText.length > 0 && !session.interrupted) {
+    console.log(`[Call:${callId}] Discarding ${session.accumulatedText.length} pre-question segments`);
     session.accumulatedText = [];
   }
   if (session.silenceTimer) {
@@ -476,12 +565,54 @@ async function processUserSpeech(callId, text) {
     return;
   }
 
-  // Check if more speech accumulated while we were processing
+  // Process queued speech (from barge-in or accumulated during processing)
   if (session.accumulatedText && session.accumulatedText.length > 0) {
     const queuedText = session.accumulatedText.join(' ');
     session.accumulatedText = [];
-    // Small delay to let TTS finish before processing next
-    setTimeout(() => processUserSpeech(callId, queuedText), 1000);
+    setTimeout(() => processUserSpeech(callId, queuedText), 500);
+  }
+}
+
+/**
+ * Generate TTS for a single sentence and stream to Twilio (no mark event)
+ */
+async function speakSentence(session, text, language) {
+  if (!session || session.isEnding || session.interrupted) return;
+
+  const gender = session.call.gender;
+  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, "${text.substring(0, 50)}..."`);
+
+  try {
+    const mulawBase64 = await generateSpeech(text, language, gender, CARTESIA_KEY);
+    const chunks = chunkAudio(mulawBase64);
+
+    for (const chunk of chunks) {
+      if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
+      session.ws.send(JSON.stringify({
+        event: 'media',
+        streamSid: session.streamSid,
+        media: { payload: chunk },
+      }));
+    }
+  } catch (error) {
+    console.error(`[TTS] Sentence error (${language}/${gender}): ${error.message}`);
+    // Try English fallback if language-specific voice is unavailable
+    if (language !== 'en') {
+      try {
+        const fallbackBase64 = await generateSpeech(text, 'en', gender, CARTESIA_KEY);
+        const chunks = chunkAudio(fallbackBase64);
+        for (const chunk of chunks) {
+          if (session.ws.readyState !== 1 || session.isEnding) break;
+          session.ws.send(JSON.stringify({
+            event: 'media',
+            streamSid: session.streamSid,
+            media: { payload: chunk },
+          }));
+        }
+      } catch (fbErr) {
+        console.error(`[TTS] Fallback also failed: ${fbErr.message}`);
+      }
+    }
   }
 }
 
@@ -490,69 +621,16 @@ async function speakAndStream(session, text) {
 
   session.isAiSpeaking = true;
 
-  // Use currentLanguage (tracks auto-detect switches) with fallback to call.language
   const ttsLanguage = session.currentLanguage || session.call.language;
-  const ttsGender = session.call.gender;
-  console.log(`[TTS] Generating speech: lang=${ttsLanguage}, gender=${ttsGender}, text="${text.substring(0, 60)}..."`);
+  await speakSentence(session, text, ttsLanguage);
 
-  try {
-    // Generate TTS audio
-    const mulawBase64 = await generateSpeech(
-      text,
-      ttsLanguage,
-      ttsGender,
-      CARTESIA_KEY
-    );
-
-    // Split into chunks and stream to Twilio
-    const chunks = chunkAudio(mulawBase64);
-
-    for (const chunk of chunks) {
-      if (session.ws.readyState !== 1) break; // WebSocket not open
-
-      session.ws.send(JSON.stringify({
-        event: 'media',
-        streamSid: session.streamSid,
-        media: { payload: chunk },
-      }));
-    }
-
-    // Send mark to know when playback is done
+  // Send mark to know when playback is done
+  if (session.ws.readyState === 1) {
     session.ws.send(JSON.stringify({
       event: 'mark',
       streamSid: session.streamSid,
       mark: { name: 'tts-done' },
     }));
-  } catch (error) {
-    console.error(`[TTS] Error (lang=${ttsLanguage}, gender=${ttsGender}):`, error.message);
-    session.isAiSpeaking = false;
-
-    // Retry once
-    try {
-      const mulawBase64 = await generateSpeech(
-        text,
-        ttsLanguage,
-        ttsGender,
-        CARTESIA_KEY
-      );
-      const chunks = chunkAudio(mulawBase64);
-      for (const chunk of chunks) {
-        if (session.ws.readyState !== 1) break;
-        session.ws.send(JSON.stringify({
-          event: 'media',
-          streamSid: session.streamSid,
-          media: { payload: chunk },
-        }));
-      }
-      session.ws.send(JSON.stringify({
-        event: 'mark',
-        streamSid: session.streamSid,
-        mark: { name: 'tts-done' },
-      }));
-    } catch (retryErr) {
-      console.error(`[TTS] Retry failed (lang=${ttsLanguage}, gender=${ttsGender}):`, retryErr.message);
-      session.isAiSpeaking = false;
-    }
   }
 }
 

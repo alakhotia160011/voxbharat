@@ -108,6 +108,40 @@ export class ClaudeConversation {
   }
 
   /**
+   * Start streaming Claude's response — returns a stream with .textStream async iterable
+   * After iteration completes, call finalizeStreamedResponse(fullText) to update history
+   * @param {string} userText - Transcribed user speech
+   * @returns {MessageStream|null} Anthropic stream object, or null if survey is complete
+   */
+  startResponseStream(userText) {
+    if (this.isComplete) return null;
+    this.messages.push({ role: 'user', content: userText });
+
+    return this.client.messages.stream({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      system: this.systemPrompt,
+      messages: this.messages,
+    });
+  }
+
+  /**
+   * Finalize a streamed response — update conversation history
+   * Call this after streaming completes (or is interrupted)
+   * @param {string} fullText - The accumulated response text (raw, with tags)
+   * @returns {string} Clean response text
+   */
+  finalizeStreamedResponse(fullText) {
+    if (fullText.includes('[SURVEY_COMPLETE]')) {
+      this.isComplete = true;
+    }
+    let cleanText = fullText.replace('[SURVEY_COMPLETE]', '').trim();
+    cleanText = this._parseLanguageTag(cleanText);
+    this.messages.push({ role: 'assistant', content: cleanText });
+    return cleanText;
+  }
+
+  /**
    * Extract structured data from the conversation transcript
    * @returns {Promise<object>} Extracted survey data
    */
