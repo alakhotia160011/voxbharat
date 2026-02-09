@@ -299,8 +299,12 @@ export function getCustomSystemPrompt(language, gender, customSurvey) {
     ? 'Use a warm, friendly register.'
     : 'Use a warm, conversational tone.';
 
+  // Use English text when survey language is English but questions were generated in another language
   const questionsBlock = customSurvey.questions
-    .map((q, i) => `${i + 1}. ${q.text}`)
+    .map((q, i) => {
+      const questionText = (language === 'en' && q.textEn) ? q.textEn : q.text;
+      return `${i + 1}. ${questionText}`;
+    })
     .join('\n');
 
   // Build a separate internal mapping guide for questions with options
