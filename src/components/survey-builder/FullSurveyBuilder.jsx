@@ -909,7 +909,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           <span className="px-2 py-0.5 bg-saffron/10 rounded text-xs text-saffron">{q.category}</span>
                           {q.required && <span className="text-red-500 text-xs">Required</span>}
                         </div>
-                        <p className="font-medium text-earth truncate">{q.text || 'Untitled'}</p>
+                        <p className="font-medium text-earth truncate">{config.languages[0] === 'en' ? (q.textEn || q.text) : q.text || 'Untitled'}</p>
                         {q.textEn && config.languages[0] !== 'en' && <p className="text-sm text-gray-500 truncate">{q.textEn}</p>}
                       </div>
 
@@ -1066,7 +1066,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     <div key={q.id} className="flex items-start gap-2 p-2 bg-cream-warm rounded-lg">
                       <span className="w-6 h-6 rounded-full bg-saffron/10 flex items-center justify-center text-xs text-saffron font-medium flex-shrink-0">{i + 1}</span>
                       <div className="min-w-0">
-                        <p className="text-sm truncate">{q.text}</p>
+                        <p className="text-sm truncate">{config.languages[0] === 'en' ? (q.textEn || q.text) : q.text}</p>
                         {q.textEn && config.languages[0] !== 'en' && <p className="text-xs text-gray-400 truncate">{q.textEn}</p>}
                         <p className="text-xs text-gray-400">{q.type}</p>
                       </div>
@@ -1410,13 +1410,13 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           <span className="text-xs text-gray-400">{q.category}</span>
                         </div>
                         <button
-                          onClick={() => playVoice(q.text, q.id)}
+                          onClick={() => playVoice(config.languages[0] === 'en' ? (q.textEn || q.text) : q.text, q.id)}
                           className={`text-xs px-2 py-1 rounded ${isPlayingVoice && playingQuestionId === q.id ? 'bg-red-100 text-red-600' : 'text-saffron hover:bg-saffron/10'}`}
                         >
                           {isPlayingVoice && playingQuestionId === q.id ? '\u25A0 Stop' : '\u266A Play'}
                         </button>
                       </div>
-                      <p className="text-sm font-medium">{q.text}</p>
+                      <p className="text-sm font-medium">{config.languages[0] === 'en' ? (q.textEn || q.text) : q.text}</p>
                       {q.textEn && config.languages[0] !== 'en' && <p className="text-xs text-gray-500 mt-1">{q.textEn}</p>}
                       {q.options && (
                         <div className="flex flex-wrap gap-1 mt-2">
