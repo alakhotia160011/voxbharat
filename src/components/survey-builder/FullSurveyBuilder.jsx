@@ -45,11 +45,23 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', lang: 'hi' },
     { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', lang: 'bn' },
     { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', lang: 'bn' },
+    { id: '07bc462a-c644-49f1-baf7-82d5599131be', name: 'Telugu Female', lang: 'te' },
+    { id: '5c32dce6-936a-4892-b131-bafe474afe5f', name: 'Marathi Female', lang: 'mr' },
+    { id: 'f227bc18-3704-47fe-b759-8c78a450fdfa', name: 'Marathi Male', lang: 'mr' },
+    { id: '25d2c432-139c-4035-bfd6-9baaabcdd006', name: 'Tamil Female', lang: 'ta' },
+    { id: '4590a461-bc68-4a50-8d14-ac04f5923d22', name: 'Gujarati Female', lang: 'gu' },
+    { id: '91925fe5-42ee-4ebe-96c1-c84b12a85a32', name: 'Gujarati Male', lang: 'gu' },
+    { id: '7c6219d2-e8d2-462c-89d8-7ecba7c75d65', name: 'Kannada Female', lang: 'kn' },
+    { id: '6baae46d-1226-45b5-a976-c7f9b797aae2', name: 'Kannada Male', lang: 'kn' },
+    { id: 'b426013c-002b-4e89-8874-8cd20b68373a', name: 'Malayalam Female', lang: 'ml' },
+    { id: '374b80da-e622-4dfc-90f6-1eeb13d331c9', name: 'Malayalam Male', lang: 'ml' },
+    { id: '991c62ce-631f-48b0-8060-2a0ebecbd15b', name: 'Punjabi Female', lang: 'pa' },
+    { id: '8bacd442-a107-4ec1-b6f1-2fcb3f6f4d56', name: 'Punjabi Male', lang: 'pa' },
+    { id: 'f8f5f1b2-f02d-4d8e-a40d-fd850a487b3d', name: 'English Female', lang: 'en' },
+    { id: '1259b7e3-cb8a-43df-9446-30971a46b8b0', name: 'English Male', lang: 'en' },
   ];
 
-  const CARTESIA_API_KEY = 'sk_car_Hamdih147oPiXJqLhbNs9w';
-
-  // Play text using Cartesia TTS
+  // Play text using Cartesia TTS via server proxy (API key kept server-side)
   const playVoice = async (text, questionId = null) => {
     if (isPlayingVoice) {
       // Stop current playback
@@ -67,45 +79,44 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
     try {
       const voice = PREVIEW_VOICES.find(v => v.id === selectedPreviewVoice);
-      const resp = await fetch('https://api.cartesia.ai/tts/bytes', {
+      const resp = await fetch('/api/tts', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${CARTESIA_API_KEY}`,
-          'Cartesia-Version': '2024-06-10',
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model_id: 'sonic-3',
-          transcript: text,
-          voice: { mode: 'id', id: selectedPreviewVoice },
+          text,
+          voiceId: selectedPreviewVoice,
           language: voice?.lang || 'hi',
-          output_format: { container: 'wav', encoding: 'pcm_f32le', sample_rate: 44100 },
         }),
       });
 
-      if (resp.ok) {
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
+      if (!resp.ok) throw new Error('TTS proxy error');
+      const data = await resp.json();
 
-        if (!audioPreviewRef.current) {
-          audioPreviewRef.current = new Audio();
-        }
-
-        audioPreviewRef.current.src = url;
-        audioPreviewRef.current.onended = () => {
-          URL.revokeObjectURL(url);
-          setIsPlayingVoice(false);
-          setPlayingQuestionId(null);
-        };
-        audioPreviewRef.current.onerror = () => {
-          URL.revokeObjectURL(url);
-          setIsPlayingVoice(false);
-          setPlayingQuestionId(null);
-        };
-        await audioPreviewRef.current.play();
-      } else {
-        throw new Error('API error');
+      // Decode base64 MP3 audio
+      const binaryStr = atob(data.audio);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
       }
+      const blob = new Blob([bytes], { type: data.contentType });
+      const url = URL.createObjectURL(blob);
+
+      if (!audioPreviewRef.current) {
+        audioPreviewRef.current = new Audio();
+      }
+
+      audioPreviewRef.current.src = url;
+      audioPreviewRef.current.onended = () => {
+        URL.revokeObjectURL(url);
+        setIsPlayingVoice(false);
+        setPlayingQuestionId(null);
+      };
+      audioPreviewRef.current.onerror = () => {
+        URL.revokeObjectURL(url);
+        setIsPlayingVoice(false);
+        setPlayingQuestionId(null);
+      };
+      await audioPreviewRef.current.play();
     } catch (e) {
       console.error('Voice preview error:', e);
       setIsPlayingVoice(false);
@@ -1283,7 +1294,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     )}
 
                     <p className="text-xs text-gray-400">
-                      Language: {config.languages[0] === 'bn' ? 'Bengali' : 'Hindi'} · {questions.length} questions · ~{estimatedDuration} min
+                      Language: {LANGUAGES.find(l => l.code === config.languages[0])?.english || config.languages[0]} · {questions.length} questions · ~{estimatedDuration} min
                     </p>
                   </div>
                 )}

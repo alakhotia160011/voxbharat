@@ -135,7 +135,7 @@ const HeroSection = ({ onCreateSurvey, onWatchDemo }) => {
             className="text-lg text-[#6b4c3a] max-w-lg leading-relaxed font-body"
           >
             Reach 900M+ Indians who prefer speaking over typing. AI voice
-            surveys in 12 languages, at 10x lower cost.
+            surveys in 10 languages, at 10x lower cost.
           </motion.p>
 
           {/* CTAs */}
