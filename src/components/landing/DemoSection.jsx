@@ -81,6 +81,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
   const timersRef = useRef([]);
   const conversationRef = useRef(null);
   const dropdownRef = useRef(null);
+  const audioCacheRef = useRef(new Map());
 
   // ── Helpers ──
 
@@ -127,6 +128,89 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     timersRef.current.forEach((t) => clearTimeout(t));
     timersRef.current = [];
   };
+
+  // ── TTS fetch with caching ──
+
+  const makeCacheKey = (text, voiceId, language) => `${voiceId}:${language}:${text}`;
+
+  const fetchTtsBlob = async (text, voiceId, language, signal) => {
+    const key = makeCacheKey(text, voiceId, language);
+    const cached = audioCacheRef.current.get(key);
+    if (cached) return cached;
+
+    // Retry once on failure (handles transient rate-limiting / cold starts)
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voiceId, language }),
+          signal,
+        });
+        if (!res.ok) {
+          if (attempt === 0 && res.status >= 500) {
+            await new Promise((r) => setTimeout(r, 800));
+            continue;
+          }
+          throw new Error(`API error ${res.status}`);
+        }
+
+        const data = await res.json();
+        const binaryStr = atob(data.audio);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: data.contentType });
+        audioCacheRef.current.set(key, blob);
+        return blob;
+      } catch (err) {
+        if (err.name === 'AbortError') throw err;
+        if (attempt === 1) throw err;
+        await new Promise((r) => setTimeout(r, 800));
+      }
+    }
+  };
+
+  // Prefetch in batches of 3 to avoid overwhelming the TTS API
+  const prefetchBatched = async (messages, aiVoiceId, respondentVoiceId, language) => {
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+      const batch = messages.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(
+        batch.map((msg) => {
+          const voiceId = msg.speaker === 'ai' ? aiVoiceId : respondentVoiceId;
+          const key = makeCacheKey(msg.text, voiceId, language);
+          if (audioCacheRef.current.has(key)) return Promise.resolve();
+          return fetchTtsBlob(msg.text, voiceId, language);
+        })
+      );
+    }
+  };
+
+  const prefetchMessage = (msg, aiVoiceId, respondentVoiceId, language) => {
+    const voiceId = msg.speaker === 'ai' ? aiVoiceId : respondentVoiceId;
+    const key = makeCacheKey(msg.text, voiceId, language);
+    if (audioCacheRef.current.has(key)) return;
+    fetchTtsBlob(msg.text, voiceId, language).catch(() => {});
+  };
+
+  // Prefetch ALL conversation messages when voice changes (so play is instant)
+  useEffect(() => {
+    const voice = CARTESIA_VOICES.find((v) => v.id === selectedVoice);
+    if (!voice) return;
+    const lang = voice.lang;
+    const oppositeGender = voice.gender === 'Female' ? 'Male' : 'Female';
+    const respondent = CARTESIA_VOICES.find((v) => v.lang === lang && v.gender === oppositeGender);
+    const respondentId = respondent ? respondent.id : selectedVoice;
+
+    // Clear old cache on voice change
+    audioCacheRef.current.clear();
+
+    // Prefetch in batches to avoid rate limiting
+    const convo = getConversation();
+    prefetchBatched(convo, selectedVoice, respondentId, lang);
+  }, [selectedVoice]);
 
   // ── Text-only demo ──
 
@@ -191,28 +275,16 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
       try {
         setIsSpeaking(true);
 
-        const res = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: msg.text,
-            voiceId: voiceId,
-            language: language,
-          }),
-          signal: abortRef.current.signal,
-        });
+        // Fetch current message (may already be cached from prefetch)
+        const blob = await fetchTtsBlob(msg.text, voiceId, language, abortRef.current.signal);
 
-        if (!res.ok) {
-          throw new Error(`API error ${res.status}`);
+        // Prefetch next 2 messages while this one plays
+        for (let ahead = 1; ahead <= 2; ahead++) {
+          if (idx + ahead < conversation.length) {
+            prefetchMessage(conversation[idx + ahead], aiVoiceId, respondentVoiceId, language);
+          }
         }
 
-        const data = await res.json();
-        const binaryStr = atob(data.audio);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) {
-          bytes[i] = binaryStr.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: data.contentType });
         const url = URL.createObjectURL(blob);
 
         // Play audio and wait for it to finish

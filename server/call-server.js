@@ -1,15 +1,14 @@
 // VoxBharat Call Server - Twilio + Cartesia STT/TTS + Claude
 // Handles real phone calls with AI voice surveys
 
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import twilio from 'twilio';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
+import { dirname, join } from 'path';
 import { mulawToPcm16k, pcm16kToMulaw } from './audio-convert.js';
 import { generateSpeech, chunkAudio } from './cartesia-tts.js';
 import { CartesiaSTT } from './cartesia-stt.js';
@@ -18,9 +17,12 @@ import {
   createCall, getCall, getCallByStreamSid, updateCall,
   getActiveCalls, removeCall, saveCallToFile
 } from './call-store.js';
+import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting } from './survey-scripts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '.env') });
 
 // Config
 const PORT = parseInt(process.env.PORT, 10) || 3002;
@@ -55,6 +57,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Per-call state: conversation instances, STT sessions, timers
 const callSessions = new Map();
+
+// Pre-generated greeting audio cache: callId -> { mulawBase64: string, language: string }
+// Generated during call initiation (while phone is ringing) so greeting plays instantly on pickup
+const greetingAudioCache = new Map();
 
 /**
  * Check if STT text is likely echo of recently spoken TTS audio.
@@ -144,6 +150,10 @@ app.post('/call/initiate', async (req, res) => {
       url: `${PUBLIC_URL}/call/twilio-webhook?callId=${call.id}`,
       statusCallback: `${PUBLIC_URL}/call/twilio-status?callId=${call.id}`,
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+      // Answering Machine Detection — waits for beep before signaling
+      machineDetection: 'DetectMessageEnd',
+      asyncAmdStatusCallback: `${PUBLIC_URL}/call/amd-callback?callId=${call.id}`,
+      asyncAmdStatusCallbackMethod: 'POST',
     });
 
     updateCall(call.id, {
@@ -152,6 +162,32 @@ app.post('/call/initiate', async (req, res) => {
     });
 
     console.log(`[Call] Initiated: ${call.id} -> ${phoneNumber} (${language}/${gender})`);
+
+    // Pre-generate greeting TTS while phone is ringing (eliminates lag on pickup)
+    const greetingLang = autoDetectLanguage ? 'en' : language;
+    let greetingText;
+    if (autoDetectLanguage) {
+      greetingText = customSurvey
+        ? `Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${customSurvey.name}. Do you have a few minutes to share your thoughts?`
+        : "Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
+    } else if (customSurvey) {
+      greetingText = generateCustomGreeting(language, gender, customSurvey.name);
+    } else if (SURVEY_SCRIPTS[language]) {
+      greetingText = SURVEY_SCRIPTS[language].greeting;
+    } else {
+      greetingText = generateCustomGreeting(language, gender, 'VoxBharat Survey');
+    }
+
+    // Fire-and-forget: generate TTS in background while phone rings
+    generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85 })
+      .then(mulawBase64 => {
+        greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
+        console.log(`[Call:${call.id}] Greeting audio pre-cached`);
+      })
+      .catch(err => {
+        console.warn(`[Call:${call.id}] Greeting pre-cache failed (will generate on pickup): ${err.message}`);
+      });
+
     res.json({ callId: call.id, twilioSid: twilioCall.sid, status: 'ringing' });
   } catch (error) {
     console.error('[Call] Initiation failed:', error.message);
@@ -190,6 +226,82 @@ app.post('/call/twilio-status', (req, res) => {
   }
 
   res.sendStatus(200);
+});
+
+// Twilio AMD (Answering Machine Detection) callback
+app.post('/call/amd-callback', async (req, res) => {
+  const callId = req.query.callId;
+  const answeredBy = req.body.AnsweredBy; // 'human' | 'machine_end_beep' | 'machine_end_silence' | 'machine_end_other' | 'fax' | 'unknown'
+
+  console.log(`[AMD] Call ${callId}: ${answeredBy}`);
+  res.sendStatus(200); // Respond immediately so Twilio doesn't retry
+
+  if (!callId) return;
+  const call = getCall(callId);
+  if (!call) return;
+
+  updateCall(callId, { answeredBy });
+
+  // Only act on voicemail detection (after the beep)
+  const isVoicemail = answeredBy === 'machine_end_beep' || answeredBy === 'machine_end_silence' || answeredBy === 'machine_end_other';
+  if (!isVoicemail) return;
+
+  console.log(`[AMD:${callId}] Voicemail detected — leaving message...`);
+
+  const session = callSessions.get(callId);
+  if (!session || session.isEnding) return;
+
+  // Flag session as voicemail so normal survey flow stops
+  session.isVoicemail = true;
+  session.isAiSpeaking = false;
+  session.isProcessing = false;
+
+  // Clear any queued audio (stop AI greeting/response)
+  if (session.ws.readyState === 1) {
+    session.ws.send(JSON.stringify({
+      event: 'clear',
+      streamSid: session.streamSid,
+    }));
+  }
+
+  // Generate and stream voicemail message
+  const language = session.currentLanguage || call.language;
+  const surveyName = call.customSurvey?.name || null;
+  const voicemailText = getVoicemailMessage(language, call.gender, surveyName);
+
+  console.log(`[AMD:${callId}] Voicemail (${language}): "${voicemailText.substring(0, 60)}..."`);
+
+  try {
+    await speakSentence(session, voicemailText, language);
+
+    // Mark when voicemail audio finishes playing — triggers hangup in WS handler
+    if (session.ws.readyState === 1) {
+      session.ws.send(JSON.stringify({
+        event: 'mark',
+        streamSid: session.streamSid,
+        mark: { name: 'voicemail-done' },
+      }));
+    }
+
+    updateCall(callId, { voicemailLeft: true, status: 'voicemail' });
+
+    // Fallback hangup if mark event never arrives (e.g. WebSocket drops)
+    setTimeout(async () => {
+      if (!session.isEnding) {
+        console.log(`[AMD:${callId}] Fallback hangup (mark event not received)`);
+        try {
+          if (call.twilioCallSid) {
+            await twilioClient.calls(call.twilioCallSid).update({ status: 'completed' });
+          }
+        } catch (e) { /* ignore */ }
+        handleCallEnd(callId, 'voicemail');
+      }
+    }, 15000);
+  } catch (error) {
+    console.error(`[AMD:${callId}] Voicemail TTS error:`, error.message);
+    updateCall(callId, { status: 'voicemail-failed' });
+    handleCallEnd(callId, 'voicemail-failed');
+  }
 });
 
 // List active calls
@@ -276,7 +388,7 @@ wss.on('connection', (ws) => {
           break;
 
         case 'media':
-          if (!session || session.isEnding) break;
+          if (!session || session.isEnding || session.isVoicemail) break;
           mediaPackets++;
           if (mediaPackets % 500 === 1) {
             console.log(`[WS] Media packets: ${mediaPackets}, isAiSpeaking: ${session.isAiSpeaking}, STT connected: ${session.stt.isConnected}`);
@@ -297,6 +409,22 @@ wss.on('connection', (ws) => {
           if (session && msg.mark?.name === 'tts-done') {
             session.isAiSpeaking = false;
             console.log('[WS] AI done speaking, now listening for user');
+          }
+          // Voicemail audio finished playing — hang up
+          if (session && msg.mark?.name === 'voicemail-done') {
+            console.log(`[WS] Voicemail played, hanging up in 2s...`);
+            setTimeout(async () => {
+              if (session.isEnding) return;
+              try {
+                const vmCall = getCall(callId);
+                if (vmCall?.twilioCallSid) {
+                  await twilioClient.calls(vmCall.twilioCallSid).update({ status: 'completed' });
+                }
+              } catch (e) {
+                console.error(`[WS] Voicemail hangup error:`, e.message);
+              }
+              handleCallEnd(callId, 'voicemail');
+            }, 2000);
           }
           break;
 
@@ -346,6 +474,7 @@ async function initSession(callId, call, ws, streamSid) {
     isAiSpeaking: false,
     isProcessing: false,
     isEnding: false,
+    isVoicemail: false,
     greetingDone: false,
     accumulatedText: [],
     recentTtsTexts: [],
@@ -357,7 +486,7 @@ async function initSession(callId, call, ws, streamSid) {
   const stt = new CartesiaSTT(CARTESIA_KEY, {
     language: call.autoDetectLanguage ? 'auto' : call.language,
     onTranscript: ({ text, isFinal, language: detectedLang }) => {
-      if (sessionObj.isEnding) return;
+      if (sessionObj.isEnding || sessionObj.isVoicemail) return;
 
       // Track STT-detected language for auto-detect mode
       if (detectedLang && sessionObj.call.autoDetectLanguage) {
@@ -459,21 +588,32 @@ async function initSession(callId, call, ws, streamSid) {
         // If Claude is busy, just accumulate (it will be processed when Claude finishes)
         if (sessionObj.isProcessing) return;
 
-        // Wait 1.2s of silence after last final transcript, then send everything to Claude
+        // Wait for brief silence after last transcript, then send to Claude
+        // Adaptive: short utterances (yes/no/haan) get processed faster
+        const currentText = sessionObj.accumulatedText.join(' ');
+        const silenceMs = currentText.length < 15 ? 350 : 600;
         sessionObj.silenceTimer = setTimeout(() => {
           if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
             const fullText = sessionObj.accumulatedText.join(' ');
             sessionObj.accumulatedText = [];
             processUserSpeech(callId, fullText);
           }
-        }, 1200);
+        }, silenceMs);
       }
     },
     onError: (msg) => console.error(`[STT:${callId}]`, msg),
   });
 
-  await stt.connect();
-  sessionObj.stt = stt;
+  // Start STT connection in background — not needed until greeting finishes
+  // (media events during greeting are already skipped)
+  const sttConnectPromise = stt.connect().then(() => {
+    sessionObj.stt = stt;
+    console.log(`[STT:${callId}] Connected`);
+  }).catch(err => {
+    console.error(`[STT:${callId}] Connection failed:`, err.message);
+  });
+  sessionObj.stt = stt; // Assign immediately so media handler can check .isConnected
+  sessionObj.sttConnectPromise = sttConnectPromise;
 
   // 10 minute timeout
   sessionObj.timeout = setTimeout(() => {
@@ -485,9 +625,54 @@ async function initSession(callId, call, ws, streamSid) {
 }
 
 async function sendGreeting(session) {
+  const callId = session.call.id;
   const greeting = session.conversation.getGreeting();
   console.log(`[Call] Greeting: "${greeting.substring(0, 50)}..."`);
-  await speakAndStream(session, greeting);
+
+  // Check for pre-cached greeting audio (generated while phone was ringing)
+  const cached = greetingAudioCache.get(callId);
+  if (cached) {
+    greetingAudioCache.delete(callId);
+    console.log(`[Call:${callId}] Using pre-cached greeting audio (zero TTS latency)`);
+
+    session.isAiSpeaking = true;
+
+    // Track for echo detection
+    session.recentTtsTexts.push(greeting);
+    if (session.recentTtsTexts.length > 5) session.recentTtsTexts.shift();
+
+    const chunks = chunkAudio(cached.mulawBase64);
+    for (let i = 0; i < chunks.length; i++) {
+      if (session.ws.readyState !== 1 || session.isEnding) break;
+      session.ws.send(JSON.stringify({
+        event: 'media',
+        streamSid: session.streamSid,
+        media: { payload: chunks[i] },
+      }));
+      if ((i + 1) % 40 === 0) {
+        await new Promise(r => setImmediate(r));
+      }
+    }
+
+    // Send mark to know when playback is done
+    if (session.ws.readyState === 1) {
+      session.ws.send(JSON.stringify({
+        event: 'mark',
+        streamSid: session.streamSid,
+        mark: { name: 'tts-done' },
+      }));
+    }
+  } else {
+    // Fallback: generate TTS now (cache miss — e.g. pre-generation failed)
+    console.log(`[Call:${callId}] No cached greeting, generating TTS now`);
+    await speakAndStream(session, greeting);
+  }
+
+  // Ensure STT is connected before we start listening (it was connecting in background)
+  if (session.sttConnectPromise) {
+    await session.sttConnectPromise;
+    session.sttConnectPromise = null;
+  }
 
   // Discard any STT that arrived during the greeting — it's not an answer to any question
   if (session.accumulatedText.length > 0) {
@@ -526,10 +711,20 @@ async function processUserSpeech(callId, text) {
 
   updateCall(callId, { status: 'surveying' });
 
-  // Build text with language hint for Claude
-  const textForClaude = langHint
-    ? `[spoken_language:${langHint}] ${text}`
-    : text;
+  // Build text with context for Claude
+  let textForClaude = text;
+
+  // Add interruption context so Claude knows what it was saying when the user spoke
+  if (session.interruptionContext) {
+    textForClaude = `[USER_INTERRUPTED: You were saying "${session.interruptionContext}" when the respondent interrupted with:] ${textForClaude}`;
+    console.log(`[Call:${callId}] Sending interruption context to Claude`);
+    session.interruptionContext = null;
+  }
+
+  // Add language hint for auto-detect mode
+  if (langHint) {
+    textForClaude = `[spoken_language:${langHint}] ${textForClaude}`;
+  }
 
   // --- Streaming pipeline: Claude → sentence TTS → Twilio ---
   const stream = session.conversation.startResponseStream(textForClaude);
@@ -545,6 +740,18 @@ async function processUserSpeech(callId, text) {
   let pendingText = '';
   let ttsLanguage = session.currentLanguage || session.call.language;
   let langTagParsed = false;
+  const spokenSentences = [];
+
+  // Pipeline: queue TTS calls so Claude keeps streaming while TTS generates/plays.
+  // Each call runs in sequence (audio order preserved) but Claude isn't blocked.
+  let ttsQueue = Promise.resolve();
+  const enqueueTTS = (text, lang) => {
+    spokenSentences.push(text);
+    ttsQueue = ttsQueue.then(() => {
+      if (session.isEnding || session.interrupted) return;
+      return speakSentence(session, text, lang);
+    });
+  };
 
   try {
     for await (const delta of textIteratorFromStream(stream)) {
@@ -571,15 +778,17 @@ async function processUserSpeech(callId, text) {
         }
       }
 
-      // Send TTS at sentence boundaries for lower perceived latency
+      // Split text at natural break points — aggressive splitting for lower latency
       if (langTagParsed && pendingText.trim().length > 5) {
+        const trimLen = pendingText.trim().length;
         const sentenceEnd = /[.!?।]\s*$/.test(pendingText);
-        const clauseBreak = pendingText.trim().length > 80 && /[,;:]\s*$/.test(pendingText);
+        const clauseBreak = trimLen > 30 && /[,;:—]\s*$/.test(pendingText);
+        const longChunk = trimLen > 60; // Force-break long text without punctuation
 
-        if (sentenceEnd || clauseBreak) {
+        if (sentenceEnd || clauseBreak || longChunk) {
           const sentence = pendingText.trim();
           pendingText = '';
-          await speakSentence(session, sentence, ttsLanguage);
+          enqueueTTS(sentence, ttsLanguage);
         }
       }
     }
@@ -598,8 +807,17 @@ async function processUserSpeech(callId, text) {
     }
   }
   remaining = remaining.replace(/\[SURVEY_COMPLETE\]/g, '').trim();
-  if (remaining && !session.isEnding) {
-    await speakSentence(session, remaining, ttsLanguage);
+  if (remaining && !session.isEnding && !session.interrupted) {
+    enqueueTTS(remaining, ttsLanguage);
+  }
+
+  // Wait for all queued TTS to finish playing
+  await ttsQueue;
+
+  // If user interrupted, store what was spoken so Claude gets context
+  if (session.interrupted && spokenSentences.length > 0) {
+    session.interruptionContext = spokenSentences.join(' ');
+    console.log(`[Call:${callId}] Interrupted after speaking: "${session.interruptionContext.substring(0, 80)}..."`);
   }
 
   // Send final mark to know when all audio finishes playing
@@ -619,10 +837,10 @@ async function processUserSpeech(callId, text) {
     call.transcript.push({ role: 'assistant', content: cleanResponse });
   }
 
-  // Discard any speech accumulated while AI was speaking (unless barge-in)
+  // Keep any speech accumulated while AI was speaking — the user may have been
+  // eagerly answering before the AI finished. Don't discard real responses.
   if (session.accumulatedText.length > 0 && !session.interrupted) {
-    console.log(`[Call:${callId}] Discarding ${session.accumulatedText.length} pre-question segments`);
-    session.accumulatedText = [];
+    console.log(`[Call:${callId}] User spoke during AI (${session.accumulatedText.length} segments) — keeping for processing`);
   }
   if (session.silenceTimer) {
     clearTimeout(session.silenceTimer);
@@ -733,6 +951,17 @@ async function handleCallEnd(callId, reason) {
   const call = getCall(callId);
   if (!call) return;
 
+  // Voicemail calls — no survey data to extract
+  if (reason === 'voicemail' || reason === 'voicemail-failed') {
+    updateCall(callId, {
+      status: reason,
+      endedAt: new Date().toISOString(),
+    });
+    console.log(`[Call:${callId}] Voicemail call ended (left message: ${call.voicemailLeft})`);
+    cleanupSession(callId);
+    return;
+  }
+
   updateCall(callId, {
     status: reason === 'completed' ? 'extracting' : reason,
     endedAt: new Date().toISOString(),
@@ -771,6 +1000,7 @@ function cleanupSession(callId) {
   session.isEnding = true;
 
   callSessions.delete(callId);
+  greetingAudioCache.delete(callId); // Clean up any unused pre-cached greeting
 }
 
 // ============================================

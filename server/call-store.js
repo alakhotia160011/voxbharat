@@ -24,6 +24,8 @@ export function createCall(options = {}) {
     customSurvey: options.customSurvey || null,
     autoDetectLanguage: options.autoDetectLanguage || false,
     detectedLanguage: null,
+    answeredBy: null,       // 'human' | 'machine_end_beep' | etc. (from Twilio AMD)
+    voicemailLeft: false,   // true if voicemail message was played
     status: 'initiating',
     twilioCallSid: null,
     streamSid: null,
@@ -82,7 +84,7 @@ export function updateCall(id, updates) {
  */
 export function getActiveCalls() {
   return Array.from(activeCalls.values()).filter(
-    c => !['saved', 'failed'].includes(c.status)
+    c => !['saved', 'failed', 'voicemail', 'voicemail-failed'].includes(c.status)
   );
 }
 
