@@ -82,6 +82,42 @@ function isLikelyEcho(sttText, recentTtsTexts) {
 }
 
 /**
+ * Check if short speech is a back-channel (active listening signal, not an interruption).
+ * Indian conversational style uses frequent "haan haan" / "accha" while listening.
+ * These should NOT stop the AI from speaking.
+ */
+const BACKCHANNEL_TOKENS = new Set([
+  // English
+  'uh huh', 'uh-huh', 'mm hmm', 'mmhmm', 'mm', 'hmm', 'hm',
+  'yeah', 'yep', 'yup', 'ok', 'okay', 'right', 'sure', 'got it', 'i see',
+  // Hindi / Urdu
+  'haan', 'ha', 'haan haan', 'han', 'accha', 'achha', 'acha',
+  'theek hai', 'thik hai', 'theek', 'thik', 'ji', 'ji haan', 'ji ha',
+  'sahi', 'sahi hai', 'aur', 'phir', 'haan ji',
+  // Bengali
+  'hyan', 'thik ache', 'thik', 'besh', 'accha',
+  // Gujarati
+  'ha', 'bhai', 'barabar',
+  // Tamil
+  'aamaa', 'seri', 'sari',
+  // Telugu
+  'avunu', 'sare',
+  // Marathi
+  'ho', 'bara', 'barobar',
+  // Punjabi
+  'haanji', 'theek aa',
+]);
+
+function isBackchannel(normalizedText) {
+  // Direct match
+  if (BACKCHANNEL_TOKENS.has(normalizedText)) return true;
+  // Check if text is just repeated tokens ("haan haan haan")
+  const words = normalizedText.split(/\s+/);
+  if (words.length <= 3 && words.every(w => BACKCHANNEL_TOKENS.has(w))) return true;
+  return false;
+}
+
+/**
  * Convert Anthropic SDK event-based stream to async iterator of text deltas.
  * SDK v0.73.0 doesn't have .textStream — uses .on('text') events instead.
  */
@@ -476,6 +512,7 @@ async function initSession(callId, call, ws, streamSid) {
     isEnding: false,
     isVoicemail: false,
     greetingDone: false,
+    firstResponseDone: false,  // Track if first Claude response has been sent
     accumulatedText: [],
     recentTtsTexts: [],
     call,
@@ -541,6 +578,18 @@ async function initSession(callId, call, ws, streamSid) {
         // Echo detection: check if STT text matches recently spoken TTS audio
         if (isLikelyEcho(bargeText, sessionObj.recentTtsTexts)) return;
 
+        // BACK-CHANNEL FILTER: Don't treat listening signals as interruptions.
+        // Indian conversational style includes frequent "haan haan" / "accha" while
+        // the other person is speaking. These should NOT stop the AI.
+        const normalized = bargeText.toLowerCase().replace(/[^\w\s]/g, '');
+        const wordCount = normalized.split(/\s+/).filter(w => w.length > 0).length;
+        if (wordCount <= 2 && isBackchannel(normalized)) {
+          if (isFinal) {
+            console.log(`[Barge-in:${callId}] Back-channel filtered (AI continues): "${bargeText}"`);
+          }
+          return; // Let AI keep speaking — this is just active listening
+        }
+
         // Real user speech during AI playback — trigger barge-in
         console.log(`[Barge-in:${callId}] User interrupted (${isFinal ? 'final' : 'partial'}): "${bargeText}"`);
 
@@ -589,9 +638,19 @@ async function initSession(callId, call, ws, streamSid) {
         if (sessionObj.isProcessing) return;
 
         // Wait for brief silence after last transcript, then send to Claude
-        // Adaptive: short utterances (yes/no/haan) get processed faster
+        // Adaptive silence timer:
+        //  - First response (user saying "yes"/"ok" to participate): 200ms — we know they're just consenting
+        //  - Short utterances (<15 chars, like "haan", "twenty five"): 350ms
+        //  - Normal responses: 600ms
         const currentText = sessionObj.accumulatedText.join(' ');
-        const silenceMs = currentText.length < 15 ? 350 : 600;
+        let silenceMs;
+        if (!sessionObj.firstResponseDone) {
+          silenceMs = 200; // User is just confirming participation — process fast
+        } else if (currentText.length < 15) {
+          silenceMs = 350;
+        } else {
+          silenceMs = 600;
+        }
         sessionObj.silenceTimer = setTimeout(() => {
           if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
             const fullText = sessionObj.accumulatedText.join(' ');
@@ -849,6 +908,7 @@ async function processUserSpeech(callId, text) {
 
   // Unlock processing
   session.isProcessing = false;
+  session.firstResponseDone = true;
 
   // Check if survey is complete
   if (session.conversation.isComplete) {
