@@ -118,6 +118,34 @@ function isBackchannel(normalizedText) {
 }
 
 /**
+ * Detect if the user is asking for a question to be repeated.
+ * Returns true for phrases like "what?", "repeat that", "phir se bolo", "I didn't hear", etc.
+ */
+const REPEAT_PATTERNS = [
+  // English
+  /^what\??$/, /^huh\??$/, /^sorry\??$/, /^excuse me\??$/, /^pardon\??$/,
+  /repeat/, /say that again/, /say again/, /one more time/, /come again/,
+  /didn.?t (hear|catch|understand|get)/, /can.?t hear/, /what did you (say|ask)/,
+  /what was that/, /what.?s that/,
+  // Hindi / Urdu
+  /kya\??$/, /kya bola/, /kya kaha/, /phir se/, /dobara/, /fir se/,
+  /samajh nahi/, /sunai nahi/, /suna nahi/, /nahi suna/, /nahi samjha/,
+  /ek baar aur/, /ek bar aur/, /wapas bolo/, /dubara bolo/,
+  // Bengali
+  /ki bolle/, /abar bolo/, /bujhini/, /shunini/,
+  // Tamil
+  /enna/, /puriyala/, /marubadiyum/,
+  // Telugu
+  /enti/, /artham kaale/, /malli cheppu/,
+  // Marathi
+  /kay mhanale/, /punha sanga/, /kalale nahi/,
+];
+
+function isRepeatRequest(normalizedText) {
+  return REPEAT_PATTERNS.some(p => p.test(normalizedText));
+}
+
+/**
  * Convert Anthropic SDK event-based stream to async iterator of text deltas.
  * SDK v0.73.0 doesn't have .textStream — uses .on('text') events instead.
  */
@@ -772,6 +800,13 @@ async function processUserSpeech(callId, text) {
 
   // Build text with context for Claude
   let textForClaude = text;
+
+  // Detect repeat/clarification requests and tag them explicitly
+  const normalizedForRepeat = text.toLowerCase().replace(/[^\w\s]/g, '');
+  if (isRepeatRequest(normalizedForRepeat)) {
+    textForClaude = `[REPEAT_REQUEST] ${textForClaude}`;
+    console.log(`[Call:${callId}] Repeat request detected: "${text}"`);
+  }
 
   // Add interruption context so Claude knows what it was saying when the user spoke
   if (session.interruptionContext) {
