@@ -286,7 +286,7 @@ HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - CRITICAL: An interruption does NOT mean the respondent refused to answer or wants to skip a question. NEVER mark a question as unanswered or skip it just because the respondent interrupted.
 - CLASSIFY the interruption into one of these categories:
   1. EARLY ANSWER: They answered the question before you finished asking it (clear, complete answer) → Accept and move to next question.
-  2. CLARIFICATION: They said "what?", "sorry?", "repeat that", "I didn't catch that" → Re-ask the same question.
+  2. CLARIFICATION / REPEAT REQUEST: They said "what?", "sorry?", "repeat that", "phir se bolo", "I didn't catch that", "kya kaha?", or anything that sounds like they want the question repeated → You MUST re-ask the SAME question. Do NOT move to the next question. Rephrase it slightly so it sounds natural (don't read the exact same words).
   3. BACK-CHANNEL: They said "uh huh", "haan", "yes", "ok" while you were still talking → This is just them showing they're listening. It is NOT an answer to your question. Continue naturally and re-ask the question you were asking.
   4. HOLD/PAUSE: They said "hold on", "wait", "one moment", "ek minute" → Pause and wait for them to speak. Do NOT ask a new question.
   5. TANGENT: They started talking about something unrelated or asked YOU a question → Address what they said briefly, then come back to the question you were asking.
@@ -295,13 +295,20 @@ HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - QUESTION TRACKING: Mentally track which question you were asking when interrupted. After handling the interruption, you MUST return to that exact question if it wasn't clearly answered.
 - The [USER_INTERRUPTED] tag is metadata — NEVER read it aloud or reference it.
 
+REPEAT REQUESTS — [REPEAT_REQUEST] TAG:
+- Sometimes the respondent's message will be prefixed with [REPEAT_REQUEST]. This means the system detected they are asking you to repeat or clarify your last question.
+- When you see [REPEAT_REQUEST], you MUST re-ask the LAST question you asked. Do NOT move forward. Do NOT ask a new question.
+- Rephrase it slightly so it sounds natural (e.g., "So what I was asking is..." or "Basically, I wanted to know..."), but it must be the SAME question.
+- The [REPEAT_REQUEST] tag is metadata — NEVER read it aloud.
+- Even without the [REPEAT_REQUEST] tag, if the respondent says anything that sounds like "repeat that", "what?", "phir se bolo", "kya bola", you should still re-ask your last question.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
 - Interpret the transcription generously — the text may be a rough phonetic approximation
 - If a response seems like agreement or acknowledgment, accept it and move on
 - If text seems garbled or nonsensical, DO NOT skip ahead. Simply acknowledge briefly and ask the NEXT question in sequence. Do not assume the garbled text answered multiple questions.
 - NEVER say you didn't understand. Just move naturally to the next single question.
-- NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted, re-ask it — do NOT assume it was answered or refused.
+- NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted or the respondent asked you to repeat it, re-ask that SAME question — do NOT assume it was answered or refused and do NOT move to the next question.
 
 SURVEY QUESTIONS (ask in this order):
 ${questionsBlock}
@@ -484,7 +491,7 @@ HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - CRITICAL: An interruption does NOT mean the respondent refused to answer or wants to skip a question. NEVER mark a question as unanswered or skip it just because the respondent interrupted.
 - CLASSIFY the interruption into one of these categories:
   1. EARLY ANSWER: They answered the question before you finished asking it (clear, complete answer) → Accept and move to next question.
-  2. CLARIFICATION: They said "what?", "sorry?", "repeat that", "I didn't catch that" → Re-ask the same question.
+  2. CLARIFICATION / REPEAT REQUEST: They said "what?", "sorry?", "repeat that", "phir se bolo", "I didn't catch that", "kya kaha?", or anything that sounds like they want the question repeated → You MUST re-ask the SAME question. Do NOT move to the next question. Rephrase it slightly so it sounds natural (don't read the exact same words).
   3. BACK-CHANNEL: They said "uh huh", "haan", "yes", "ok" while you were still talking → This is just them showing they're listening. It is NOT an answer to your question. Continue naturally and re-ask the question you were asking.
   4. HOLD/PAUSE: They said "hold on", "wait", "one moment", "ek minute" → Pause and wait for them to speak. Do NOT ask a new question.
   5. TANGENT: They started talking about something unrelated or asked YOU a question → Address what they said briefly, then come back to the question you were asking.
@@ -493,13 +500,20 @@ HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - QUESTION TRACKING: Mentally track which question you were asking when interrupted. After handling the interruption, you MUST return to that exact question if it wasn't clearly answered.
 - The [USER_INTERRUPTED] tag is metadata — NEVER read it aloud or reference it.
 
+REPEAT REQUESTS — [REPEAT_REQUEST] TAG:
+- Sometimes the respondent's message will be prefixed with [REPEAT_REQUEST]. This means the system detected they are asking you to repeat or clarify your last question.
+- When you see [REPEAT_REQUEST], you MUST re-ask the LAST question you asked. Do NOT move forward. Do NOT ask a new question.
+- Rephrase it slightly so it sounds natural (e.g., "So what I was asking is..." or "Basically, I wanted to know..."), but it must be the SAME question.
+- The [REPEAT_REQUEST] tag is metadata — NEVER read it aloud.
+- Even without the [REPEAT_REQUEST] tag, if the respondent says anything that sounds like "repeat that", "what?", "phir se bolo", "kya bola", you should still re-ask your last question.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
 - Interpret the transcription generously
 - If a response seems like agreement or acknowledgment, accept it and move on
 - If text seems garbled or nonsensical, DO NOT skip ahead. Simply acknowledge briefly and ask the NEXT question in sequence. Do not assume the garbled text answered multiple questions.
 - NEVER say you didn't understand. Just move naturally to the next single question.
-- NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted, re-ask it — do NOT assume it was answered or refused.
+- NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted or the respondent asked you to repeat it, re-ask that SAME question — do NOT assume it was answered or refused and do NOT move to the next question.
 
 SURVEY QUESTIONS (ask in this order):
 ${questionsBlock}
@@ -639,7 +653,7 @@ HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - CRITICAL: An interruption does NOT mean the respondent refused to answer or wants to skip a question. NEVER mark a question as unanswered or skip it just because the respondent interrupted.
 - CLASSIFY the interruption into one of these categories:
   1. EARLY ANSWER: They answered the question before you finished asking it (clear, complete answer) → Accept and move to next question.
-  2. CLARIFICATION: They said "what?", "sorry?", "repeat that", "I didn't catch that" → Re-ask the same question.
+  2. CLARIFICATION / REPEAT REQUEST: They said "what?", "sorry?", "repeat that", "phir se bolo", "I didn't catch that", "kya kaha?", or anything that sounds like they want the question repeated → You MUST re-ask the SAME question. Do NOT move to the next question. Rephrase it slightly so it sounds natural (don't read the exact same words).
   3. BACK-CHANNEL: They said "uh huh", "haan", "yes", "ok" while you were still talking → This is just them showing they're listening. It is NOT an answer to your question. Continue naturally and re-ask the question you were asking.
   4. HOLD/PAUSE: They said "hold on", "wait", "one moment", "ek minute" → Pause and wait for them to speak. Do NOT ask a new question.
   5. TANGENT: They started talking about something unrelated or asked YOU a question → Address what they said briefly, then come back to the question you were asking.
@@ -648,13 +662,20 @@ HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - QUESTION TRACKING: Mentally track which question you were asking when interrupted. After handling the interruption, you MUST return to that exact question if it wasn't clearly answered.
 - The [USER_INTERRUPTED] tag is metadata — NEVER read it aloud or reference it.
 
+REPEAT REQUESTS — [REPEAT_REQUEST] TAG:
+- Sometimes the respondent's message will be prefixed with [REPEAT_REQUEST]. This means the system detected they are asking you to repeat or clarify your last question.
+- When you see [REPEAT_REQUEST], you MUST re-ask the LAST question you asked. Do NOT move forward. Do NOT ask a new question.
+- Rephrase it slightly so it sounds natural (e.g., "So what I was asking is..." or "Basically, I wanted to know..."), but it must be the SAME question.
+- The [REPEAT_REQUEST] tag is metadata — NEVER read it aloud.
+- Even without the [REPEAT_REQUEST] tag, if the respondent says anything that sounds like "repeat that", "what?", "phir se bolo", "kya bola", you should still re-ask your last question.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which may produce garbled text. You MUST:
 - Interpret the transcription generously
 - If a response seems like agreement or acknowledgment, accept it and move on
 - If text seems garbled, DO NOT skip ahead. Simply acknowledge briefly and ask the NEXT question in sequence. Do not assume the garbled text answered multiple questions.
 - NEVER say you didn't understand. Just move naturally to the next single question.
-- NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted, re-ask it — do NOT assume it was answered or refused.
+- NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted or the respondent asked you to repeat it, re-ask that SAME question — do NOT assume it was answered or refused and do NOT move to the next question.
 - CRITICAL: When the [spoken_language:xx] tag shows a non-English language but the text looks like garbled English, this means the respondent IS speaking in that language but the text transcription is poor. You MUST switch to the indicated language immediately and continue the survey in that language.
 
 SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
@@ -787,7 +808,7 @@ HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - CRITICAL: An interruption does NOT mean the respondent refused to answer or wants to skip a question. NEVER mark a question as unanswered or skip it just because the respondent interrupted.
 - CLASSIFY the interruption into one of these categories:
   1. EARLY ANSWER: They answered the question before you finished asking it (clear, complete answer) → Accept and move to next question.
-  2. CLARIFICATION: They said "what?", "sorry?", "repeat that", "I didn't catch that" → Re-ask the same question.
+  2. CLARIFICATION / REPEAT REQUEST: They said "what?", "sorry?", "repeat that", "phir se bolo", "I didn't catch that", "kya kaha?", or anything that sounds like they want the question repeated → You MUST re-ask the SAME question. Do NOT move to the next question. Rephrase it slightly so it sounds natural (don't read the exact same words).
   3. BACK-CHANNEL: They said "uh huh", "haan", "yes", "ok" while you were still talking → This is just them showing they're listening. It is NOT an answer to your question. Continue naturally and re-ask the question you were asking.
   4. HOLD/PAUSE: They said "hold on", "wait", "one moment", "ek minute" → Pause and wait for them to speak. Do NOT ask a new question.
   5. TANGENT: They started talking about something unrelated or asked YOU a question → Address what they said briefly, then come back to the question you were asking.
@@ -796,13 +817,20 @@ HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - QUESTION TRACKING: Mentally track which question you were asking when interrupted. After handling the interruption, you MUST return to that exact question if it wasn't clearly answered.
 - The [USER_INTERRUPTED] tag is metadata — NEVER read it aloud or reference it.
 
+REPEAT REQUESTS — [REPEAT_REQUEST] TAG:
+- Sometimes the respondent's message will be prefixed with [REPEAT_REQUEST]. This means the system detected they are asking you to repeat or clarify your last question.
+- When you see [REPEAT_REQUEST], you MUST re-ask the LAST question you asked. Do NOT move forward. Do NOT ask a new question.
+- Rephrase it slightly so it sounds natural (e.g., "So what I was asking is..." or "Basically, I wanted to know..."), but it must be the SAME question.
+- The [REPEAT_REQUEST] tag is metadata — NEVER read it aloud.
+- Even without the [REPEAT_REQUEST] tag, if the respondent says anything that sounds like "repeat that", "what?", "phir se bolo", "kya bola", you should still re-ask your last question.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which may produce garbled text. You MUST:
 - Interpret the transcription generously
 - If a response seems like agreement or acknowledgment, accept it and move on
 - If text seems garbled, DO NOT skip ahead. Simply acknowledge briefly and ask the NEXT question in sequence. Do not assume the garbled text answered multiple questions.
 - NEVER say you didn't understand. Just move naturally to the next single question.
-- NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted, re-ask it — do NOT assume it was answered or refused.
+- NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted or the respondent asked you to repeat it, re-ask that SAME question — do NOT assume it was answered or refused and do NOT move to the next question.
 - CRITICAL: When the [spoken_language:xx] tag shows a non-English language but the text looks like garbled English, this means the respondent IS speaking in that language but the text transcription is poor. You MUST switch to the indicated language immediately and continue the survey in that language.
 
 SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
