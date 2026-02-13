@@ -35,8 +35,8 @@ export class ClaudeConversation {
     let greeting;
     if (this.autoDetectLanguage) {
       greeting = this.customSurvey
-        ? `Hello! I'm calling from VoxBharat to conduct a survey about ${this.customSurvey.name}. Do you have a few minutes to share your thoughts?`
-        : "Hello! I'm calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
+        ? `Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${this.customSurvey.name}. Do you have a few minutes to share your thoughts?`
+        : "Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
     } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name);
     } else if (SURVEY_SCRIPTS[this.language]) {
@@ -63,7 +63,7 @@ export class ClaudeConversation {
     try {
       const response = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 300,
+        max_tokens: 500,
         system: this.systemPrompt,
         messages: this.messages,
       });
@@ -87,7 +87,7 @@ export class ClaudeConversation {
       try {
         const response = await this.client.messages.create({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 300,
+          max_tokens: 500,
           system: this.systemPrompt,
           messages: this.messages,
         });
@@ -119,7 +119,7 @@ export class ClaudeConversation {
 
     return this.client.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+      max_tokens: 500,
       system: this.systemPrompt,
       messages: this.messages,
     });

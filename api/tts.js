@@ -2,18 +2,14 @@
 // This keeps the API key secure on the server
 
 export default async function handler(req, res) {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // CORS headers
+  // CORS headers (must be set before any method checks so preflight works)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY;
@@ -37,13 +33,14 @@ export default async function handler(req, res) {
         'Cartesia-Version': '2025-11-04',
       },
       body: JSON.stringify({
-        model_id: 'sonic-3-2026-01-12',
+        model_id: 'sonic-3',
         transcript: text,
         voice: { mode: 'id', id: voiceId },
         language: language || 'hi',
         output_format: { container: 'mp3', bit_rate: 128000, sample_rate: 44100 },
         generation_config: { speed: 0.85 },
       }),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!response.ok) {

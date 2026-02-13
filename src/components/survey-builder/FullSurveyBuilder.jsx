@@ -20,7 +20,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
   const [customTestText, setCustomTestText] = useState('');
   const [showTestCall, setShowTestCall] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
-  const [testCallStatus, setTestCallStatus] = useState(null); // null | 'calling' | 'ringing' | 'connected' | 'completed' | 'error'
+  const [testCallStatus, setTestCallStatus] = useState(null); // null | 'calling' | 'ringing' | 'connected' | 'completed' | 'voicemail' | 'error'
   const [testCallError, setTestCallError] = useState(null);
   const [testCallResult, setTestCallResult] = useState(null);
   const testCallPollRef = useRef(null);
@@ -35,7 +35,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
   // Auto-expand test call section when results arrive
   useEffect(() => {
-    if (testCallStatus === 'completed' || testCallStatus === 'connected' || testCallStatus === 'ringing') {
+    if (testCallStatus === 'completed' || testCallStatus === 'connected' || testCallStatus === 'ringing' || testCallStatus === 'voicemail') {
       setShowTestCall(true);
     }
   }, [testCallStatus]);
@@ -181,6 +181,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config }),
+        signal: AbortSignal.timeout(90000),
       });
 
       if (!response.ok) {
@@ -203,7 +204,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
       setStep(5);
     } catch (error) {
       console.error('Question generation error:', error);
-      alert('Failed to generate questions: ' + error.message);
+      const msg = error.name === 'TimeoutError'
+        ? 'Request timed out. Please try again — the AI server may be under heavy load.'
+        : 'Failed to generate questions: ' + error.message;
+      alert(msg);
     } finally {
       setIsGenerating(false);
     }
@@ -287,6 +291,11 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
             setTestCallStatus('connected');
           } else if (['completed', 'saved'].includes(callData.status)) {
             setTestCallStatus('completed');
+            setTestCallResult(callData);
+            clearInterval(testCallPollRef.current);
+            testCallPollRef.current = null;
+          } else if (['voicemail', 'voicemail-failed'].includes(callData.status)) {
+            setTestCallStatus('voicemail');
             setTestCallResult(callData);
             clearInterval(testCallPollRef.current);
             testCallPollRef.current = null;
@@ -1011,112 +1020,6 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                 ))}
               </div>
 
-              <div className="flex gap-4">
-                <button onClick={() => setStep(4)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
-                  ← Back
-                </button>
-                <button onClick={() => setStep(6)} className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep">
-                  Review & Launch →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 6: Review */}
-          {step === 6 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div>
-                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Review & Launch</h2>
-                <p className="text-gray-600">Double-check everything before going live.</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-saffron">{questions.length}</div>
-                  <div className="text-sm text-gray-500">Questions</div>
-                </div>
-                <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-saffron-deep">~{estimatedDuration} min</div>
-                  <div className="text-sm text-gray-500">Duration</div>
-                </div>
-                <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-earth">{config.sampleSize.toLocaleString()}</div>
-                  <div className="text-sm text-gray-500">Responses</div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-earth mb-4">Configuration Summary</h3>
-                <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
-                  <div><span className="text-gray-500">Name:</span> <span className="font-medium">{config.name}</span></div>
-                  <div><span className="text-gray-500">Type:</span> <span className="font-medium">{SURVEY_TYPES.find(t => t.id === config.type)?.name}</span></div>
-                  <div><span className="text-gray-500">Languages:</span> <span className="font-medium">{config.languages.map(l => LANGUAGES.find(lg => lg.code === l)?.english).join(', ')}</span></div>
-                  <div><span className="text-gray-500">Geography:</span> <span className="font-medium">{GEOGRAPHIES.find(g => g.id === config.geography)?.name}</span></div>
-                  <div><span className="text-gray-500">Urgency:</span> <span className="font-medium capitalize">{config.urgency}</span></div>
-                  <div><span className="text-gray-500">Call Times:</span> <span className="font-medium capitalize">{config.callTiming.join(', ')}</span></div>
-                  <div><span className="text-gray-500">Retries:</span> <span className="font-medium">{config.retryPolicy}x</span></div>
-                  <div><span className="text-gray-500">Margin of Error:</span> <span className="font-medium">±{marginOfError}%</span></div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-earth mb-3">Questions ({questions.length})</h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {questions.map((q, i) => (
-                    <div key={q.id} className="flex items-start gap-2 p-2 bg-cream-warm rounded-lg">
-                      <span className="w-6 h-6 rounded-full bg-saffron/10 flex items-center justify-center text-xs text-saffron font-medium flex-shrink-0">{i + 1}</span>
-                      <div className="min-w-0">
-                        <p className="text-sm truncate">{config.languages[0] === 'en' ? (q.textEn || q.text) : q.text}</p>
-                        {q.textEn && config.languages[0] !== 'en' && <p className="text-xs text-gray-400 truncate">{q.textEn}</p>}
-                        <p className="text-xs text-gray-400">{q.type}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-saffron to-saffron-deep rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="text-sm text-white/70">Estimated Total Cost</div>
-                    <div className="text-4xl font-bold">₹{estimatedCost.toLocaleString()}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-white/70">Delivery</div>
-                    <div className="font-semibold">
-                      {config.urgency === 'urgent' ? '24-48 hours' : config.urgency === 'express' ? '2-3 days' : '5-7 days'}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-sm text-white/60">
-                  {config.sampleSize.toLocaleString()} responses × ₹{config.urgency === 'urgent' ? 55 : config.urgency === 'express' ? 45 : 38}/response
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-earth mb-4">Quality Settings</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center justify-between">
-                    <span className="text-sm">Record all audio (for quality audit)</span>
-                    <input
-                      type="checkbox"
-                      checked={config.recordAudio}
-                      onChange={(e) => setConfig({ ...config, recordAudio: e.target.checked })}
-                      className="w-5 h-5 accent-saffron"
-                    />
-                  </label>
-                  <label className="flex items-center justify-between">
-                    <span className="text-sm">Include attention checks</span>
-                    <input
-                      type="checkbox"
-                      checked={config.qualityChecks}
-                      onChange={(e) => setConfig({ ...config, qualityChecks: e.target.checked })}
-                      className="w-5 h-5 accent-saffron"
-                    />
-                  </label>
-                </div>
-              </div>
-
               {/* Test Call Section */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
                 <div className="flex items-center justify-between mb-2">
@@ -1161,18 +1064,18 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
                     {testCallStatus === 'ringing' && (
                       <div className="flex items-center gap-2 text-sm text-yellow-600 bg-yellow-50 px-4 py-2 rounded-lg">
-                        <span className="animate-pulse">\u25CF</span> Ringing your phone...
+                        <span className="animate-pulse">{'\u25CF'}</span> Ringing your phone...
                       </div>
                     )}
                     {testCallStatus === 'connected' && (
                       <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">
-                        <span className="animate-pulse">\u25CF</span> Survey in progress, answer the call!
+                        <span className="animate-pulse">{'\u25CF'}</span> Survey in progress, answer the call!
                       </div>
                     )}
                     {testCallStatus === 'completed' && (
                       <div className="space-y-4">
                         <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-3 rounded-lg font-medium">
-                          \u2713 Test call completed!
+                          {'\u2713'} Test call completed!
                           {testCallResult?.connectedAt && testCallResult?.endedAt && (
                             <span className="text-green-600 ml-1 font-normal">
                               ({Math.round((new Date(testCallResult.endedAt) - new Date(testCallResult.connectedAt)) / 1000)}s)
@@ -1282,6 +1185,25 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                         )}
                       </div>
                     )}
+                    {testCallStatus === 'voicemail' && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-4 py-3 rounded-lg font-medium">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                          {testCallResult?.voicemailLeft
+                            ? 'Voicemail detected — left a message!'
+                            : 'Voicemail detected — could not leave a message.'}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          The call went to voicemail. In production, the system will automatically retry later.
+                        </p>
+                        <button
+                          onClick={() => { setTestCallStatus(null); setTestCallResult(null); }}
+                          className="text-xs text-saffron hover:underline"
+                        >
+                          Try again
+                        </button>
+                      </div>
+                    )}
                     {testCallStatus === 'error' && (
                       <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
                         Error: {testCallError || 'Something went wrong'}
@@ -1299,6 +1221,112 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                     </p>
                   </div>
                 )}
+              </div>
+
+              <div className="flex gap-4">
+                <button onClick={() => setStep(4)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
+                  ← Back
+                </button>
+                <button onClick={() => setStep(6)} className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep">
+                  Review & Launch →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 6: Review */}
+          {step === 6 && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Review & Launch</h2>
+                <p className="text-gray-600">Double-check everything before going live.</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white rounded-xl p-4 border text-center">
+                  <div className="text-3xl font-bold text-saffron">{questions.length}</div>
+                  <div className="text-sm text-gray-500">Questions</div>
+                </div>
+                <div className="bg-white rounded-xl p-4 border text-center">
+                  <div className="text-3xl font-bold text-saffron-deep">~{estimatedDuration} min</div>
+                  <div className="text-sm text-gray-500">Duration</div>
+                </div>
+                <div className="bg-white rounded-xl p-4 border text-center">
+                  <div className="text-3xl font-bold text-earth">{config.sampleSize.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">Responses</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border">
+                <h3 className="font-semibold text-earth mb-4">Configuration Summary</h3>
+                <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+                  <div><span className="text-gray-500">Name:</span> <span className="font-medium">{config.name}</span></div>
+                  <div><span className="text-gray-500">Type:</span> <span className="font-medium">{SURVEY_TYPES.find(t => t.id === config.type)?.name}</span></div>
+                  <div><span className="text-gray-500">Languages:</span> <span className="font-medium">{config.languages.map(l => LANGUAGES.find(lg => lg.code === l)?.english).join(', ')}</span></div>
+                  <div><span className="text-gray-500">Geography:</span> <span className="font-medium">{GEOGRAPHIES.find(g => g.id === config.geography)?.name}</span></div>
+                  <div><span className="text-gray-500">Urgency:</span> <span className="font-medium capitalize">{config.urgency}</span></div>
+                  <div><span className="text-gray-500">Call Times:</span> <span className="font-medium capitalize">{config.callTiming.join(', ')}</span></div>
+                  <div><span className="text-gray-500">Retries:</span> <span className="font-medium">{config.retryPolicy}x</span></div>
+                  <div><span className="text-gray-500">Margin of Error:</span> <span className="font-medium">±{marginOfError}%</span></div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border">
+                <h3 className="font-semibold text-earth mb-3">Questions ({questions.length})</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {questions.map((q, i) => (
+                    <div key={q.id} className="flex items-start gap-2 p-2 bg-cream-warm rounded-lg">
+                      <span className="w-6 h-6 rounded-full bg-saffron/10 flex items-center justify-center text-xs text-saffron font-medium flex-shrink-0">{i + 1}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm truncate">{config.languages[0] === 'en' ? (q.textEn || q.text) : q.text}</p>
+                        {q.textEn && config.languages[0] !== 'en' && <p className="text-xs text-gray-400 truncate">{q.textEn}</p>}
+                        <p className="text-xs text-gray-400">{q.type}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-saffron to-saffron-deep rounded-2xl p-6 text-white">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-sm text-white/70">Estimated Total Cost</div>
+                    <div className="text-4xl font-bold">₹{estimatedCost.toLocaleString()}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-white/70">Delivery</div>
+                    <div className="font-semibold">
+                      {config.urgency === 'urgent' ? '24-48 hours' : config.urgency === 'express' ? '2-3 days' : '5-7 days'}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-white/60">
+                  {config.sampleSize.toLocaleString()} responses × ₹{config.urgency === 'urgent' ? 55 : config.urgency === 'express' ? 45 : 38}/response
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border">
+                <h3 className="font-semibold text-earth mb-4">Quality Settings</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center justify-between">
+                    <span className="text-sm">Record all audio (for quality audit)</span>
+                    <input
+                      type="checkbox"
+                      checked={config.recordAudio}
+                      onChange={(e) => setConfig({ ...config, recordAudio: e.target.checked })}
+                      className="w-5 h-5 accent-saffron"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <span className="text-sm">Include attention checks</span>
+                    <input
+                      type="checkbox"
+                      checked={config.qualityChecks}
+                      onChange={(e) => setConfig({ ...config, qualityChecks: e.target.checked })}
+                      className="w-5 h-5 accent-saffron"
+                    />
+                  </label>
+                </div>
               </div>
 
               <div className="flex gap-4">

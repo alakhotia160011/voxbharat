@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
@@ -7,6 +7,8 @@ import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '.env') });
 
 const app = express();
 const PORT = 3001;
@@ -113,6 +115,10 @@ app.get('/api/health', (req, res) => {
 
 // TTS Proxy - Cartesia API
 app.post('/api/tts', async (req, res) => {
+  if (!CARTESIA_API_KEY) {
+    return res.status(500).json({ error: 'CARTESIA_API_KEY not configured — check server/.env' });
+  }
+
   try {
     const { text, voiceId, language } = req.body;
 
@@ -128,7 +134,7 @@ app.post('/api/tts', async (req, res) => {
         'Cartesia-Version': '2025-11-04',
       },
       body: JSON.stringify({
-        model_id: 'sonic-3-2026-01-12',
+        model_id: 'sonic-3',
         transcript: text,
         voice: { mode: 'id', id: voiceId },
         language: language || 'hi',
@@ -157,7 +163,7 @@ app.post('/api/tts', async (req, res) => {
   }
 });
 
-// Generate survey questions via Claude
+// Generate survey questions via Claude (uses tool_use for guaranteed valid JSON)
 app.post('/api/generate-questions', async (req, res) => {
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_API_KEY) {
@@ -172,11 +178,12 @@ app.post('/api/generate-questions', async (req, res) => {
 
     const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-    const primaryLanguage = config.languages?.[0] || 'hi';
+    const autoDetect = config.autoDetectLanguage || false;
+    const primaryLanguage = autoDetect ? 'en' : (config.languages?.[0] || 'hi');
     const languageMap = {
       hi: 'Hindi', bn: 'Bengali', te: 'Telugu', mr: 'Marathi',
       ta: 'Tamil', gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam',
-      pa: 'Punjabi', or: 'Odia', as: 'Assamese', ur: 'Urdu',
+      pa: 'Punjabi', en: 'English',
     };
     const langName = languageMap[primaryLanguage] || 'Hindi';
 
@@ -206,35 +213,55 @@ INSTRUCTIONS:
 7. If tone is "formal", use respectful/formal language (e.g., "aap" forms). If "friendly", use warmer language.
 8. Make questions specific to the stated purpose — do NOT use generic placeholder questions.
 9. Do NOT include demographic questions (age, gender) — those are added automatically.
+10. For likert type, always use exactly 5 options from negative to positive.
+11. For rating type, set min=1, max=10. For nps type, set min=0, max=10.
 
-RESPOND WITH ONLY a JSON array, no other text. Each object must have:
-{
-  "id": <number starting from 1>,
-  "type": "<single|multiple|likert|rating|nps|open|yes_no>",
-  "text": "<question in ${langName} script>",
-  "textEn": "<English translation>",
-  "options": ["<option1>", "<option2>", ...] (only for single/multiple/likert types, omit for open/rating/nps/yes_no),
-  "required": true,
-  "category": "<short category label in English>"
-}
+Call the generate_survey_questions tool with all the questions.`;
 
-For likert type, always use exactly 5 options from negative to positive.
-For rating type, include "min": 1, "max": 10.
-For nps type, include "min": 0, "max": 10.`;
+    const questionTool = {
+      name: 'generate_survey_questions',
+      description: 'Output the generated survey questions as structured data',
+      input_schema: {
+        type: 'object',
+        properties: {
+          questions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'number', description: 'Question number starting from 1' },
+                type: { type: 'string', enum: ['single', 'multiple', 'likert', 'rating', 'nps', 'open', 'yes_no'] },
+                text: { type: 'string', description: `Question text in ${langName} script` },
+                textEn: { type: 'string', description: 'English translation of the question' },
+                options: { type: 'array', items: { type: 'string' }, description: 'Answer options (for single/multiple/likert types only)' },
+                required: { type: 'boolean' },
+                category: { type: 'string', description: 'Short category label in English' },
+                min: { type: 'number', description: 'Min value (for rating/nps types)' },
+                max: { type: 'number', description: 'Max value (for rating/nps types)' },
+              },
+              required: ['id', 'type', 'text', 'textEn', 'required', 'category'],
+            },
+          },
+        },
+        required: ['questions'],
+      },
+    };
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2000,
+      max_tokens: 4096,
+      tools: [questionTool],
+      tool_choice: { type: 'tool', name: 'generate_survey_questions' },
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const text = response.content[0].text;
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new Error('No JSON array found in Claude response');
+    // Extract questions from tool_use block (guaranteed valid JSON)
+    const toolBlock = response.content.find(b => b.type === 'tool_use');
+    if (!toolBlock) {
+      throw new Error('Claude did not return tool output');
     }
 
-    const questions = JSON.parse(jsonMatch[0]);
+    const questions = toolBlock.input.questions;
     res.status(200).json({ questions });
   } catch (error) {
     console.error('Question generation error:', error);

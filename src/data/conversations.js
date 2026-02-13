@@ -1,6 +1,6 @@
 // Hindi conversation - Female voice version (रही, गई forms)
 export const HINDI_CONVERSATION_F = [
-  { speaker: 'ai', text: 'नमस्ते! मैं VoxBharat से बोल रही हूं। हम भारत में धर्म और सामाजिक जीवन पर एक रिसर्च सर्वे कर रहे हैं। इसमें बस पांच मिनट लगेंगे और आपकी पहचान पूरी तरह गोपनीय रहेगी। क्या आप हिस्सा लेना चाहेंगे?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'नमस्ते! मैं वॉक्स भारत से बोल रही हूं। हम भारत में धर्म और सामाजिक जीवन पर एक रिसर्च सर्वे कर रहे हैं। इसमें बस पांच मिनट लगेंगे और आपकी पहचान पूरी तरह गोपनीय रहेगी। क्या आप हिस्सा लेना चाहेंगे?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'हां, ठीक है, बताइए', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'बहुत अच्छा, धन्यवाद जी। तो चलिए शुरू करते हैं। सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?', translation: 'Very good, thank you. So let\'s begin. First of all, can you tell me your age?' },
   { speaker: 'user', text: 'जी, मैं 42 साल का हूं', translation: 'Yes, I am 42 years old' },
@@ -27,7 +27,7 @@ export const HINDI_CONVERSATION_F = [
 
 // Hindi conversation - Male voice version (रहा, गया forms)
 export const HINDI_CONVERSATION_M = [
-  { speaker: 'ai', text: 'नमस्ते! मैं VoxBharat से बोल रहा हूं। हम भारत में धर्म और सामाजिक जीवन पर एक रिसर्च सर्वे कर रहे हैं। इसमें बस पांच मिनट लगेंगे और आपकी पहचान पूरी तरह गोपनीय रहेगी। क्या आप हिस्सा लेना चाहेंगे?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'नमस्ते! मैं वॉक्स भारत से बोल रहा हूं। हम भारत में धर्म और सामाजिक जीवन पर एक रिसर्च सर्वे कर रहे हैं। इसमें बस पांच मिनट लगेंगे और आपकी पहचान पूरी तरह गोपनीय रहेगी। क्या आप हिस्सा लेना चाहेंगे?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'हां, ठीक है, बताइए', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'बहुत अच्छा, धन्यवाद जी। तो चलिए शुरू करते हैं। सबसे पहले, क्या आप अपनी उम्र बता सकते हैं?', translation: 'Very good, thank you. So let\'s begin. First of all, can you tell me your age?' },
   { speaker: 'user', text: 'जी, मैं 42 साल का हूं', translation: 'Yes, I am 42 years old' },
@@ -54,7 +54,7 @@ export const HINDI_CONVERSATION_M = [
 
 // Bengali conversation - Female voice version
 export const BENGALI_CONVERSATION_F = [
-  { speaker: 'ai', text: 'নমস্কার! আমি VoxBharat থেকে বলছি। আমরা ভারতে ধর্ম এবং সামাজিক জীবন নিয়ে একটি গবেষণা সমীক্ষা করছি। এতে মাত্র পাঁচ মিনিট লাগবে এবং আপনার পরিচয় সম্পূর্ণ গোপন থাকবে। আপনি কি অংশ নিতে চান?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'নমস্কার! আমি ভক্স ভারত থেকে বলছি। আমরা ভারতে ধর্ম এবং সামাজিক জীবন নিয়ে একটি গবেষণা সমীক্ষা করছি। এতে মাত্র পাঁচ মিনিট লাগবে এবং আপনার পরিচয় সম্পূর্ণ গোপন থাকবে। আপনি কি অংশ নিতে চান?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'হ্যাঁ, ঠিক আছে, বলুন', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'খুব ভালো, ধন্যবাদ। তাহলে শুরু করা যাক। প্রথমে, আপনার বয়স কত বলবেন?', translation: 'Very good, thank you. So let\'s begin. First, can you tell me your age?' },
   { speaker: 'user', text: 'জি, আমার বয়স 42', translation: 'Yes, I am 42 years old' },
@@ -81,7 +81,7 @@ export const BENGALI_CONVERSATION_F = [
 
 // Gujarati conversation - Female voice version (હું બોલી રહી છું forms)
 export const GUJARATI_CONVERSATION_F = [
-  { speaker: 'ai', text: 'નમસ્તે! હું VoxBharat તરફથી બોલી રહી છું. અમે ભારતમાં ધર્મ અને સામાજિક જીવન પર એક સંશોધન સર્વે કરી રહ્યા છીએ. આમાં ફક્ત પાંચ મિનિટ લાગશે અને તમારી ઓળખ સંપૂર્ણ ગોપનીય રહેશે. શું તમે ભાગ લેવા માંગો છો?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'નમસ્તે! હું વૉક્સ ભારત તરફથી બોલી રહી છું. અમે ભારતમાં ધર્મ અને સામાજિક જીવન પર એક સંશોધન સર્વે કરી રહ્યા છીએ. આમાં ફક્ત પાંચ મિનિટ લાગશે અને તમારી ઓળખ સંપૂર્ણ ગોપનીય રહેશે. શું તમે ભાગ લેવા માંગો છો?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'હા, ઠીક છે, બોલો', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'ખૂબ સારું, ધન્યવાદ. તો ચાલો શરૂ કરીએ. સૌ પ્રથમ, તમારી ઉંમર કેટલી છે?', translation: 'Very good, thank you. So let\'s begin. First of all, can you tell me your age?' },
   { speaker: 'user', text: 'જી, હું 42 વર્ષનો છું', translation: 'Yes, I am 42 years old' },
@@ -108,7 +108,7 @@ export const GUJARATI_CONVERSATION_F = [
 
 // Gujarati conversation - Male voice version (હું બોલી રહ્યો છું forms)
 export const GUJARATI_CONVERSATION_M = [
-  { speaker: 'ai', text: 'નમસ્તે! હું VoxBharat તરફથી બોલી રહ્યો છું. અમે ભારતમાં ધર્મ અને સામાજિક જીવન પર એક સંશોધન સર્વે કરી રહ્યા છીએ. આમાં ફક્ત પાંચ મિનિટ લાગશે અને તમારી ઓળખ સંપૂર્ણ ગોપનીય રહેશે. શું તમે ભાગ લેવા માંગો છો?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'નમસ્તે! હું વૉક્સ ભારત તરફથી બોલી રહ્યો છું. અમે ભારતમાં ધર્મ અને સામાજિક જીવન પર એક સંશોધન સર્વે કરી રહ્યા છીએ. આમાં ફક્ત પાંચ મિનિટ લાગશે અને તમારી ઓળખ સંપૂર્ણ ગોપનીય રહેશે. શું તમે ભાગ લેવા માંગો છો?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'હા, ઠીક છે, બોલો', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'ખૂબ સારું, ધન્યવાદ. તો ચાલો શરૂ કરીએ. સૌ પ્રથમ, તમારી ઉંમર કેટલી છે?', translation: 'Very good, thank you. So let\'s begin. First of all, can you tell me your age?' },
   { speaker: 'user', text: 'જી, હું 42 વર્ષનો છું', translation: 'Yes, I am 42 years old' },
@@ -138,7 +138,7 @@ export const BENGALI_CONVERSATION_M = BENGALI_CONVERSATION_F;
 
 // Marathi conversation - Female voice version
 export const MARATHI_CONVERSATION_F = [
-  { speaker: 'ai', text: 'नमस्कार! मी VoxBharat कडून बोलत आहे. आम्ही भारतातील धर्म आणि सामाजिक जीवनावर एक संशोधन सर्वेक्षण करत आहोत. यासाठी फक्त पाच मिनिटे लागतील आणि तुमची ओळख पूर्णपणे गोपनीय राहील. तुम्हाला सहभागी व्हायचे आहे का?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'नमस्कार! मी वॉक्स भारत कडून बोलत आहे. आम्ही भारतातील धर्म आणि सामाजिक जीवनावर एक संशोधन सर्वेक्षण करत आहोत. यासाठी फक्त पाच मिनिटे लागतील आणि तुमची ओळख पूर्णपणे गोपनीय राहील. तुम्हाला सहभागी व्हायचे आहे का?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'हो, ठीक आहे, सांगा', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'खूप छान, धन्यवाद. तर चला सुरू करूया. सर्वप्रथम, तुमचे वय किती आहे?', translation: 'Very good, thank you. So let\'s begin. First of all, how old are you?' },
   { speaker: 'user', text: 'जी, मी 42 वर्षांचा आहे', translation: 'Yes, I am 42 years old' },
@@ -168,7 +168,7 @@ export const MARATHI_CONVERSATION_M = MARATHI_CONVERSATION_F;
 
 // Tamil conversation - Female voice version
 export const TAMIL_CONVERSATION_F = [
-  { speaker: 'ai', text: 'வணக்கம்! நான் VoxBharat-இலிருந்து பேசுகிறேன். நாங்கள் இந்தியாவில் மதம் மற்றும் சமூக வாழ்க்கை குறித்த ஒரு ஆராய்ச்சி கருத்துக்கணிப்பு நடத்துகிறோம். இதற்கு ஐந்து நிமிடங்கள் மட்டுமே ஆகும், உங்கள் அடையாளம் முற்றிலும் ரகசியமாக இருக்கும். நீங்கள் பங்கேற்க விரும்புகிறீர்களா?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'வணக்கம்! நான் வாக்ஸ் பாரத்-இலிருந்து பேசுகிறேன். நாங்கள் இந்தியாவில் மதம் மற்றும் சமூக வாழ்க்கை குறித்த ஒரு ஆராய்ச்சி கருத்துக்கணிப்பு நடத்துகிறோம். இதற்கு ஐந்து நிமிடங்கள் மட்டுமே ஆகும், உங்கள் அடையாளம் முற்றிலும் ரகசியமாக இருக்கும். நீங்கள் பங்கேற்க விரும்புகிறீர்களா?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'ஆமா, சரி, சொல்லுங்க', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'மிக நல்லது, நன்றி. சரி, தொடங்குவோம். முதலில், உங்கள் வயது என்ன?', translation: 'Very good, thank you. So let\'s begin. First, how old are you?' },
   { speaker: 'user', text: 'எனக்கு 42 வயசு', translation: 'I am 42 years old' },
@@ -195,7 +195,7 @@ export const TAMIL_CONVERSATION_F = [
 
 // Telugu conversation - Female voice version
 export const TELUGU_CONVERSATION_F = [
-  { speaker: 'ai', text: 'నమస్కారం! నేను VoxBharat నుండి మాట్లాడుతున్నాను. మేము భారతదేశంలో మతం మరియు సామాజిక జీవితంపై ఒక పరిశోధన సర్వే నిర్వహిస్తున్నాము. దీనికి కేవలం ఐదు నిమిషాలు పడుతుంది మరియు మీ గుర్తింపు పూర్తిగా రహస్యంగా ఉంటుంది. మీరు పాల్గొనాలనుకుంటున్నారా?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'నమస్కారం! నేను వాక్స్ భారత్ నుండి మాట్లాడుతున్నాను. మేము భారతదేశంలో మతం మరియు సామాజిక జీవితంపై ఒక పరిశోధన సర్వే నిర్వహిస్తున్నాము. దీనికి కేవలం ఐదు నిమిషాలు పడుతుంది మరియు మీ గుర్తింపు పూర్తిగా రహస్యంగా ఉంటుంది. మీరు పాల్గొనాలనుకుంటున్నారా?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'అవును, సరే, చెప్పండి', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'చాలా బాగుంది, ధన్యవాదాలు. అయితే మొదలుపెడదాం. ముందుగా, మీ వయసు ఎంత?', translation: 'Very good, thank you. So let\'s begin. First, how old are you?' },
   { speaker: 'user', text: 'నాకు 42 ఏళ్ళు', translation: 'I am 42 years old' },
@@ -222,7 +222,7 @@ export const TELUGU_CONVERSATION_F = [
 
 // Punjabi conversation - Female voice version
 export const PUNJABI_CONVERSATION_F = [
-  { speaker: 'ai', text: 'ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ VoxBharat ਤੋਂ ਬੋਲ ਰਹੀ ਹਾਂ। ਅਸੀਂ ਭਾਰਤ ਵਿੱਚ ਧਰਮ ਅਤੇ ਸਮਾਜਿਕ ਜੀਵਨ ਬਾਰੇ ਇੱਕ ਖੋਜ ਸਰਵੇ ਕਰ ਰਹੇ ਹਾਂ। ਇਸ ਵਿੱਚ ਸਿਰਫ਼ ਪੰਜ ਮਿੰਟ ਲੱਗਣਗੇ ਅਤੇ ਤੁਹਾਡੀ ਪਛਾਣ ਪੂਰੀ ਤਰ੍ਹਾਂ ਗੁਪਤ ਰਹੇਗੀ। ਕੀ ਤੁਸੀਂ ਹਿੱਸਾ ਲੈਣਾ ਚਾਹੋਗੇ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਵੌਕਸ ਭਾਰਤ ਤੋਂ ਬੋਲ ਰਹੀ ਹਾਂ। ਅਸੀਂ ਭਾਰਤ ਵਿੱਚ ਧਰਮ ਅਤੇ ਸਮਾਜਿਕ ਜੀਵਨ ਬਾਰੇ ਇੱਕ ਖੋਜ ਸਰਵੇ ਕਰ ਰਹੇ ਹਾਂ। ਇਸ ਵਿੱਚ ਸਿਰਫ਼ ਪੰਜ ਮਿੰਟ ਲੱਗਣਗੇ ਅਤੇ ਤੁਹਾਡੀ ਪਛਾਣ ਪੂਰੀ ਤਰ੍ਹਾਂ ਗੁਪਤ ਰਹੇਗੀ। ਕੀ ਤੁਸੀਂ ਹਿੱਸਾ ਲੈਣਾ ਚਾਹੋਗੇ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'ਹਾਂ ਜੀ, ਠੀਕ ਹੈ, ਦੱਸੋ', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'ਬਹੁਤ ਵਧੀਆ, ਧੰਨਵਾਦ। ਤਾਂ ਚੱਲੋ ਸ਼ੁਰੂ ਕਰੀਏ। ਸਭ ਤੋਂ ਪਹਿਲਾਂ, ਤੁਹਾਡੀ ਉਮਰ ਕਿੰਨੀ ਹੈ?', translation: 'Very good, thank you. So let\'s begin. First of all, how old are you?' },
   { speaker: 'user', text: 'ਜੀ, ਮੈਂ 42 ਸਾਲ ਦਾ ਹਾਂ', translation: 'Yes, I am 42 years old' },
@@ -252,7 +252,7 @@ export const PUNJABI_CONVERSATION_M = PUNJABI_CONVERSATION_F;
 
 // Kannada conversation - Female voice version
 export const KANNADA_CONVERSATION_F = [
-  { speaker: 'ai', text: 'ನಮಸ್ಕಾರ! ನಾನು VoxBharat ಇಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. ನಾವು ಭಾರತದಲ್ಲಿ ಧರ್ಮ ಮತ್ತು ಸಾಮಾಜಿಕ ಜೀವನದ ಕುರಿತು ಒಂದು ಸಂಶೋಧನಾ ಸಮೀಕ್ಷೆ ನಡೆಸುತ್ತಿದ್ದೇವೆ. ಇದಕ್ಕೆ ಕೇವಲ ಐದು ನಿಮಿಷ ತೆಗೆದುಕೊಳ್ಳುತ್ತದೆ ಮತ್ತು ನಿಮ್ಮ ಗುರುತು ಸಂಪೂರ್ಣವಾಗಿ ಗೋಪ್ಯವಾಗಿರುತ್ತದೆ. ನೀವು ಭಾಗವಹಿಸಲು ಬಯಸುತ್ತೀರಾ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'ನಮಸ್ಕಾರ! ನಾನು ವಾಕ್ಸ್ ಭಾರತ್ ಇಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. ನಾವು ಭಾರತದಲ್ಲಿ ಧರ್ಮ ಮತ್ತು ಸಾಮಾಜಿಕ ಜೀವನದ ಕುರಿತು ಒಂದು ಸಂಶೋಧನಾ ಸಮೀಕ್ಷೆ ನಡೆಸುತ್ತಿದ್ದೇವೆ. ಇದಕ್ಕೆ ಕೇವಲ ಐದು ನಿಮಿಷ ತೆಗೆದುಕೊಳ್ಳುತ್ತದೆ ಮತ್ತು ನಿಮ್ಮ ಗುರುತು ಸಂಪೂರ್ಣವಾಗಿ ಗೋಪ್ಯವಾಗಿರುತ್ತದೆ. ನೀವು ಭಾಗವಹಿಸಲು ಬಯಸುತ್ತೀರಾ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'ಹೌದು, ಸರಿ, ಹೇಳಿ', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'ತುಂಬಾ ಒಳ್ಳೆಯದು, ಧನ್ಯವಾದಗಳು. ಹಾಗಾದರೆ ಶುರು ಮಾಡೋಣ. ಮೊದಲನೆಯದಾಗಿ, ನಿಮ್ಮ ವಯಸ್ಸು ಎಷ್ಟು?', translation: 'Very good, thank you. So let\'s begin. First of all, how old are you?' },
   { speaker: 'user', text: 'ನನಗೆ 42 ವರ್ಷ', translation: 'I am 42 years old' },
@@ -282,7 +282,7 @@ export const KANNADA_CONVERSATION_M = KANNADA_CONVERSATION_F;
 
 // Malayalam conversation - Female voice version
 export const MALAYALAM_CONVERSATION_F = [
-  { speaker: 'ai', text: 'നമസ്കാരം! ഞാന്‍ VoxBharat-ല്‍ നിന്ന് വിളിക്കുകയാണ്. ഞങ്ങള്‍ ഇന്ത്യയിലെ മതവും സാമൂഹിക ജീവിതവും സംബന്ധിച്ച ഒരു ഗവേഷണ സര്‍വേ നടത്തുകയാണ്. ഇതിന് വെറും അഞ്ച് മിനിറ്റ് മാത്രമേ എടുക്കൂ, നിങ്ങളുടെ വ്യക്തിത്വം പൂര്‍ണമായും രഹസ്യമായിരിക്കും. നിങ്ങള്‍ പങ്കെടുക്കാന്‍ ആഗ്രഹിക്കുന്നുണ്ടോ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
+  { speaker: 'ai', text: 'നമസ്കാരം! ഞാന്‍ വോക്സ് ഭാരത്-ല്‍ നിന്ന് വിളിക്കുകയാണ്. ഞങ്ങള്‍ ഇന്ത്യയിലെ മതവും സാമൂഹിക ജീവിതവും സംബന്ധിച്ച ഒരു ഗവേഷണ സര്‍വേ നടത്തുകയാണ്. ഇതിന് വെറും അഞ്ച് മിനിറ്റ് മാത്രമേ എടുക്കൂ, നിങ്ങളുടെ വ്യക്തിത്വം പൂര്‍ണമായും രഹസ്യമായിരിക്കും. നിങ്ങള്‍ പങ്കെടുക്കാന്‍ ആഗ്രഹിക്കുന്നുണ്ടോ?', translation: 'Hello! I\'m calling from VoxBharat. We\'re conducting a research survey on religion and social life in India. It will only take 5 minutes and your identity will remain completely confidential. Would you like to participate?' },
   { speaker: 'user', text: 'ഉവ്വ്, ശരി, പറയൂ', translation: 'Yes, okay, go ahead' },
   { speaker: 'ai', text: 'വളരെ നല്ലത്, നന്ദി. എങ്കില്‍ തുടങ്ങാം. ആദ്യം, നിങ്ങളുടെ വയസ്സ് എത്രയാണ്?', translation: 'Very good, thank you. So let\'s begin. First, how old are you?' },
   { speaker: 'user', text: 'എനിക്ക് 42 വയസ്സാണ്', translation: 'I am 42 years old' },

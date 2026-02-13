@@ -1,5 +1,5 @@
 // Vercel Serverless Function - Claude-powered Survey Question Generator
-// Takes survey config and generates tailored questions dynamically
+// Uses tool_use for guaranteed valid JSON output (no parsing errors)
 
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -60,38 +60,55 @@ INSTRUCTIONS:
 7. If tone is "formal", use respectful/formal language (e.g., "aap" forms). If "friendly", use warmer language.
 8. Make questions specific to the stated purpose — do NOT use generic placeholder questions.
 9. Do NOT include demographic questions (age, gender) — those are added automatically.
+10. For likert type, always use exactly 5 options from negative to positive.
+11. For rating type, set min=1, max=10. For nps type, set min=0, max=10.
 
-RESPOND WITH ONLY a JSON array, no other text. Each object must have:
-{
-  "id": <number starting from 1>,
-  "type": "<single|multiple|likert|rating|nps|open|yes_no>",
-  "text": "<question in ${langName} script>",
-  "textEn": "<English translation>",
-  "options": ["<option1>", "<option2>", ...] (only for single/multiple/likert types, omit for open/rating/nps/yes_no),
-  "required": true,
-  "category": "<short category label in English>"
-}
+Call the generate_survey_questions tool with all the questions.`;
 
-For likert type, always use exactly 5 options from negative to positive.
-For rating type, include "min": 1, "max": 10.
-For nps type, include "min": 0, "max": 10.`;
+    const questionTool = {
+      name: 'generate_survey_questions',
+      description: 'Output the generated survey questions as structured data',
+      input_schema: {
+        type: 'object',
+        properties: {
+          questions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'number', description: 'Question number starting from 1' },
+                type: { type: 'string', enum: ['single', 'multiple', 'likert', 'rating', 'nps', 'open', 'yes_no'] },
+                text: { type: 'string', description: `Question text in ${langName} script` },
+                textEn: { type: 'string', description: 'English translation of the question' },
+                options: { type: 'array', items: { type: 'string' }, description: 'Answer options (for single/multiple/likert types only)' },
+                required: { type: 'boolean' },
+                category: { type: 'string', description: 'Short category label in English' },
+                min: { type: 'number', description: 'Min value (for rating/nps types)' },
+                max: { type: 'number', description: 'Max value (for rating/nps types)' },
+              },
+              required: ['id', 'type', 'text', 'textEn', 'required', 'category'],
+            },
+          },
+        },
+        required: ['questions'],
+      },
+    };
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2000,
+      max_tokens: 4096,
+      tools: [questionTool],
+      tool_choice: { type: 'tool', name: 'generate_survey_questions' },
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const text = response.content[0].text;
-
-    // Extract JSON array from response
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new Error('No JSON array found in Claude response');
+    // Extract questions from tool_use block (guaranteed valid JSON)
+    const toolBlock = response.content.find(b => b.type === 'tool_use');
+    if (!toolBlock) {
+      throw new Error('Claude did not return tool output');
     }
 
-    const questions = JSON.parse(jsonMatch[0]);
-
+    const questions = toolBlock.input.questions;
     res.status(200).json({ questions });
   } catch (error) {
     console.error('Question generation error:', error);

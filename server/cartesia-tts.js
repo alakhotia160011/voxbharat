@@ -52,7 +52,7 @@ export async function generateSpeech(text, language, gender, apiKey, options = {
       'Cartesia-Version': '2025-11-04',
     },
     body: JSON.stringify({
-      model_id: 'sonic-3-2026-01-12',
+      model_id: 'sonic-3',
       transcript: text,
       voice: { mode: 'id', id: voiceId },
       language: language,

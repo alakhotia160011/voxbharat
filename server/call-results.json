@@ -1654,5 +1654,762 @@
       "overall": "neutral",
       "engagement": "low"
     }
+  },
+  {
+    "id": "8384d28a-a554-4672-8a9e-6aa1fd96880f",
+    "timestamp": "2026-02-09T03:46:55.189Z",
+    "duration": 167,
+    "language": "en",
+    "autoDetectLanguage": false,
+    "status": "completed",
+    "summary": "24-year-old male respondent plans to vote and is fairly interested in politics, citing unemployment as a major concern. He values political leaders in voting decisions and believes his vote matters to some extent, though he expects the government to focus on governance rather than religious discourse.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Sure, what's up? What do you want to know?"
+      },
+      {
+        "role": "assistant",
+        "content": "Great, thank you so much! Let me start with this: Are you planning to vote in the upcoming election?"
+      },
+      {
+        "role": "user",
+        "content": "Yeah, I think so. I'll probably vote. Why, what's up? Why do you want to know this?"
+      },
+      {
+        "role": "assistant",
+        "content": "Perfect, thanks for that! We're just trying to understand what people think about the upcoming election. \n\nHow interested are you in politics currently?"
+      },
+      {
+        "role": "user",
+        "content": "I'm pretty interested myself."
+      },
+      {
+        "role": "assistant",
+        "content": "That's great! So, what would you say are the biggest problems facing the country right now?"
+      },
+      {
+        "role": "user",
+        "content": "The biggest problems facing the country right now, I'll say,"
+      },
+      {
+        "role": "assistant",
+        "content": "Take your time!"
+      },
+      {
+        "role": "user",
+        "content": "cleanliness, unemployment."
+      },
+      {
+        "role": "assistant",
+        "content": "Got it, cleanliness and unemployment — those are important concerns. Thanks for sharing that.\n\nDo you agree that there has been development in your area in the last few years?"
+      },
+      {
+        "role": "user",
+        "content": "Yeah, can't leave that."
+      },
+      {
+        "role": "assistant",
+        "content": "Good to hear. On a scale of 1 to 10, how satisfied are you with the current government's performance? 1 means not satisfied at all and 10 means completely satisfied."
+      },
+      {
+        "role": "user",
+        "content": "Maybe like it."
+      },
+      {
+        "role": "assistant",
+        "content": "Thanks for that. What is most important to you when voting?"
+      },
+      {
+        "role": "user",
+        "content": "are the leaders, the political leaders."
+      },
+      {
+        "role": "assistant",
+        "content": "That makes sense — the political leaders matter a lot to you.\n\nIf you could say one thing to the government, what would it be?"
+      },
+      {
+        "role": "user",
+        "content": "Focus on your job man, don't go about talking religion."
+      },
+      {
+        "role": "assistant",
+        "content": "That's a clear message. Do you feel that your voice and vote really makes a difference?"
+      },
+      {
+        "role": "user",
+        "content": "Yeah, I hope so."
+      },
+      {
+        "role": "assistant",
+        "content": "Great. What is your age?"
+      },
+      {
+        "role": "user",
+        "content": "I'm 24 years old. Why do you want to know this?"
+      },
+      {
+        "role": "assistant",
+        "content": "Just helps us understand who we're talking to. Last couple of questions — what is your gender?"
+      },
+      {
+        "role": "user",
+        "content": "I'm Mel, member of the show."
+      },
+      {
+        "role": "assistant",
+        "content": "Thank you so much for taking the time to answer all these questions. I really appreciate your participation in Bengal Polls!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_planning_to_vote_in_the_upcoming": "Yes",
+      "how_interested_are_you_in_politics_curre": "काफी रुचि है",
+      "according_to_you_what_are_the_biggest_pr": "बेरोजगारी",
+      "do_you_agree_that_there_has_been_develop": "कुछ हद तक सहमत हूँ",
+      "on_a_scale_of_1_to_10_how_satisfied_are_": null,
+      "what_is_most_important_to_you_when_votin": "नेता या मुख्यमंत्री उम्मीदवार",
+      "if_you_could_say_one_thing_to_the_govern": "Focus on your job, don't go about talking religion",
+      "do_you_feel_that_your_voice_and_vote_rea": "कुछ हद तक फर्क पड़ता है",
+      "what_is_your_age": "18-25",
+      "what_is_your_gender": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "medium"
+    }
+  },
+  {
+    "id": "14d72233-e3d7-41d4-a76c-452b7cbe81be",
+    "timestamp": "2026-02-09T03:52:23.509Z",
+    "duration": 27,
+    "language": "bn",
+    "autoDetectLanguage": false,
+    "status": "completed",
+    "summary": "The respondent declined to participate in the Bengal elections survey, providing no substantive responses to any questions.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "নান নান"
+      },
+      {
+        "role": "assistant",
+        "content": "ধন্যবাদ, আপনার সময় দেওয়ার জন্য। আপনার ভালো থাকুক।"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_planning_to_vote_in_the_upcoming": null,
+      "what_is_the_most_important_issue_for_you": null,
+      "how_satisfied_are_you_with_the_overall_d": null,
+      "on_a_scale_of_1_to_10_how_would_you_rate": null,
+      "what_will_influence_your_voting_decision": null,
+      "which_political_parties_campaigns_or_mes": null,
+      "do_you_think_there_is_a_need_for_change_": null,
+      "in_your_opinion_what_is_the_one_thing_th": null,
+      "what_is_your_age": null,
+      "what_is_your_gender": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "fe66a4e6-f006-43f5-bea1-cc5ef822a5ff",
+    "timestamp": "2026-02-09T04:10:06.542Z",
+    "duration": 157,
+    "language": "en",
+    "autoDetectLanguage": true,
+    "status": "completed",
+    "summary": "Respondent had significant communication barriers and expressed disinterest in participating in the survey. Only partial information was gathered indicating intent to vote but low interest in Bengal politics.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Oh"
+      },
+      {
+        "role": "assistant",
+        "content": "Great! Thank you so much for picking up. Let me start with my first question — are you planning to vote in the upcoming Bengal elections?"
+      },
+      {
+        "role": "user",
+        "content": "I don't English."
+      },
+      {
+        "role": "assistant",
+        "content": "আচ্ছা, আমি বাংলায় কথা বলছি। আপনি আসন্ন বাংলা নির্বাচনে ভোট দেওয়ার পরিকল্পনা করছেন?"
+      },
+      {
+        "role": "user",
+        "content": "Hello?"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! Can you hear me? I'm calling about the Bengal Elections survey. Are you still there?"
+      },
+      {
+        "role": "user",
+        "content": "you"
+      },
+      {
+        "role": "assistant",
+        "content": "Sorry, I didn't quite catch that. Let me ask again — are you planning to vote in the upcoming Bengal elections?"
+      },
+      {
+        "role": "user",
+        "content": "I said, I don't English."
+      },
+      {
+        "role": "assistant",
+        "content": "আমি বুঝেছি। আমি বাংলায় বলব। আপনি আসন্ন বাংলা নির্বাচনে ভোট দিতে চান?"
+      },
+      {
+        "role": "user",
+        "content": "am to a little bit. Man, go."
+      },
+      {
+        "role": "assistant",
+        "content": "Thank you! So you are planning to vote — that's great. Now, how interested are you in Bengal politics?"
+      },
+      {
+        "role": "user",
+        "content": "I said,"
+      },
+      {
+        "role": "assistant",
+        "content": "I'm sorry, could you just tell me — how interested are you in Bengal politics? Would you say very interested, somewhat interested, or not so interested?"
+      },
+      {
+        "role": "user",
+        "content": "I'm not interested to talk to you. I've told you. Can you stop bothering me?"
+      },
+      {
+        "role": "assistant",
+        "content": "I completely understand, and I sincerely apologize for the confusion. Thank you so much for your time, and I really appreciate you taking this call. Have a great day!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_planning_to_vote_in_the_upcoming": "Yes",
+      "how_interested_are_you_in_bengal_politic": "बहुत कम",
+      "what_are_the_most_important_issues_for_y": null,
+      "do_you_believe_that_bengal_is_moving_in_": null,
+      "on_a_scale_of_1_to_10_how_would_you_rate": null,
+      "what_is_the_biggest_factor_influencing_y": null,
+      "in_your_opinion_what_should_be_the_most_": null,
+      "are_you_satisfied_that_the_elections_wil": null,
+      "what_is_your_age": null,
+      "what_is_your_gender": null
+    },
+    "sentiment": {
+      "overall": "negative",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "f1f5aaf2-5b00-45ce-b584-a0822d3c3e04",
+    "timestamp": "2026-02-09T04:20:28.595Z",
+    "duration": 63,
+    "language": "hi",
+    "autoDetectLanguage": true,
+    "status": "completed",
+    "summary": "The respondent provided minimal engagement with unclear responses and requested the interviewer to switch to Hindi. No substantive survey data was collected.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "you"
+      },
+      {
+        "role": "assistant",
+        "content": "I'm sorry, could you just let me know — do you have a few minutes to participate in our survey?"
+      },
+      {
+        "role": "user",
+        "content": "Oh"
+      },
+      {
+        "role": "assistant",
+        "content": "Great! Thank you so much. Let me start with my first question: Are you planning to vote in the upcoming Bengal elections?"
+      },
+      {
+        "role": "user",
+        "content": "you"
+      },
+      {
+        "role": "assistant",
+        "content": "Thank you for that. Now, which party are you currently thinking of voting for?"
+      },
+      {
+        "role": "user",
+        "content": "Nope. not working dude Can you speak to me in Hindi?"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, बिल्कुल! मैं हिंदी में बात कर रही हूँ। तो बताइए, आप बंगाल के चुनावों में किस पार्टी को वोट देने का सोच रहे हैं?"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_planning_to_vote_in_the_upcoming": null,
+      "which_party_are_you_currently_thinking_o": null,
+      "why_do_you_want_to_choose_this_party_ple": null,
+      "which_issues_are_most_important_in_your_": null,
+      "on_a_scale_of_1_to_10_how_satisfied_are_": null,
+      "do_you_agree_that_bengal_needs_a_change": null,
+      "in_your_opinion_who_would_be_best_as_chi": null,
+      "what_is_the_biggest_problem_in_bengal_th": null,
+      "what_is_your_age": null,
+      "what_is_your_gender": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "83378b1f-5394-4e7e-899e-feda7dfdba85",
+    "timestamp": "2026-02-09T04:50:47.268Z",
+    "duration": 134,
+    "language": "bn",
+    "autoDetectLanguage": true,
+    "status": "completed",
+    "summary": "The respondent was unable to be surveyed due to language barriers. Despite attempts by the interviewer to conduct the interview in Hindi, English, and Bengali, the respondent did not cooperate and the call was terminated without collecting any survey data.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "foreign you"
+      },
+      {
+        "role": "assistant",
+        "content": "I appreciate you picking up! Let me just confirm — are you able to speak with me for a few minutes about the upcoming Bengal elections?"
+      },
+      {
+        "role": "user",
+        "content": "I don't know English. Can you speak to me in Hindi, please?"
+      },
+      {
+        "role": "assistant",
+        "content": "जी बिल्कुल! मैं आपसे हिंदी में ही बात करती हूँ। क्या आप बंगाल चुनावों के बारे में कुछ सवालों के जवाब देने के लिए तैयार हैं?"
+      },
+      {
+        "role": "user",
+        "content": "- Whatever."
+      },
+      {
+        "role": "assistant",
+        "content": "ठीक है, धन्यवाद! तो बताइए, क्या आप बंगाल की राजनीति और चुनावों में रुचि रखते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "No Hindi, only English. I know English."
+      },
+      {
+        "role": "assistant",
+        "content": "Oh, I apologize for the confusion! No problem at all — let's continue in English then. Are you interested in Bengal politics and elections?"
+      },
+      {
+        "role": "user",
+        "content": "I don't know English. Can you talk to me in Bengali, please? No English, only Bengali."
+      },
+      {
+        "role": "assistant",
+        "content": "ঠিক আছে! আমি আপনার সাথে বাংলায় কথা বলব। বাংলা নির্বাচন সম্পর্কে কিছু প্রশ্নের উত্তর দিতে আপনি প্রস্তুত আছেন?"
+      },
+      {
+        "role": "user",
+        "content": "Nah, nah Bangla."
+      },
+      {
+        "role": "assistant",
+        "content": "ঠিক আছে, ধন্যবাদ আপনার সময়ের জন্য। আপনাকে কল করার জন্য আমরা কৃতজ্ঞ।"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_interested_in_bengal_politics_an": null,
+      "how_likely_are_you_to_vote_in_the_2026_b": null,
+      "what_are_the_most_important_issues_for_y": null,
+      "how_satisfied_are_you_with_the_work_of_t": null,
+      "do_you_agree_that_bengal_needs_change": null,
+      "what_influences_your_decision_the_most_w": null,
+      "in_your_opinion_what_is_most_important_f": null,
+      "on_a_scale_of_0_to_10_how_likely_are_you": null,
+      "what_is_your_age": null,
+      "what_is_your_gender": null
+    },
+    "sentiment": {
+      "overall": "negative",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "becfdb16-c19e-422d-8756-be0a405cd62b",
+    "timestamp": "2026-02-09T04:53:38.091Z",
+    "duration": 66,
+    "language": "hi",
+    "autoDetectLanguage": true,
+    "status": "completed",
+    "summary": "Survey could not be completed due to language barrier and communication difficulties. The respondent was unable to provide clear responses to the survey questions.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "No English, only Hindi."
+      },
+      {
+        "role": "assistant",
+        "content": "नमस्ते! मैं VoxBharat की ओर से बंगाल चुनाव 2026 के बारे में एक सर्वेक्षण कर रही हूँ। क्या आप मुझसे कुछ मिनट बात कर सकते हैं?"
+      },
+      {
+        "role": "user",
+        "content": "foreign"
+      },
+      {
+        "role": "assistant",
+        "content": "जी, कोई बात नहीं! तो क्या आप इस सर्वेक्षण में भाग लेना चाहेंगे?"
+      },
+      {
+        "role": "user",
+        "content": "you Thank who phone, get a carter,"
+      },
+      {
+        "role": "assistant",
+        "content": "धन्यवाद! तो क्या आप बंगाल की राजनीति और चुनावों में रुचि रखते हैं?"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_interested_in_bengal_politics_an": null,
+      "how_likely_are_you_to_vote_in_the_2026_b": null,
+      "what_are_the_most_important_issues_for_y": null,
+      "how_satisfied_are_you_with_the_work_of_t": null,
+      "do_you_agree_that_bengal_needs_change": null,
+      "what_influences_your_decision_the_most_w": null,
+      "in_your_opinion_what_is_most_important_f": null,
+      "on_a_scale_of_0_to_10_how_likely_are_you": null,
+      "what_is_your_age": null,
+      "what_is_your_gender": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "061758c0-3f6b-4024-af5f-4bf735cedf89",
+    "timestamp": "2026-02-09T05:21:04.148Z",
+    "duration": 30,
+    "language": "en",
+    "autoDetectLanguage": true,
+    "status": "completed",
+    "summary": "The respondent initiated the survey but declined to continue after the first question was asked, providing no substantive responses.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Okay, yeah, sure, go ahead."
+      },
+      {
+        "role": "assistant",
+        "content": "Great, thank you so much! Let me start with the first question: Are you planning to vote in the next Bengal Legislative Assembly election in 2026?"
+      },
+      {
+        "role": "user",
+        "content": "So... Stop."
+      },
+      {
+        "role": "assistant",
+        "content": "Of course, I completely understand. Thank you so much for your time, and I really appreciate you taking this call. Have a great day!"
+      },
+      {
+        "role": "user",
+        "content": "Why did you ask the question?"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_planning_to_vote_in_the_next_ben": null,
+      "what_is_the_most_important_issue_for_you": null,
+      "on_a_scale_of_1_to_10_how_would_you_rate": null,
+      "in_which_areas_do_you_feel_the_most_impr": null,
+      "do_you_agree_that_there_are_sufficient_e": null,
+      "in_your_opinion_which_party_has_the_best": null,
+      "if_you_could_ask_for_one_change_from_the": null,
+      "do_you_believe_that_your_voice_and_vote_": null,
+      "what_is_your_age": null,
+      "what_is_your_gender": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
+  },
+  {
+    "id": "17aba640-967b-44ee-89f0-aa6327a38d60",
+    "timestamp": "2026-02-12T03:56:07.213Z",
+    "duration": 187,
+    "language": "en",
+    "autoDetectLanguage": false,
+    "status": "completed",
+    "summary": "The respondent is an occasional Bollywood viewer who primarily watches on streaming platforms and considers Hrithik Roshan (rated 9.5/10) the hottest actor due to his looks, personality, and physique, valuing both physical appearance and personality traits in actors.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "That's funny. What do you want to know?"
+      },
+      {
+        "role": "assistant",
+        "content": "Great! Thanks so much. Let me start with this — how often do you watch Bollywood movies?"
+      },
+      {
+        "role": "user",
+        "content": "Not that often. I don't think I'm a great person for this."
+      },
+      {
+        "role": "assistant",
+        "content": "No worries at all — your opinion is still valuable! Let me ask, where do you usually watch Bollywood movies when you do — in theaters, on streaming platforms, or somewhere else?"
+      },
+      {
+        "role": "user",
+        "content": "Mostly on streaming platforms to be honest."
+      },
+      {
+        "role": "assistant",
+        "content": "Perfect, that makes sense. So what's your all-time favorite Bollywood movie — just tell me the first name that comes to mind?"
+      },
+      {
+        "role": "user",
+        "content": "I use a lot of Netflix, Amazon, Hotstar."
+      },
+      {
+        "role": "assistant",
+        "content": "Got it! And thinking of a specific movie you love — what's one that really stands out for you?"
+      },
+      {
+        "role": "user",
+        "content": "Um..."
+      },
+      {
+        "role": "assistant",
+        "content": "Take your time — just whatever comes to mind first!"
+      },
+      {
+        "role": "user",
+        "content": "Student of the Year."
+      },
+      {
+        "role": "assistant",
+        "content": "Oh nice, Student of the Year — great choice! Now, when you think of a 'hot' actor, what qualities matter most to you?"
+      },
+      {
+        "role": "user",
+        "content": "just felt relatable to me."
+      },
+      {
+        "role": "assistant",
+        "content": "That's cool! So when it comes to what makes an actor 'hot,' what matters most to you — is it their looks, their acting ability, their personality, their style, or something else?"
+      },
+      {
+        "role": "user",
+        "content": "Definitely their looks, they have to be attractive. - Whatever."
+      },
+      {
+        "role": "user",
+        "content": "for me to find them hot."
+      },
+      {
+        "role": "assistant",
+        "content": "Got it — looks definitely matter! So who do you think is the hottest actor in Bollywood right now in 2025?"
+      },
+      {
+        "role": "user",
+        "content": "And of course, the personality as well. I mean, as long as they're well-spoken."
+      },
+      {
+        "role": "assistant",
+        "content": "Absolutely, that makes sense! So with that in mind — who would you say is the hottest actor in Bollywood right now in 2025?"
+      },
+      {
+        "role": "user",
+        "content": "I'll say probably Ritik Roshan."
+      },
+      {
+        "role": "assistant",
+        "content": "Great choice! On a scale of 1 to 10, how hot do you think Hrithik Roshan is?"
+      },
+      {
+        "role": "user",
+        "content": "I'll say."
+      },
+      {
+        "role": "user",
+        "content": "Nine and a half."
+      },
+      {
+        "role": "assistant",
+        "content": "Nine and a half — that's high! Can you tell me what makes Hrithik Roshan the hottest in your opinion — what stands out about him?"
+      },
+      {
+        "role": "user",
+        "content": "I mean, like I said earlier, right?"
+      },
+      {
+        "role": "assistant",
+        "content": "Sure! So just to wrap that up — what specifically about him stands"
+      },
+      {
+        "role": "user",
+        "content": "personality is great he's got a great body"
+      },
+      {
+        "role": "user",
+        "content": "All."
+      },
+      {
+        "role": "assistant",
+        "content": "Perfect! Have you seen any movie featuring Hrithik Roshan in the last six months?"
+      },
+      {
+        "role": "user",
+        "content": "He's also got six fingers, right?"
+      },
+      {
+        "role": "assistant",
+        "content": "Ha, interesting! But have you seen any of his movies in"
+      },
+      {
+        "role": "user",
+        "content": "That's always helpful."
+      },
+      {
+        "role": "assistant",
+        "content": "Great — so have you watched any Hrithik Roshan movies recently, in the last six months?"
+      },
+      {
+        "role": "user",
+        "content": "I really watch Chris."
+      },
+      {
+        "role": "user",
+        "content": "I remember that one."
+      },
+      {
+        "role": "assistant",
+        "content": "Okay! What's your age, if you don't mind sharing?"
+      },
+      {
+        "role": "user",
+        "content": "I don't think you should..."
+      },
+      {
+        "role": "user",
+        "content": "ask this question."
+      },
+      {
+        "role": "assistant",
+        "content": "I understand — no problem! Last question — what's your gender?"
+      },
+      {
+        "role": "user",
+        "content": "I'm gender fluid."
+      },
+      {
+        "role": "assistant",
+        "content": "Thank you so much for taking the time to chat with me today — I really appreciate your honest answers! Have a great day!"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "how_often_do_you_watch_bollywood_movies": "Rarely or never",
+      "where_do_you_usually_watch_bollywood_mov": "Streaming platforms (Netflix, Amazon, Hotstar)",
+      "what_s_your_all_time_favorite_bollywood_": "Student of the Year",
+      "when_you_think_of_a_hot_actor_what_quali": "Physical appearance and looks",
+      "who_do_you_think_is_the_hottest_actor_in": "Hrithik Roshan",
+      "on_a_scale_of_1_to_10_how_hot_do_you_thi": 9.5,
+      "can_you_tell_me_what_makes_this_actor_th": "Great personality, great body, attractive looks",
+      "have_you_seen_any_movie_featuring_this_a": "Chris (unclear/partial response)",
+      "what_is_your_age": null,
+      "what_is_your_gender": "Other"
+    },
+    "sentiment": {
+      "overall": "positive",
+      "engagement": "medium"
+    }
+  },
+  {
+    "id": "bf845640-727a-4eeb-915f-efbf57f9377f",
+    "timestamp": "2026-02-13T21:25:41.201Z",
+    "duration": 57,
+    "language": "en",
+    "autoDetectLanguage": false,
+    "status": "completed",
+    "summary": "Respondent confirmed they will vote in the Bengal elections but showed minimal engagement with the survey, providing vague or non-committal responses to most questions.",
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Yeah, sure. What's up?"
+      },
+      {
+        "role": "assistant",
+        "content": "Great, thank you! Let me start with my first question: Are you planning to vote in the upcoming Bengal elections?"
+      },
+      {
+        "role": "user",
+        "content": "Yes, I'll be voting."
+      },
+      {
+        "role": "assistant",
+        "content": "Wonderful! How would you describe your interest in the upcoming Bengal elections?"
+      },
+      {
+        "role": "user",
+        "content": "Why do you want to know this?"
+      },
+      {
+        "role": "assistant",
+        "content": "That's a fair question! We're just trying to understand how people in Bengal feel about the elections. Your feedback helps us get a better picture of what matters to voters like you.\n\nSo, how would you describe your interest in the upcoming Bengal elections?"
+      },
+      {
+        "role": "user",
+        "content": "Okay."
+      },
+      {
+        "role": "assistant",
+        "content": "Thank you! What are the most important issues influencing your vote? You can mention up to three."
+      },
+      {
+        "role": "user",
+        "content": "- Whatever."
+      },
+      {
+        "role": "assistant",
+        "content": "Got it, thanks for that. How satisfied are you with the current state government's performance?"
+      }
+    ],
+    "demographics": null,
+    "structured": null,
+    "responses": {
+      "are_you_planning_to_vote_in_the_upcoming": "Yes",
+      "how_would_you_describe_your_interest_in_": null,
+      "what_are_the_most_important_issues_influ": null,
+      "how_satisfied_are_you_with_the_current_s": null,
+      "on_a_scale_of_1_to_10_how_would_you_rate": null,
+      "have_you_made_up_your_mind_about_which_p": null,
+      "what_is_the_one_change_you_would_most_li": null,
+      "on_a_scale_of_0_to_10_how_likely_are_you": null,
+      "what_is_your_age": null,
+      "what_is_your_gender": null
+    },
+    "sentiment": {
+      "overall": "neutral",
+      "engagement": "low"
+    }
   }
 ]
