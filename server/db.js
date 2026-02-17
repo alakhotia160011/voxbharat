@@ -2,6 +2,7 @@
 // Uses DATABASE_URL env var (auto-injected by Railway Postgres add-on)
 
 import pg from 'pg';
+import bcrypt from 'bcryptjs';
 const { Pool } = pg;
 
 let pool = null;
@@ -22,6 +23,16 @@ export async function initDb() {
     ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
     max: 10,
   });
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS calls (
@@ -51,8 +62,43 @@ export async function initDb() {
     );
   `);
 
-  console.log('✓ Postgres connected, calls table ready');
+  console.log('✓ Postgres connected, users + calls tables ready');
   return true;
+}
+
+// ─── User Auth ───────────────────────────────────────────
+
+export async function createUser(email, password, name) {
+  if (!pool) throw new Error('Database unavailable');
+  const hash = await bcrypt.hash(password, 12);
+  const { rows } = await pool.query(
+    `INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3)
+     RETURNING id, email, name, created_at`,
+    [email.toLowerCase(), hash, name || null]
+  );
+  return rows[0];
+}
+
+export async function verifyUser(email, password) {
+  if (!pool) return null;
+  const { rows } = await pool.query(
+    'SELECT id, email, password_hash, name FROM users WHERE email = $1',
+    [email.toLowerCase()]
+  );
+  if (rows.length === 0) return null;
+  const user = rows[0];
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) return null;
+  return { id: user.id, email: user.email, name: user.name };
+}
+
+export async function getUserByEmail(email) {
+  if (!pool) return null;
+  const { rows } = await pool.query(
+    'SELECT id, email, name, created_at FROM users WHERE email = $1',
+    [email.toLowerCase()]
+  );
+  return rows[0] || null;
 }
 
 /**
@@ -148,6 +194,7 @@ export async function getAllCalls() {
            demographics->>'age' as age,
            demographics->>'ageGroup' as age_group,
            demographics->>'religion' as religion,
+           custom_survey->>'name' as survey_name,
            recording_url, recording_duration
     FROM calls
     WHERE status = 'completed'
@@ -267,6 +314,86 @@ export async function exportCallsCsv() {
   ].join('\n');
 
   return csv;
+}
+
+/**
+ * Get all survey projects (grouped by survey name) with summary stats
+ */
+export async function getProjects() {
+  if (!pool) return [];
+
+  const { rows } = await pool.query(`
+    SELECT
+      COALESCE(custom_survey->>'name', 'Voice Survey') as project_name,
+      COUNT(*) as call_count,
+      SUM(duration) as total_duration,
+      ROUND(AVG(duration)) as avg_duration,
+      MIN(started_at) as first_call,
+      MAX(started_at) as last_call,
+      array_agg(DISTINCT language) FILTER (WHERE language IS NOT NULL) as languages
+    FROM calls
+    WHERE status = 'completed'
+    GROUP BY COALESCE(custom_survey->>'name', 'Voice Survey')
+    ORDER BY MAX(started_at) DESC
+  `);
+
+  return rows;
+}
+
+/**
+ * Get all calls for a specific project (by survey name)
+ */
+export async function getProjectCalls(projectName) {
+  if (!pool) return [];
+
+  const { rows } = await pool.query(`
+    SELECT id, started_at as timestamp, duration, language, status, summary,
+           demographics->>'age' as age,
+           demographics->>'ageGroup' as age_group,
+           demographics->>'religion' as religion,
+           recording_url, recording_duration
+    FROM calls
+    WHERE status = 'completed'
+      AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+    ORDER BY started_at DESC
+  `, [projectName]);
+
+  return rows;
+}
+
+/**
+ * Get aggregate analytics for a specific project
+ */
+export async function getProjectAnalytics(projectName) {
+  if (!pool) return null;
+
+  const filter = `status = 'completed' AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1`;
+
+  const [
+    totalResult,
+    byLanguageResult,
+    byAgeGroupResult,
+    byReligionResult,
+    avgDurationResult,
+    sentimentResult,
+  ] = await Promise.all([
+    pool.query(`SELECT COUNT(*) as count FROM calls WHERE ${filter}`, [projectName]),
+    pool.query(`SELECT language, COUNT(*) as count FROM calls WHERE ${filter} GROUP BY language`, [projectName]),
+    pool.query(`SELECT demographics->>'ageGroup' as age_group, COUNT(*) as count FROM calls WHERE ${filter} AND demographics IS NOT NULL GROUP BY demographics->>'ageGroup' ORDER BY age_group`, [projectName]),
+    pool.query(`SELECT demographics->>'religion' as religion, COUNT(*) as count FROM calls WHERE ${filter} AND demographics IS NOT NULL GROUP BY demographics->>'religion'`, [projectName]),
+    pool.query(`SELECT ROUND(AVG(duration)) as avg_duration, SUM(duration) as total_duration FROM calls WHERE ${filter}`, [projectName]),
+    pool.query(`SELECT sentiment->>'overall' as overall, COUNT(*) as count FROM calls WHERE ${filter} AND sentiment IS NOT NULL GROUP BY sentiment->>'overall'`, [projectName]),
+  ]);
+
+  return {
+    totalCalls: parseInt(totalResult.rows[0].count, 10),
+    avgDuration: parseInt(avgDurationResult.rows[0].avg_duration, 10) || 0,
+    totalDuration: parseInt(avgDurationResult.rows[0].total_duration, 10) || 0,
+    byLanguage: byLanguageResult.rows,
+    byAgeGroup: byAgeGroupResult.rows,
+    byReligion: byReligionResult.rows,
+    sentimentBreakdown: sentimentResult.rows,
+  };
 }
 
 /**

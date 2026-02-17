@@ -17,10 +17,15 @@ import FullSurveyBuilder from './components/survey-builder/FullSurveyBuilder';
 import HowItWorksPage from './components/pages/HowItWorksPage';
 import DataPolicyPage from './components/pages/DataPolicyPage';
 import AboutPage, { FaqsPage } from './components/pages/AboutPage';
+import DashboardPage from './components/pages/DashboardPage';
+import SecretHitler from './SecretHitler';
 
 export default function VoxBharat() {
   const [showBuilder, setShowBuilder] = useState(false);
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return hash || 'home';
+  });
   const [showSampleReport, setShowSampleReport] = useState(false);
   const [showSampleCallLog, setShowSampleCallLog] = useState(false);
 
@@ -63,6 +68,18 @@ export default function VoxBharat() {
     return (
       <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
         <FaqsPage navigateTo={navigateTo} />
+      </PageShell>
+    );
+  }
+
+  if (currentPage === 'secret-hitler') {
+    return <SecretHitler />;
+  }
+
+  if (currentPage === 'dashboard') {
+    return (
+      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+        <DashboardPage setShowBuilder={setShowBuilder} />
       </PageShell>
     );
   }

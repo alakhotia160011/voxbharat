@@ -17,8 +17,15 @@ import {
   createCall, getCall, getCallByStreamSid, updateCall,
   getActiveCalls, removeCall, saveCallToFile
 } from './call-store.js';
-import { initDb, updateCallRecording } from './db.js';
+import {
+  initDb, updateCallRecording, isDbReady,
+  getAllCalls, getCallById, getAnalytics,
+  exportCallsJson, exportCallsCsv, deleteCall,
+  getProjects, getProjectCalls, getProjectAnalytics,
+  createUser, verifyUser, getUserByEmail
+} from './db.js';
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting } from './survey-scripts.js';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,6 +40,7 @@ const TWILIO_PHONE = process.env.TWILIO_PHONE_NUMBER;
 const CARTESIA_KEY = process.env.CARTESIA_API_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
+const JWT_SECRET = process.env.JWT_SECRET || 'voxbharat_default_jwt_secret_change_me';
 
 // Validate config
 const missing = [];
@@ -427,6 +435,135 @@ app.post('/call/:id/end', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// ============================================
+// Dashboard Auth + Survey / Analytics API
+// ============================================
+
+const requireDb = (req, res, next) => {
+  if (!isDbReady()) return res.status(503).json({ error: 'Database unavailable' });
+  next();
+};
+
+const requireAuth = (req, res, next) => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const decoded = jwt.verify(header.slice(7), JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
+
+// Signup endpoint
+app.post('/api/signup', requireDb, async (req, res) => {
+  const { email, password, name } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+  try {
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      return res.status(409).json({ error: 'An account with this email already exists' });
+    }
+    const user = await createUser(email, password, name);
+    const token = jwt.sign({ email: user.email, id: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, email: user.email, name: user.name });
+  } catch (e) {
+    res.status(500).json({ error: 'Signup failed' });
+  }
+});
+
+// Login endpoint
+app.post('/api/login', requireDb, async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  try {
+    const user = await verifyUser(email, password);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const token = jwt.sign({ email: user.email, id: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, email: user.email, name: user.name });
+  } catch (e) {
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Verify token endpoint
+app.get('/api/me', requireAuth, (req, res) => {
+  res.json({ email: req.user.email });
+});
+
+app.get('/api/surveys', requireAuth, requireDb, async (req, res) => {
+  try { res.json(await getAllCalls()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/surveys/:id', requireAuth, requireDb, async (req, res) => {
+  try {
+    const survey = await getCallById(req.params.id);
+    if (!survey) return res.status(404).json({ error: 'Not found' });
+    res.json(survey);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/analytics', requireAuth, requireDb, async (req, res) => {
+  try { res.json(await getAnalytics()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/export/json', requireAuth, requireDb, async (req, res) => {
+  try {
+    res.setHeader('Content-Disposition', 'attachment; filename=voxbharat-export.json');
+    res.json(await exportCallsJson());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/export/csv', requireAuth, requireDb, async (req, res) => {
+  try {
+    const csv = await exportCallsCsv();
+    if (!csv) return res.status(404).json({ error: 'No data' });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=voxbharat-export.csv');
+    res.send(csv);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/surveys/:id', requireAuth, requireDb, async (req, res) => {
+  try {
+    const ok = await deleteCall(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/projects', requireAuth, requireDb, async (req, res) => {
+  try { res.json(await getProjects()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/projects/:name/calls', requireAuth, requireDb, async (req, res) => {
+  try { res.json(await getProjectCalls(req.params.name)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/projects/:name/analytics', requireAuth, requireDb, async (req, res) => {
+  try {
+    const analytics = await getProjectAnalytics(req.params.name);
+    if (!analytics) return res.status(404).json({ error: 'No data' });
+    res.json(analytics);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ============================================
