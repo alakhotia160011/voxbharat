@@ -18,7 +18,7 @@ import HowItWorksPage from './components/pages/HowItWorksPage';
 import DataPolicyPage from './components/pages/DataPolicyPage';
 import AboutPage, { FaqsPage } from './components/pages/AboutPage';
 import DashboardPage from './components/pages/DashboardPage';
-import SecretHitler from './SecretHitler';
+
 
 export default function VoxBharat() {
   const [showBuilder, setShowBuilder] = useState(false);
@@ -72,11 +72,7 @@ export default function VoxBharat() {
     );
   }
 
-  if (currentPage === 'secret-hitler') {
-    return <SecretHitler />;
-  }
-
-  if (currentPage === 'dashboard') {
+if (currentPage === 'dashboard') {
     return (
       <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
         <DashboardPage setShowBuilder={setShowBuilder} />
