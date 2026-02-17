@@ -17,6 +17,7 @@ import {
   createCall, getCall, getCallByStreamSid, updateCall,
   getActiveCalls, removeCall, saveCallToFile
 } from './call-store.js';
+import { initDb, updateCallRecording } from './db.js';
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting } from './survey-scripts.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -392,6 +393,11 @@ app.post('/call/recording-callback', (req, res) => {
     recordingSid: RecordingSid,
     recordingUrl,
     recordingDuration: durationSec,
+  });
+
+  // Also persist to Postgres (call may already be cleaned up from memory)
+  updateCallRecording(callId, RecordingSid, recordingUrl, durationSec).catch(err => {
+    console.error(`[Recording] Postgres update failed for ${callId}:`, err.message);
   });
 });
 
@@ -1096,10 +1102,10 @@ async function handleCallEnd(callId, reason) {
       const data = await session.conversation.extractData();
       updateCall(callId, { extractedData: data });
 
-      // Save to file
-      saveCallToFile(getCall(callId));
+      // Save to Postgres
+      await saveCallToFile(getCall(callId));
       updateCall(callId, { status: 'saved' });
-      console.log(`[Call:${callId}] Survey saved to call-results.json`);
+      console.log(`[Call:${callId}] Survey saved to Postgres`);
     } catch (error) {
       console.error(`[Call:${callId}] Extraction/save error:`, error.message);
     }
@@ -1129,8 +1135,10 @@ function cleanupSession(callId) {
 // Start Server
 // ============================================
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`
+// Initialize Postgres, then start server
+initDb().then(() => {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`
   ╔═══════════════════════════════════════════════╗
   ║     VoxBharat Call Server Running             ║
   ║     http://localhost:${PORT}                      ║
@@ -1144,5 +1152,9 @@ server.listen(PORT, '0.0.0.0', () => {
   ╠═══════════════════════════════════════════════╣
   ║  Public URL: ${PUBLIC_URL.padEnd(32)}║
   ╚═══════════════════════════════════════════════╝
-  `);
+    `);
+  });
+}).catch(err => {
+  console.error('Failed to initialize database:', err.message);
+  process.exit(1);
 });

@@ -1,12 +1,6 @@
-// In-memory call state + JSON file persistence (no native deps)
+// In-memory call state + Postgres persistence
 import { v4 as uuidv4 } from 'uuid';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const DATA_FILE = join(__dirname, 'call-results.json');
+import { saveCall } from './db.js';
 
 // Active calls stored in memory
 const activeCalls = new Map();
@@ -99,43 +93,8 @@ export function removeCall(id) {
 }
 
 /**
- * Save completed call data to JSON file
+ * Save completed call data to Postgres
  */
-export function saveCallToFile(call) {
-  if (!call.extractedData) return;
-
-  const duration = call.connectedAt && call.endedAt
-    ? Math.round((new Date(call.endedAt) - new Date(call.connectedAt)) / 1000)
-    : null;
-
-  const record = {
-    id: call.id,
-    timestamp: call.startedAt,
-    duration,
-    language: call.detectedLanguage || call.language,
-    autoDetectLanguage: call.autoDetectLanguage || false,
-    status: 'completed',
-    summary: call.extractedData.summary || '',
-    transcript: call.transcript,
-    demographics: call.extractedData.demographics || null,
-    structured: call.extractedData.structured || null,
-    responses: call.extractedData.responses || null,
-    sentiment: call.extractedData.sentiment || null,
-    recordingUrl: call.recordingUrl || null,
-    recordingDuration: call.recordingDuration || null,
-  };
-
-  // Read existing data
-  let existing = [];
-  if (existsSync(DATA_FILE)) {
-    try {
-      existing = JSON.parse(readFileSync(DATA_FILE, 'utf-8'));
-    } catch {
-      existing = [];
-    }
-  }
-
-  existing.push(record);
-  writeFileSync(DATA_FILE, JSON.stringify(existing, null, 2));
-  return call.id;
+export async function saveCallToFile(call) {
+  return saveCall(call);
 }
