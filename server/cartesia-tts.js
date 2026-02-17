@@ -1,7 +1,10 @@
 // Cartesia TTS client - generates speech audio from text
+// Supports both HTTP POST (batch) and WebSocket streaming (low-latency)
 import { pcm16kToMulaw } from './audio-convert.js';
+import { WebSocket } from 'ws';
 
 const CARTESIA_TTS_URL = 'https://api.cartesia.ai/tts/bytes';
+const CARTESIA_TTS_WS_URL = 'wss://api.cartesia.ai/tts/websocket';
 
 // Voice IDs matching the frontend
 const VOICES = {
@@ -26,14 +29,7 @@ const VOICES = {
 };
 
 /**
- * Generate TTS audio and return as mulaw base64 chunks for Twilio streaming
- * @param {string} text - Text to speak
- * @param {string} language - 'hi' or 'bn'
- * @param {string} gender - 'male' or 'female'
- * @param {string} apiKey - Cartesia API key
- * @param {object} options - Optional TTS settings
- * @param {number} options.speed - Speech speed 0.6-1.5 (default 0.85)
- * @returns {Promise<string>} base64 mulaw audio
+ * Generate TTS audio via HTTP POST (batch, used for greeting pre-cache)
  */
 export async function generateSpeech(text, language, gender, apiKey, options = {}) {
   const voiceKey = `${language}_${gender}`;
@@ -42,7 +38,7 @@ export async function generateSpeech(text, language, gender, apiKey, options = {
     throw new Error(`No voice found for ${voiceKey}`);
   }
 
-  const speed = options.speed ?? 0.85;
+  const speed = options.speed ?? 1.0;
 
   const response = await fetch(CARTESIA_TTS_URL, {
     method: 'POST',
@@ -70,19 +66,12 @@ export async function generateSpeech(text, language, gender, apiKey, options = {
     throw new Error(`Cartesia TTS error ${response.status}: ${errorText}`);
   }
 
-  // Get raw PCM s16le 16kHz audio
   const pcmBuffer = Buffer.from(await response.arrayBuffer());
-
-  // Convert to mulaw 8kHz for Twilio
   return pcm16kToMulaw(pcmBuffer);
 }
 
 /**
- * Split mulaw base64 audio into chunks suitable for Twilio streaming
- * Twilio expects ~20ms chunks of mulaw at 8kHz = 160 bytes per chunk
- * @param {string} mulawBase64 - Full mulaw audio as base64
- * @param {number} chunkSize - Bytes per chunk (default 160 = 20ms at 8kHz)
- * @returns {string[]} Array of base64 chunks
+ * Split mulaw base64 audio into Twilio-sized chunks (160 bytes = 20ms at 8kHz)
  */
 export function chunkAudio(mulawBase64, chunkSize = 160) {
   const rawBuf = Buffer.from(mulawBase64, 'base64');
@@ -94,6 +83,148 @@ export function chunkAudio(mulawBase64, chunkSize = 160) {
   }
 
   return chunks;
+}
+
+/**
+ * Persistent WebSocket TTS connection for streaming audio with minimal latency.
+ * Streams PCM chunks from Cartesia → converts to mulaw → yields base64 chunks for Twilio.
+ */
+export class CartesiaTTSStream {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.ws = null;
+    this.connected = false;
+    this.pendingRequests = new Map(); // context_id → { resolve, reject, chunks }
+    this.contextCounter = 0;
+  }
+
+  async connect() {
+    if (this.connected) return;
+
+    const url = `${CARTESIA_TTS_WS_URL}?api_key=${this.apiKey}&cartesia_version=2025-11-04`;
+
+    return new Promise((resolve, reject) => {
+      this.ws = new WebSocket(url);
+
+      this.ws.on('open', () => {
+        this.connected = true;
+        resolve();
+      });
+
+      this.ws.on('message', (data) => {
+        try {
+          const msg = JSON.parse(data.toString());
+          const ctx = msg.context_id;
+          const pending = this.pendingRequests.get(ctx);
+          if (!pending) return;
+
+          if (msg.type === 'chunk' && msg.data) {
+            // PCM s16le 16kHz chunk from Cartesia → convert to mulaw 8kHz for Twilio
+            const pcmBuffer = Buffer.from(msg.data, 'base64');
+            const mulawBase64 = pcm16kToMulaw(pcmBuffer);
+            // Split into 160-byte Twilio chunks and push
+            const twilioChunks = chunkAudio(mulawBase64);
+            for (const chunk of twilioChunks) {
+              pending.chunks.push(chunk);
+            }
+            // Signal that new chunks are available
+            if (pending.onChunk) pending.onChunk();
+          } else if (msg.type === 'done') {
+            pending.done = true;
+            if (pending.onChunk) pending.onChunk();
+          } else if (msg.type === 'error') {
+            pending.error = msg.message || 'TTS streaming error';
+            pending.done = true;
+            if (pending.onChunk) pending.onChunk();
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      });
+
+      this.ws.on('error', (err) => {
+        this.connected = false;
+        reject(err);
+      });
+
+      this.ws.on('close', () => {
+        this.connected = false;
+        // Reject all pending requests
+        for (const [, pending] of this.pendingRequests) {
+          pending.done = true;
+          if (pending.onChunk) pending.onChunk();
+        }
+      });
+    });
+  }
+
+  /**
+   * Stream TTS audio as an async iterator of base64 mulaw Twilio chunks.
+   * Yields chunks as they arrive from Cartesia — no waiting for full audio.
+   */
+  async *streamSpeech(text, language, gender, options = {}) {
+    if (!this.connected) {
+      await this.connect();
+    }
+
+    const voiceKey = `${language}_${gender}`;
+    const voiceId = VOICES[voiceKey];
+    if (!voiceId) {
+      throw new Error(`No voice found for ${voiceKey}`);
+    }
+
+    const speed = options.speed ?? 1.0;
+    const contextId = `ctx_${++this.contextCounter}_${Date.now()}`;
+
+    const pending = { chunks: [], done: false, error: null, onChunk: null };
+    this.pendingRequests.set(contextId, pending);
+
+    // Send TTS request
+    this.ws.send(JSON.stringify({
+      model_id: 'sonic-3',
+      transcript: text,
+      voice: { mode: 'id', id: voiceId },
+      language: language,
+      context_id: contextId,
+      output_format: {
+        container: 'raw',
+        encoding: 'pcm_s16le',
+        sample_rate: 16000,
+      },
+      generation_config: { speed },
+    }));
+
+    // Yield chunks as they arrive
+    try {
+      while (true) {
+        // Drain any available chunks
+        while (pending.chunks.length > 0) {
+          yield pending.chunks.shift();
+        }
+
+        if (pending.error) {
+          throw new Error(pending.error);
+        }
+
+        if (pending.done) break;
+
+        // Wait for next chunk notification
+        await new Promise(resolve => {
+          pending.onChunk = resolve;
+        });
+      }
+    } finally {
+      this.pendingRequests.delete(contextId);
+    }
+  }
+
+  close() {
+    if (this.ws) {
+      this.connected = false;
+      try { this.ws.close(); } catch {}
+      this.ws = null;
+    }
+  }
 }
 
 export { VOICES };
