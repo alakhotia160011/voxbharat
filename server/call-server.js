@@ -26,6 +26,7 @@ import {
 } from './db.js';
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -41,6 +42,27 @@ const CARTESIA_KEY = process.env.CARTESIA_API_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 const JWT_SECRET = process.env.JWT_SECRET || 'voxbharat_default_jwt_secret_change_me';
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+const NOTIFY_EMAIL = 'ary.lakhoti@gmail.com';
+
+const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
+  ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } })
+  : null;
+
+async function notifySignup(email, name) {
+  if (!mailTransport) return;
+  try {
+    await mailTransport.sendMail({
+      from: `VoxBharat <${GMAIL_USER}>`,
+      to: NOTIFY_EMAIL,
+      subject: `New VoxBharat signup: ${email}`,
+      text: `New user signed up:\n\nEmail: ${email}\nName: ${name || '(not provided)'}\nTime: ${new Date().toISOString()}`,
+    });
+  } catch (e) {
+    console.error('Signup notification email failed:', e.message);
+  }
+}
 
 // Validate config
 const missing = [];
@@ -477,6 +499,7 @@ app.post('/api/signup', requireDb, async (req, res) => {
     const user = await createUser(email, password, name);
     const token = jwt.sign({ email: user.email, id: user.id }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, email: user.email, name: user.name });
+    notifySignup(email, name);
   } catch (e) {
     res.status(500).json({ error: 'Signup failed' });
   }
