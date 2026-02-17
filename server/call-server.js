@@ -10,7 +10,7 @@ import twilio from 'twilio';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mulawToPcm16k, pcm16kToMulaw } from './audio-convert.js';
-import { generateSpeech, chunkAudio } from './cartesia-tts.js';
+import { generateSpeech, chunkAudio, CartesiaTTSStream } from './cartesia-tts.js';
 import { CartesiaSTT } from './cartesia-stt.js';
 import { ClaudeConversation } from './claude-conversation.js';
 import {
@@ -279,7 +279,7 @@ app.post('/call/initiate', async (req, res) => {
     }
 
     // Fire-and-forget: generate TTS in background while phone rings
-    generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85 })
+    generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 1.0 })
       .then(mulawBase64 => {
         greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
         console.log(`[Call:${call.id}] Greeting audio pre-cached`);
@@ -720,10 +720,15 @@ async function initSession(callId, call, ws, streamSid) {
     autoDetectLanguage: call.autoDetectLanguage || false,
   });
 
+  // Persistent TTS WebSocket for streaming (low-latency)
+  const ttsStream = new CartesiaTTSStream(CARTESIA_KEY);
+  ttsStream.connect().catch(err => console.error(`[TTS:${callId}] Stream connect failed:`, err.message));
+
   // Session object created first so STT callback can reference it
   const sessionObj = {
     conversation,
     stt: null,
+    ttsStream,
     ws,
     streamSid,
     timeout: null,
@@ -859,18 +864,18 @@ async function initSession(callId, call, ws, streamSid) {
         if (sessionObj.isProcessing) return;
 
         // Wait for brief silence after last transcript, then send to Claude
-        // Adaptive silence timer:
-        //  - First response (user saying "yes"/"ok" to participate): 200ms — we know they're just consenting
-        //  - Short utterances (<15 chars, like "haan", "twenty five"): 350ms
-        //  - Normal responses: 600ms
+        // Adaptive silence timer (tuned for low latency):
+        //  - First response (consent): 150ms
+        //  - Short utterances (<15 chars): 250ms
+        //  - Normal responses: 350ms
         const currentText = sessionObj.accumulatedText.join(' ');
         let silenceMs;
         if (!sessionObj.firstResponseDone) {
-          silenceMs = 200; // User is just confirming participation — process fast
+          silenceMs = 150;
         } else if (currentText.length < 15) {
-          silenceMs = 350;
+          silenceMs = 250;
         } else {
-          silenceMs = 600;
+          silenceMs = 350;
         }
         sessionObj.silenceTimer = setTimeout(() => {
           if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
@@ -1065,12 +1070,12 @@ async function processUserSpeech(callId, text) {
         }
       }
 
-      // Split text at natural break points — aggressive splitting for lower latency
-      if (langTagParsed && pendingText.trim().length > 5) {
+      // Split text at natural break points — very aggressive for minimal latency
+      if (langTagParsed && pendingText.trim().length > 2) {
         const trimLen = pendingText.trim().length;
         const sentenceEnd = /[.!?।]\s*$/.test(pendingText);
-        const clauseBreak = trimLen > 30 && /[,;:—]\s*$/.test(pendingText);
-        const longChunk = trimLen > 60; // Force-break long text without punctuation
+        const clauseBreak = trimLen > 20 && /[,;:—]\s*$/.test(pendingText);
+        const longChunk = trimLen > 40;
 
         if (sentenceEnd || clauseBreak || longChunk) {
           const sentence = pendingText.trim();
@@ -1153,7 +1158,9 @@ async function processUserSpeech(callId, text) {
 }
 
 /**
- * Generate TTS for a single sentence and stream to Twilio (no mark event)
+ * Generate TTS for a single sentence and stream to Twilio.
+ * Uses WebSocket streaming for low latency — audio plays as it generates.
+ * Falls back to HTTP POST if streaming fails.
  */
 async function speakSentence(session, text, language) {
   if (!session || session.isEnding || session.interrupted) return;
@@ -1165,8 +1172,31 @@ async function speakSentence(session, text, language) {
   session.recentTtsTexts.push(text);
   if (session.recentTtsTexts.length > 5) session.recentTtsTexts.shift();
 
+  // Try streaming TTS first (lowest latency)
+  if (session.ttsStream?.connected) {
+    try {
+      let chunkCount = 0;
+      for await (const chunk of session.ttsStream.streamSpeech(text, language, gender, { speed: 1.0 })) {
+        if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
+        session.ws.send(JSON.stringify({
+          event: 'media',
+          streamSid: session.streamSid,
+          media: { payload: chunk },
+        }));
+        chunkCount++;
+        if (chunkCount % 40 === 0) {
+          await new Promise(r => setImmediate(r));
+        }
+      }
+      return; // Success — skip HTTP fallback
+    } catch (err) {
+      console.error(`[TTS] Stream error (${language}/${gender}): ${err.message}, falling back to HTTP`);
+    }
+  }
+
+  // Fallback: HTTP POST (used if WebSocket not connected or streaming failed)
   try {
-    const mulawBase64 = await generateSpeech(text, language, gender, CARTESIA_KEY, { speed: 0.85 });
+    const mulawBase64 = await generateSpeech(text, language, gender, CARTESIA_KEY, { speed: 1.0 });
     const chunks = chunkAudio(mulawBase64);
 
     for (let i = 0; i < chunks.length; i++) {
@@ -1176,18 +1206,15 @@ async function speakSentence(session, text, language) {
         streamSid: session.streamSid,
         media: { payload: chunks[i] },
       }));
-      // Yield control every 40 chunks (~800ms audio) so event loop can
-      // process STT callbacks for barge-in detection mid-sentence
       if ((i + 1) % 40 === 0) {
         await new Promise(r => setImmediate(r));
       }
     }
   } catch (error) {
-    console.error(`[TTS] Sentence error (${language}/${gender}): ${error.message}`);
-    // Try English fallback if language-specific voice is unavailable
+    console.error(`[TTS] HTTP error (${language}/${gender}): ${error.message}`);
     if (language !== 'en') {
       try {
-        const fallbackBase64 = await generateSpeech(text, 'en', gender, CARTESIA_KEY, { speed: 0.85 });
+        const fallbackBase64 = await generateSpeech(text, 'en', gender, CARTESIA_KEY, { speed: 1.0 });
         const chunks = chunkAudio(fallbackBase64);
         for (let i = 0; i < chunks.length; i++) {
           if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
@@ -1278,8 +1305,9 @@ function cleanupSession(callId) {
   const session = callSessions.get(callId);
   if (!session) return;
 
-  // Close STT
+  // Close STT and TTS stream
   session.stt?.close();
+  session.ttsStream?.close();
 
   // Clear all timers
   if (session.timeout) clearTimeout(session.timeout);
