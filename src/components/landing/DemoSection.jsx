@@ -172,9 +172,9 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     }
   };
 
-  // Prefetch in batches of 3 to avoid overwhelming the TTS API
+  // Prefetch in batches of 2 to match Cartesia concurrency limit
   const prefetchBatched = async (messages, aiVoiceId, respondentVoiceId, language) => {
-    const BATCH_SIZE = 3;
+    const BATCH_SIZE = 2;
     for (let i = 0; i < messages.length; i += BATCH_SIZE) {
       const batch = messages.slice(i, i + BATCH_SIZE);
       await Promise.allSettled(
