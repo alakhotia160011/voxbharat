@@ -214,6 +214,11 @@ app.post('/call/initiate', async (req, res) => {
       url: `${PUBLIC_URL}/call/twilio-webhook?callId=${call.id}`,
       statusCallback: `${PUBLIC_URL}/call/twilio-status?callId=${call.id}`,
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+      // Record the full call (both sides) for compliance & review
+      record: true,
+      recordingStatusCallback: `${PUBLIC_URL}/call/recording-callback?callId=${call.id}`,
+      recordingStatusCallbackMethod: 'POST',
+      recordingStatusCallbackEvent: ['completed'],
       // Answering Machine Detection — waits for beep before signaling
       machineDetection: 'DetectMessageEnd',
       asyncAmdStatusCallback: `${PUBLIC_URL}/call/amd-callback?callId=${call.id}`,
@@ -366,6 +371,28 @@ app.post('/call/amd-callback', async (req, res) => {
     updateCall(callId, { status: 'voicemail-failed' });
     handleCallEnd(callId, 'voicemail-failed');
   }
+});
+
+// Twilio recording callback — fires when recording is ready
+app.post('/call/recording-callback', (req, res) => {
+  const callId = req.query.callId;
+  const { RecordingSid, RecordingUrl, RecordingDuration, RecordingStatus } = req.body;
+
+  res.sendStatus(200);
+
+  if (!callId || RecordingStatus !== 'completed') return;
+
+  // Twilio recording URL (append .mp3 for direct download)
+  const recordingUrl = `${RecordingUrl}.mp3`;
+  const durationSec = parseInt(RecordingDuration, 10) || null;
+
+  console.log(`[Recording] Call ${callId}: ${recordingUrl} (${durationSec}s)`);
+
+  updateCall(callId, {
+    recordingSid: RecordingSid,
+    recordingUrl,
+    recordingDuration: durationSec,
+  });
 });
 
 // List active calls
