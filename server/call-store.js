@@ -29,6 +29,9 @@ export function createCall(options = {}) {
     status: 'initiating',
     twilioCallSid: null,
     streamSid: null,
+    recordingSid: null,
+    recordingUrl: null,
+    recordingDuration: null,
     startedAt: new Date().toISOString(),
     connectedAt: null,
     endedAt: null,
@@ -118,6 +121,8 @@ export function saveCallToFile(call) {
     structured: call.extractedData.structured || null,
     responses: call.extractedData.responses || null,
     sentiment: call.extractedData.sentiment || null,
+    recordingUrl: call.recordingUrl || null,
+    recordingDuration: call.recordingDuration || null,
   };
 
   // Read existing data
