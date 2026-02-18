@@ -20,6 +20,7 @@ export class ClaudeConversation {
     this.customGreeting = options.customGreeting || null;
     this.messages = [];
     this.isComplete = false;
+    this.lastEmotion = 'content'; // default TTS emotion
 
     if (this.autoDetectLanguage) {
       this.systemPrompt = this.customSurvey
@@ -97,9 +98,10 @@ export class ClaudeConversation {
         this.isComplete = true;
       }
 
-      // Store assistant response (without the completion token)
+      // Store assistant response (without the completion token or metadata tags)
       let cleanText = assistantText.replace('[SURVEY_COMPLETE]', '').trim();
       cleanText = this._parseLanguageTag(cleanText);
+      cleanText = this._parseEmotionTag(cleanText);
       this.messages.push({ role: 'assistant', content: cleanText });
 
       return cleanText;
@@ -119,6 +121,7 @@ export class ClaudeConversation {
         }
         let cleanText = assistantText.replace('[SURVEY_COMPLETE]', '').trim();
         cleanText = this._parseLanguageTag(cleanText);
+        cleanText = this._parseEmotionTag(cleanText);
         this.messages.push({ role: 'assistant', content: cleanText });
         return cleanText;
       } catch (retryError) {
@@ -159,6 +162,7 @@ export class ClaudeConversation {
     }
     let cleanText = fullText.replace('[SURVEY_COMPLETE]', '').trim();
     cleanText = this._parseLanguageTag(cleanText);
+    cleanText = this._parseEmotionTag(cleanText);
     this.messages.push({ role: 'assistant', content: cleanText });
     return cleanText;
   }
@@ -208,6 +212,20 @@ export class ClaudeConversation {
       role: m.role,
       content: m.content,
     }));
+  }
+
+  /**
+   * Parse [EMOTION:xxx] tag from Claude's response.
+   * Strips the tag and stores the detected emotion.
+   * @returns {string} Text with emotion tag removed
+   */
+  _parseEmotionTag(text) {
+    const match = text.match(/^\[EMOTION:([a-z]+)\]\s*/i);
+    if (match) {
+      this.lastEmotion = match[1].toLowerCase();
+      return text.slice(match[0].length);
+    }
+    return text;
   }
 
   /**

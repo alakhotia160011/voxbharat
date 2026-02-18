@@ -27,6 +27,49 @@ function getBrandPronunciationRule(language) {
   return `\nBRAND NAME PRONUNCIATION:\n- When mentioning VoxBharat, ALWAYS write it as "${native}" (in native script). NEVER write "VoxBharat" in Latin letters — the TTS will spell it out letter by letter.`;
 }
 
+/**
+ * Emotion tag instructions for Claude — appended to all system prompts.
+ * Claude prefixes every response with [EMOTION:xxx] so TTS voice matches context.
+ */
+function getEmotionInstructions(hasLangTag = false) {
+  const prefix = hasLangTag
+    ? 'You MUST prefix EVERY response with [EMOTION:xxx] immediately AFTER the [LANG:xx] tag.'
+    : 'You MUST prefix EVERY response with [EMOTION:xxx] at the very start.';
+
+  return `
+VOICE EMOTION TAGS — REQUIRED ON EVERY RESPONSE:
+${prefix} Choose the most fitting emotion for the conversational moment.
+
+Available emotions by category:
+  WARM (greetings, thank-yous, positive acknowledgments):
+    content — calm, warm, satisfied
+    enthusiastic — eager, energetic
+  CURIOUS (asking questions, probing, follow-ups):
+    curious — inquisitive, interested
+  EMPATHETIC (respondent shares struggles, sensitive topics, personal stories):
+    sympathetic — compassionate, understanding
+  ENCOURAGING (affirmations, wrapping up, positive reinforcement):
+    confident — assured, steady
+  NEUTRAL (factual transitions, reading back information):
+    neutral — flat, default
+
+When to use each:
+- Asking a survey question → curious
+- Warmly acknowledging an answer → content
+- Respondent shares something personal or difficult → sympathetic
+- Giving positive reinforcement or thanking them → confident
+- Excited about their participation or starting the survey → enthusiastic
+- Pure transitional or factual statement → neutral
+
+Examples:
+  [EMOTION:curious] Achha, aur aap batao ki aapki umar kya hai?
+  [EMOTION:sympathetic] Haan, yeh toh mushkil hota hai, samajh sakta hoon.
+  [EMOTION:content] Bahut accha, shukriya batane ke liye.
+  [EMOTION:confident] Chaliye, ab last sawaal hai.
+
+The [EMOTION:xxx] tag is metadata for the voice system — NEVER read it aloud or reference it. NEVER skip it.`;
+}
+
 function getAutoDetectBrandPronunciationRule() {
   const examples = Object.entries(VOXBHARAT_NATIVE)
     .filter(([k]) => k !== 'en')
@@ -38,7 +81,7 @@ function getAutoDetectBrandPronunciationRule() {
 export const SURVEY_SCRIPTS = {
   hi: {
     name: 'Hindi Religious Harmony Survey',
-    greeting: 'नमस्ते! मैं वॉक्स भारत की AI एजेंट बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए? यह धार्मिक सद्भाव के बारे में है।',
+    greeting: '<emotion value="enthusiastic"/> नमस्ते! मैं वॉक्स भारत की AI एजेंट बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए? यह धार्मिक सद्भाव के बारे में है।',
     questions: [
       {
         id: 'age',
@@ -101,7 +144,7 @@ export const SURVEY_SCRIPTS = {
 
   bn: {
     name: 'Bengali Religious Harmony Survey',
-    greeting: 'নমস্কার! আমি ভক্স ভারত-এর AI এজেন্ট বলছি। আপনার কি কয়েক মিনিট সময় আছে একটি ছোট সমীক্ষার জন্য? এটি ধর্মীয় সম্প্রীতি সম্পর্কে।',
+    greeting: '<emotion value="enthusiastic"/> নমস্কার! আমি ভক্স ভারত-এর AI এজেন্ট বলছি। আপনার কি কয়েক মিনিট সময় আছে একটি ছোট সমীক্ষার জন্য? এটি ধর্মীয় সম্প্রীতি সম্পর্কে।',
     questions: [
       {
         id: 'age',
@@ -315,7 +358,8 @@ ${questionsBlock}
 
 ${closingLine}
 
-Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted.`;
+Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted.
+${getEmotionInstructions(false)}`;
 }
 
 /**
@@ -375,7 +419,7 @@ export function generateCustomGreeting(language, gender, surveyName) {
   };
 
   const greetingFn = greetings[language] || greetings.hi;
-  return greetingFn();
+  return `<emotion value="enthusiastic"/> ${greetingFn()}`;
 }
 
 /**
@@ -397,7 +441,7 @@ export function generateInboundGreeting(language, gender, surveyName) {
     pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵੌਕਸ ਭਾਰਤ ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ। ਮੈਂ ਇੱਕ AI ਏਜੰਟ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਕੁਝ ਸਵਾਲਾਂ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
     en: () => `Thank you for calling! I'm an AI assistant at VoxBharat, ready to help with our "${surveyName}" survey. Do you have a few minutes to share your thoughts?`,
   };
-  return (greetings[language] || greetings.en)();
+  return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.en)()}`;
 }
 
 /**
@@ -419,7 +463,7 @@ export function generateCallbackGreeting(language, gender, surveyName) {
     pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਲਈ ਧੰਨਵਾਦ। ਮੈਂ ਵੌਕਸ ਭਾਰਤ AI ਏਜੰਟ ਬੋਲ ਰਿਹਾ ਹਾਂ। ਅਸੀਂ ਤੁਹਾਨੂੰ "${surveyName}" ਬਾਰੇ ਪਹਿਲਾਂ ਕਾਲ ਕੀਤਾ ਸੀ। ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
     en: () => `Hello! Thank you for calling back. I'm an AI agent from VoxBharat. We tried reaching you earlier about "${surveyName}". Do you have a few minutes to share your thoughts?`,
   };
-  return (greetings[language] || greetings.en)();
+  return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.en)()}`;
 }
 
 /**
@@ -565,7 +609,8 @@ ${optionsSection}
 
 After the last question, thank the respondent warmly and end the conversation. Add [SURVEY_COMPLETE] at the very end.
 
-Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted. NEVER list choices or options aloud.`;
+Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted. NEVER list choices or options aloud.
+${getEmotionInstructions(false)}`;
 }
 
 /**
@@ -734,7 +779,8 @@ SURVEY QUESTIONS (translate naturally into whatever language the respondent is s
 
 CLOSING: Thank them warmly for their time and wish them a good day (in their language).
 
-Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted.`;
+Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted.
+${getEmotionInstructions(true)}`;
 }
 
 /**
@@ -883,7 +929,8 @@ ${optionsSection}
 
 After the last question, thank the respondent warmly and end the conversation. Add [SURVEY_COMPLETE] at the very end.
 
-Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted. NEVER list choices or options aloud.`;
+Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted. NEVER list choices or options aloud.
+${getEmotionInstructions(true)}`;
 }
 
 /**
