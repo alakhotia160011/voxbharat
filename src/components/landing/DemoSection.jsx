@@ -437,7 +437,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
 
             <p className="text-[#6b4c3a] text-lg leading-relaxed mt-4 font-body">
               Experience a real voice survey conversation. Our AI conducts natural
-              interviews across 10 Indian languages &mdash; listen to how it builds
+              interviews across 10 Indian languages. Listen to how it builds
               trust and adapts to responses.
             </p>
 

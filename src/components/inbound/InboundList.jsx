@@ -40,7 +40,7 @@ export default function InboundList({ configs, onSelect, onNewConfig, onRefresh,
             </div>
             <h3 className="font-display text-xl font-bold text-earth mb-2">No inbound agents yet</h3>
             <p className="text-earth-mid text-sm max-w-md mx-auto">
-              Create an inbound agent to receive calls on your Twilio number &mdash; a 24/7 AI voice agent for any survey.
+              Create an inbound agent to receive calls on your Twilio number. A 24/7 AI voice agent for any survey.
             </p>
             <button
               onClick={onNewConfig}

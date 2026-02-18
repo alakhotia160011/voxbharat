@@ -230,13 +230,13 @@ export default function CampaignDetail({ campaignId, onBack }) {
                         <span className={`font-medium ${cfg.color}`}>{cfg.label}</span>
                       </td>
                       <td className="py-3 px-5 text-earth-mid hidden md:table-cell">
-                        {num.started_at ? new Date(num.started_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '\u2014'}
+                        {num.started_at ? new Date(num.started_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-'}
                       </td>
                       <td className="py-3 px-5 text-earth-mid hidden md:table-cell">
-                        {num.completed_at ? new Date(num.completed_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '\u2014'}
+                        {num.completed_at ? new Date(num.completed_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-'}
                       </td>
                       <td className="py-3 px-5 text-red-400 text-xs hidden lg:table-cell max-w-[200px] truncate">
-                        {num.error || '\u2014'}
+                        {num.error || '-'}
                       </td>
                     </tr>
                   );

@@ -23,7 +23,7 @@ const CTASection = ({ onCreateSurvey }) => {
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.98 }}
         >
-          Create Survey &mdash; Free Trial
+          Create Survey | Free Trial
         </motion.button>
         <div className="mt-10 text-white/30 text-sm font-serif-indic">
           शुरू &middot; শুরু &middot; தொடங்கு &middot; ప్రారంభం &middot; सुरू &middot; શરૂ &middot; ಆರಂಭ &middot; ആരംഭം &middot; ਸ਼ੁਰੂ &middot; ଆରମ୍ଭ &middot; আৰম্ভ &middot; شروع
