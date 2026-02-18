@@ -316,7 +316,7 @@ export function FaqsPage({ navigateTo }) {
             <h3 className="font-display text-2xl font-bold text-earth mb-2">Still have questions?</h3>
             <p className="font-body text-earth-mid mb-6">We're happy to help with anything else.</p>
             <motion.a
-              href="mailto:hello@voxbharat.com"
+              href="mailto:ary.lakhotia@gmail.com"
               className="inline-block px-8 py-3 bg-saffron text-white rounded-full font-body font-medium hover:bg-saffron-deep transition-colors"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}

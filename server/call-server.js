@@ -261,8 +261,8 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   let greetingText;
   if (autoDetectLanguage) {
     greetingText = customSurvey
-      ? `Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${customSurvey.name}. Do you have a few minutes to share your thoughts?`
-      : "Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
+      ? `<emotion value="enthusiastic"/> Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${customSurvey.name}. Do you have a few minutes to share your thoughts?`
+      : `<emotion value="enthusiastic"/> Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name);
   } else if (SURVEY_SCRIPTS[language]) {
@@ -1159,16 +1159,18 @@ async function processUserSpeech(callId, text) {
   let pendingText = '';
   let ttsLanguage = session.currentLanguage || session.call.language;
   let langTagParsed = false;
+  let emotionTagParsed = false;
+  let ttsEmotion = 'content'; // default, overridden by Claude's [EMOTION:xxx] tag
   const spokenSentences = [];
 
   // Pipeline: queue TTS calls so Claude keeps streaming while TTS generates/plays.
   // Each call runs in sequence (audio order preserved) but Claude isn't blocked.
   let ttsQueue = Promise.resolve();
-  const enqueueTTS = (text, lang) => {
+  const enqueueTTS = (text, lang, emotion) => {
     spokenSentences.push(text);
     ttsQueue = ttsQueue.then(() => {
       if (session.isEnding || session.interrupted) return;
-      return speakSentence(session, text, lang);
+      return speakSentence(session, text, lang, emotion);
     });
   };
 
@@ -1197,8 +1199,21 @@ async function processUserSpeech(callId, text) {
         }
       }
 
+      // Parse [EMOTION:xxx] tag (appears after [LANG:xx] or at the start)
+      if (langTagParsed && !emotionTagParsed) {
+        const emMatch = pendingText.match(/^\[EMOTION:([a-z]+)\]\s*/i);
+        if (emMatch) {
+          ttsEmotion = emMatch[1].toLowerCase();
+          console.log(`[Call:${callId}] Emotion: ${ttsEmotion}`);
+          pendingText = pendingText.slice(emMatch[0].length);
+          emotionTagParsed = true;
+        } else if (pendingText.length > 20 || (pendingText.length > 0 && !/^\[/.test(pendingText))) {
+          emotionTagParsed = true; // No emotion tag present
+        }
+      }
+
       // Split text at natural break points — very aggressive for minimal latency
-      if (langTagParsed && pendingText.trim().length > 2) {
+      if (langTagParsed && emotionTagParsed && pendingText.trim().length > 2) {
         const trimLen = pendingText.trim().length;
         const sentenceEnd = /[.!?।]\s*$/.test(pendingText);
         const clauseBreak = trimLen > 20 && /[,;:—]\s*$/.test(pendingText);
@@ -1207,7 +1222,7 @@ async function processUserSpeech(callId, text) {
         if (sentenceEnd || clauseBreak || longChunk) {
           const sentence = pendingText.trim();
           pendingText = '';
-          enqueueTTS(sentence, ttsLanguage);
+          enqueueTTS(sentence, ttsLanguage, ttsEmotion);
         }
       }
     }
@@ -1225,9 +1240,17 @@ async function processUserSpeech(callId, text) {
       remaining = remaining.slice(match[0].length);
     }
   }
+  // Strip any leftover emotion tag from remaining text
+  if (!emotionTagParsed) {
+    const emMatch = remaining.match(/^\[EMOTION:([a-z]+)\]\s*/i);
+    if (emMatch) {
+      ttsEmotion = emMatch[1].toLowerCase();
+      remaining = remaining.slice(emMatch[0].length);
+    }
+  }
   remaining = remaining.replace(/\[SURVEY_COMPLETE\]/g, '').trim();
   if (remaining && !session.isEnding && !session.interrupted) {
-    enqueueTTS(remaining, ttsLanguage);
+    enqueueTTS(remaining, ttsLanguage, ttsEmotion);
   }
 
   // Wait for all queued TTS to finish playing
@@ -1289,21 +1312,28 @@ async function processUserSpeech(callId, text) {
  * Uses WebSocket streaming for low latency — audio plays as it generates.
  * Falls back to HTTP POST if streaming fails.
  */
-async function speakSentence(session, text, language) {
+const VALID_EMOTIONS = new Set(['neutral', 'angry', 'excited', 'content', 'sad', 'scared', 'enthusiastic', 'triumphant', 'sympathetic', 'confident', 'curious', 'surprised']);
+
+async function speakSentence(session, text, language, emotion = 'content') {
   if (!session || session.isEnding || session.interrupted) return;
 
   const gender = session.call.gender;
-  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, "${text.substring(0, 50)}..."`);
+  // Validate emotion — fall back to 'content' if unrecognized
+  const safeEmotion = VALID_EMOTIONS.has(emotion) ? emotion : 'content';
+  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, emotion=${safeEmotion}, "${text.substring(0, 50)}..."`);
 
   // Track for echo detection (keep last 5 sentences)
   session.recentTtsTexts.push(text);
   if (session.recentTtsTexts.length > 5) session.recentTtsTexts.shift();
 
+  // Add Cartesia emotion tag — dynamically chosen by Claude based on context
+  const emotionText = `<emotion value="${safeEmotion}"/> ${text}`;
+
   // Try streaming TTS first (lowest latency)
   if (session.ttsStream?.connected) {
     try {
       let chunkCount = 0;
-      for await (const chunk of session.ttsStream.streamSpeech(text, language, gender, { speed: 1.0 })) {
+      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed: 1.0 })) {
         if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
         session.ws.send(JSON.stringify({
           event: 'media',
@@ -1323,7 +1353,7 @@ async function speakSentence(session, text, language) {
 
   // Fallback: HTTP POST (used if WebSocket not connected or streaming failed)
   try {
-    const mulawBase64 = await generateSpeech(text, language, gender, CARTESIA_KEY, { speed: 1.0 });
+    const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed: 1.0 });
     const chunks = chunkAudio(mulawBase64);
 
     for (let i = 0; i < chunks.length; i++) {
@@ -1341,7 +1371,7 @@ async function speakSentence(session, text, language) {
     console.error(`[TTS] HTTP error (${language}/${gender}): ${error.message}`);
     if (language !== 'en') {
       try {
-        const fallbackBase64 = await generateSpeech(text, 'en', gender, CARTESIA_KEY, { speed: 1.0 });
+        const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 1.0 });
         const chunks = chunkAudio(fallbackBase64);
         for (let i = 0; i < chunks.length; i++) {
           if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
