@@ -4,6 +4,7 @@ import {
   getSystemPrompt, getExtractionPrompt, SURVEY_SCRIPTS,
   getCustomSystemPrompt, getCustomExtractionPrompt, generateCustomGreeting,
   getAutoDetectSystemPrompt, getAutoDetectCustomSystemPrompt,
+  generateInboundGreeting, generateCallbackGreeting,
 } from './survey-scripts.js';
 
 export class ClaudeConversation {
@@ -14,6 +15,9 @@ export class ClaudeConversation {
     this.customSurvey = options.customSurvey || null;
     this.autoDetectLanguage = options.autoDetectLanguage || false;
     this.currentLanguage = this.autoDetectLanguage ? 'en' : this.language;
+    this.direction = options.direction || 'outbound';
+    this.inboundType = options.inboundType || null; // 'callback' | 'standalone'
+    this.customGreeting = options.customGreeting || null;
     this.messages = [];
     this.isComplete = false;
 
@@ -26,6 +30,14 @@ export class ClaudeConversation {
         ? getCustomSystemPrompt(this.language, this.gender, this.customSurvey)
         : getSystemPrompt(this.language, this.gender);
     }
+
+    // Prepend inbound context to system prompt
+    if (this.direction === 'inbound') {
+      const preamble = this.inboundType === 'callback'
+        ? 'CALL CONTEXT: The respondent called you back after a missed call. Be warm and grateful they returned the call. Skip lengthy introductions — they already know who you are.'
+        : 'CALL CONTEXT: The respondent called YOU. They initiated this call, so they likely want to participate. Be warm and welcoming.';
+      this.systemPrompt = preamble + '\n\n' + this.systemPrompt;
+    }
   }
 
   /**
@@ -33,7 +45,17 @@ export class ClaudeConversation {
    */
   getGreeting() {
     let greeting;
-    if (this.autoDetectLanguage) {
+
+    if (this.direction === 'inbound') {
+      // Inbound call greetings
+      const surveyName = this.customSurvey?.name || 'our survey';
+      const lang = this.autoDetectLanguage ? 'en' : this.language;
+      if (this.inboundType === 'callback') {
+        greeting = generateCallbackGreeting(lang, this.gender, surveyName);
+      } else {
+        greeting = this.customGreeting || generateInboundGreeting(lang, this.gender, surveyName);
+      }
+    } else if (this.autoDetectLanguage) {
       greeting = this.customSurvey
         ? `Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${this.customSurvey.name}. Do you have a few minutes to share your thoughts?`
         : "Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
@@ -42,9 +64,9 @@ export class ClaudeConversation {
     } else if (SURVEY_SCRIPTS[this.language]) {
       greeting = SURVEY_SCRIPTS[this.language].greeting;
     } else {
-      // For languages without hardcoded scripts, use the custom greeting generator with a generic survey name
       greeting = generateCustomGreeting(this.language, this.gender, 'VoxBharat Survey');
     }
+
     // Add greeting to message history so Claude knows it was already spoken
     this.messages.push({ role: 'assistant', content: greeting });
     return greeting;

@@ -379,6 +379,50 @@ export function generateCustomGreeting(language, gender, surveyName) {
 }
 
 /**
+ * Generate greeting for standalone inbound calls (caller dialed in).
+ */
+export function generateInboundGreeting(language, gender, surveyName) {
+  const greetings = {
+    hi: () => {
+      const verb = gender === 'female' ? 'रही' : 'रहा';
+      return `नमस्ते! वॉक्स भारत में आपका स्वागत है। मैं एक AI एजेंट बोल ${verb} हूँ। क्या आपके पास "${surveyName}" पर कुछ सवालों के लिए थोड़ा समय है?`;
+    },
+    bn: () => `নমস্কার! ভক্স ভারত-এ আপনাকে স্বাগত। আমি একজন AI এজেন্ট বলছি। "${surveyName}" সম্পর্কে কয়েকটি প্রশ্নের জন্য আপনার কি সময় আছে?`,
+    te: () => `నమస్కారం! వాక్స్ భారత్‌కి స్వాగతం. నేను ఒక AI ఏజెంట్ మాట్లాడుతున్నాను. "${surveyName}" గురించి కొన్ని ప్రశ్నలకు మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
+    mr: () => `नमस्कार! वॉक्स भारत मध्ये आपले स्वागत आहे. मी एक AI एजंट बोलत आहे. "${surveyName}" बद्दल काही प्रश्नांसाठी तुमच्याकडे काही मिनिटे आहेत का?`,
+    ta: () => `வணக்கம்! வோக்ஸ் பாரத்-க்கு வரவேற்கிறோம். நான் ஒரு AI ஏஜெண்ட் பேசுகிறேன். "${surveyName}" பற்றி சில கேள்விகளுக்கு உங்களுக்கு சில நிமிடங்கள் இருக்கிறதா?`,
+    gu: () => `નમસ્તે! વૉક્સ ભારતમાં આપનું સ્વાગત છે. હું એક AI એજન્ટ બોલી રહ્યો છું. "${surveyName}" વિશે કેટલાક પ્રશ્નો માટે તમારી પાસે થોડી મિનિટ છે?`,
+    kn: () => `ನಮಸ್ಕಾರ! ವಾಕ್ಸ್ ಭಾರತ್‌ಗೆ ಸ್ವಾಗತ. ನಾನು AI ಏಜೆಂಟ್ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಕೆಲವು ಪ್ರಶ್ನೆಗಳಿಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
+    ml: () => `നമസ്കാരം! വോക്സ് ഭാരത്-ലേക്ക് സ്വാഗതം. ഞാൻ ഒരു AI ഏജന്റ് വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ചില ചോദ്യങ്ങൾക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
+    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵੌਕਸ ਭਾਰਤ ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ। ਮੈਂ ਇੱਕ AI ਏਜੰਟ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਕੁਝ ਸਵਾਲਾਂ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
+    en: () => `Thank you for calling! I'm an AI assistant at VoxBharat, ready to help with our "${surveyName}" survey. Do you have a few minutes to share your thoughts?`,
+  };
+  return (greetings[language] || greetings.en)();
+}
+
+/**
+ * Generate greeting for campaign callbacks (caller returning a missed call).
+ */
+export function generateCallbackGreeting(language, gender, surveyName) {
+  const greetings = {
+    hi: () => {
+      const verb = gender === 'female' ? 'रही' : 'रहा';
+      return `नमस्ते! कॉल बैक करने के लिए धन्यवाद। मैं वॉक्स भारत की AI एजेंट बोल ${verb} हूँ। हमने आपको पहले "${surveyName}" के बारे में कॉल किया था। क्या आपके पास कुछ मिनट हैं?`;
+    },
+    bn: () => `নমস্কার! কল ব্যাক করার জন্য ধন্যবাদ। আমি ভক্স ভারত-এর AI এজেন্ট বলছি। আমরা আপনাকে "${surveyName}" সম্পর্কে আগে কল করেছিলাম। আপনার কি কয়েক মিনিট সময় আছে?`,
+    te: () => `నమస్కారం! తిరిగి కాల్ చేసినందుకు ధన్యవాదాలు. నేను వాక్స్ భారత్ AI ఏజెంట్. మేము మిమ్మల్ని "${surveyName}" గురించి ముందు కాల్ చేశాము. మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
+    mr: () => `नमस्कार! परत कॉल केल्याबद्दल धन्यवाद. मी वॉक्स भारत AI एजंट बोलत आहे. आम्ही तुम्हाला "${surveyName}" बद्दल आधी कॉल केला होता. तुमच्याकडे काही मिनिटे आहेत का?`,
+    ta: () => `வணக்கம்! திரும்ப அழைத்ததற்கு நன்றி. நான் வோக்ஸ் பாரத் AI ஏஜெண்ட். "${surveyName}" பற்றி முன்பு உங்களை அழைத்தோம். உங்களுக்கு சில நிமிடங்கள் இருக்கிறதா?`,
+    gu: () => `નમસ્તે! પાછા કૉલ કરવા બદલ આભાર. હું વૉક્સ ભારત AI એજન્ટ બોલી રહ્યો છું. અમે તમને "${surveyName}" વિશે પહેલાં કૉલ કર્યો હતો. તમારી પાસે થોડી મિનિટ છે?`,
+    kn: () => `ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ. ನಾನು ವಾಕ್ಸ್ ಭಾರತ್ AI ಏಜೆಂಟ್. "${surveyName}" ಬಗ್ಗೆ ನಿಮಗೆ ಮೊದಲು ಕರೆ ಮಾಡಿದ್ದೆವು. ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
+    ml: () => `നമസ്കാരം! തിരിച്ചു വിളിച്ചതിന് നന്ദി. ഞാൻ വോക്സ് ഭാരത് AI ഏജന്റ്. "${surveyName}" സംബന്ധിച്ച് മുമ്പ് നിങ്ങളെ വിളിച്ചിരുന്നു. കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
+    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਲਈ ਧੰਨਵਾਦ। ਮੈਂ ਵੌਕਸ ਭਾਰਤ AI ਏਜੰਟ ਬੋਲ ਰਿਹਾ ਹਾਂ। ਅਸੀਂ ਤੁਹਾਨੂੰ "${surveyName}" ਬਾਰੇ ਪਹਿਲਾਂ ਕਾਲ ਕੀਤਾ ਸੀ। ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
+    en: () => `Hello! Thank you for calling back. I'm an AI agent from VoxBharat. We tried reaching you earlier about "${surveyName}". Do you have a few minutes to share your thoughts?`,
+  };
+  return (greetings[language] || greetings.en)();
+}
+
+/**
  * Get system prompt for a custom survey (dynamic questions from builder)
  */
 export function getCustomSystemPrompt(language, gender, customSurvey) {
