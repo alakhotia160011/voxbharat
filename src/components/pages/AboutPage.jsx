@@ -203,14 +203,14 @@ const faqs = [
   },
   {
     q: 'Do people actually give honest answers to an AI?',
-    a: 'Yes \u2014 often more honest than to a human. This is called social desirability bias: when a real person asks questions, respondents instinctively give socially acceptable answers. They overreport voting and charity, underreport drinking and prejudice. Research shows people feel less judged speaking to an AI, leading to significantly more truthful responses on sensitive topics.',
+    a: 'Yes, often more honest than to a human. This is called social desirability bias: when a real person asks questions, respondents instinctively give socially acceptable answers. They overreport voting and charity, underreport drinking and prejudice. Research shows people feel less judged speaking to an AI, leading to significantly more truthful responses on sensitive topics.',
   },
   {
     q: 'Can the AI survey people on sensitive topics like caste, income, or political preference?',
     a: 'This is one of our strongest advantages. In India, respondents are known to underreport support for certain political parties and misrepresent caste or income to human interviewers due to social stigma. An AI voice interviewer removes the social pressure entirely. Early results show measurably more candid responses on sensitive demographic and political questions.',
   },
   {
-    q: 'What happens if someone misses a call \u2014 can they call back?',
+    q: 'What happens if someone misses a call? Can they call back?',
     a: 'Yes. VoxBharat supports inbound calling. If someone misses a campaign call and calls back, the AI recognizes their number, loads the correct survey, and conducts it on the spot. The AI is available 24/7, unlike traditional call centers that only operate during business hours.',
   },
   {

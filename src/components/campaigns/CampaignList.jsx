@@ -77,7 +77,7 @@ export default function CampaignList({ campaigns, onSelect, onNewCampaign, onRef
             </div>
             <h3 className="font-display text-xl font-bold text-earth mb-2">No campaigns yet</h3>
             <p className="text-earth-mid text-sm max-w-md mx-auto">
-              Create a campaign to deploy your survey at scale &mdash; call hundreds of phone numbers simultaneously.
+              Create a campaign to deploy your survey at scale. Call hundreds of phone numbers simultaneously.
             </p>
             <button
               onClick={onNewCampaign}

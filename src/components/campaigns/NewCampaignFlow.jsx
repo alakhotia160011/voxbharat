@@ -403,7 +403,7 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
                       : 'border-cream-warm bg-white text-earth-mid hover:border-saffron/30'
                   }`}
                 >
-                  {autoDetect ? 'Enabled \u2014 agent will detect and switch' : 'Disabled \u2014 use selected language'}
+                  {autoDetect ? 'Enabled: agent will detect and switch' : 'Disabled: use selected language'}
                 </button>
               </div>
             </div>

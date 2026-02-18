@@ -15,14 +15,14 @@ const steps = [
     label: 'Call',
     heading: 'AI Calls Respondents',
     description:
-      'Our voice AI calls respondents in their native language across 10 Indian languages. No interviewer bias, no social pressure \u2014 respondents give more honest answers to an AI than to a human, especially on sensitive topics like caste, income, and political preference.',
+      'Our voice AI calls respondents in their native language across 10 Indian languages. No interviewer bias, no social pressure. Respondents give more honest answers to an AI than to a human, especially on sensitive topics like caste, income, and political preference.',
   },
   {
     numeral: '\u0969',
     label: 'Analyze',
     heading: 'Transcribe & Structure',
     description:
-      'Every response is transcribed in real-time, translated to English, and structured into clean data. Sentiment analysis and demographic extraction happen automatically. Missed a call? The respondent can call back anytime \u2014 the AI is available 24/7.',
+      'Every response is transcribed in real-time, translated to English, and structured into clean data. Sentiment analysis and demographic extraction happen automatically. Missed a call? The respondent can call back anytime. The AI is available 24/7.',
   },
   {
     numeral: '\u096A',
@@ -104,7 +104,7 @@ const HowItWorksSection = () => {
           </p>
           <p className="font-body text-cream/70 leading-relaxed">
             People feel less judged talking to a machine. An AI interviewer that speaks your language,
-            never rushes you, never judges you, and is available whenever you want to talk &mdash; that&rsquo;s not just
+            never rushes you, never judges you, and is available whenever you want to talk. That's not just
             more efficient. It produces <span className="text-cream font-medium">fundamentally more honest data</span>.
           </p>
         </motion.div>

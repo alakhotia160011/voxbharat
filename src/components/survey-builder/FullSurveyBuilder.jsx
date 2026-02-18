@@ -205,7 +205,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     } catch (error) {
       console.error('Question generation error:', error);
       const msg = error.name === 'TimeoutError'
-        ? 'Request timed out. Please try again — the AI server may be under heavy load.'
+        ? 'Request timed out. Please try again. The AI server may be under heavy load.'
         : 'Failed to generate questions: ' + error.message;
       alert(msg);
     } finally {
@@ -1190,8 +1190,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                         <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-4 py-3 rounded-lg font-medium">
                           <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                           {testCallResult?.voicemailLeft
-                            ? 'Voicemail detected — left a message!'
-                            : 'Voicemail detected — could not leave a message.'}
+                            ? 'Voicemail detected. Left a message!'
+                            : 'Voicemail detected. Could not leave a message.'}
                         </div>
                         <p className="text-xs text-gray-500">
                           The call went to voicemail. In production, the system will automatically retry later.
