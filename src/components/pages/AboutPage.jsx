@@ -201,6 +201,22 @@ const faqs = [
     q: 'What kind of reports do I get?',
     a: 'You receive a full dashboard with demographic breakdowns, sentiment analysis, cross-tabulations, and AI-generated summaries. Data is exportable in CSV and JSON formats. Each completed call also generates an individual transcript with translation.',
   },
+  {
+    q: 'Do people actually give honest answers to an AI?',
+    a: 'Yes \u2014 often more honest than to a human. This is called social desirability bias: when a real person asks questions, respondents instinctively give socially acceptable answers. They overreport voting and charity, underreport drinking and prejudice. Research shows people feel less judged speaking to an AI, leading to significantly more truthful responses on sensitive topics.',
+  },
+  {
+    q: 'Can the AI survey people on sensitive topics like caste, income, or political preference?',
+    a: 'This is one of our strongest advantages. In India, respondents are known to underreport support for certain political parties and misrepresent caste or income to human interviewers due to social stigma. An AI voice interviewer removes the social pressure entirely. Early results show measurably more candid responses on sensitive demographic and political questions.',
+  },
+  {
+    q: 'What happens if someone misses a call \u2014 can they call back?',
+    a: 'Yes. VoxBharat supports inbound calling. If someone misses a campaign call and calls back, the AI recognizes their number, loads the correct survey, and conducts it on the spot. The AI is available 24/7, unlike traditional call centers that only operate during business hours.',
+  },
+  {
+    q: 'What are you actively improving?',
+    a: 'AI voice surveys are a new frontier in methodology and we\u2019re transparent about what\u2019s still evolving. We\u2019re actively working on improving real-time transcription accuracy, reducing primacy/recency effects when answer choices are read aloud, and better detecting low-quality responses like straightlining. Each call makes the system smarter.',
+  },
 ];
 
 const faqItemVariants = {

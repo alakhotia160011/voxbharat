@@ -982,7 +982,7 @@ export default function DashboardPage({ setShowBuilder }) {
             Sign Out
           </button>
         </div>
-        <p className="text-earth-mid font-body text-sm ml-4 pl-px mt-2">
+        <p className="text-earth-mid font-body text-sm mt-1">
           Survey projects, call analytics, transcripts, and recordings.
         </p>
       </div>
