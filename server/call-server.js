@@ -22,9 +22,16 @@ import {
   getAllCalls, getCallById, getAnalytics,
   exportCallsJson, exportCallsCsv, deleteCall,
   getProjects, getProjectCalls, getProjectAnalytics,
-  createUser, verifyUser, getUserByEmail
+  createUser, verifyUser, getUserByEmail,
+  createCampaign, getCampaignById, getCampaignsByUser,
+  updateCampaignStatus, updateCampaignProgress,
+  addCampaignNumbers, getCampaignNumbersByCampaign, getProgressCounts,
+  createInboundConfig, getInboundConfigById, getInboundConfigsByUser,
+  getInboundConfigByNumber, updateInboundConfig, deleteInboundConfig,
+  toggleInboundConfig, findCallerInCampaigns, completeCampaignCallback,
 } from './db.js';
-import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting } from './survey-scripts.js';
+import { CampaignRunner } from './campaign-runner.js';
+import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
@@ -92,6 +99,7 @@ const callSessions = new Map();
 // Pre-generated greeting audio cache: callId -> { mulawBase64: string, language: string }
 // Generated during call initiation (while phone is ringing) so greeting plays instantly on pickup
 const greetingAudioCache = new Map();
+let campaignRunner = null;
 
 /**
  * Check if STT text is likely echo of recently spoken TTS audio.
@@ -226,72 +234,68 @@ app.get('/call/health', (req, res) => {
   res.json({ status: 'ok', activeCalls: getActiveCalls().length });
 });
 
-// Initiate an outbound call
+// Core call initiation logic — used by both HTTP endpoint and campaign runner
+async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', customSurvey = null, autoDetectLanguage = false, campaignId = null }) {
+  const call = createCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage, campaignId });
+
+  const twilioCall = await twilioClient.calls.create({
+    to: phoneNumber,
+    from: TWILIO_PHONE,
+    url: `${PUBLIC_URL}/call/twilio-webhook?callId=${call.id}`,
+    statusCallback: `${PUBLIC_URL}/call/twilio-status?callId=${call.id}`,
+    statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+    record: true,
+    recordingStatusCallback: `${PUBLIC_URL}/call/recording-callback?callId=${call.id}`,
+    recordingStatusCallbackMethod: 'POST',
+    recordingStatusCallbackEvent: ['completed'],
+    machineDetection: 'DetectMessageEnd',
+    asyncAmdStatusCallback: `${PUBLIC_URL}/call/amd-callback?callId=${call.id}`,
+    asyncAmdStatusCallbackMethod: 'POST',
+  });
+
+  updateCall(call.id, { twilioCallSid: twilioCall.sid, status: 'ringing' });
+  console.log(`[Call] Initiated: ${call.id} -> ${phoneNumber} (${language}/${gender})${campaignId ? ` [campaign:${campaignId}]` : ''}`);
+
+  // Pre-generate greeting TTS while phone is ringing
+  const greetingLang = autoDetectLanguage ? 'en' : language;
+  let greetingText;
+  if (autoDetectLanguage) {
+    greetingText = customSurvey
+      ? `Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${customSurvey.name}. Do you have a few minutes to share your thoughts?`
+      : "Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
+  } else if (customSurvey) {
+    greetingText = generateCustomGreeting(language, gender, customSurvey.name);
+  } else if (SURVEY_SCRIPTS[language]) {
+    greetingText = SURVEY_SCRIPTS[language].greeting;
+  } else {
+    greetingText = generateCustomGreeting(language, gender, 'VoxBharat Survey');
+  }
+
+  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 1.0 })
+    .then(mulawBase64 => {
+      greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
+      console.log(`[Call:${call.id}] Greeting audio pre-cached`);
+    })
+    .catch(err => {
+      console.warn(`[Call:${call.id}] Greeting pre-cache failed (will generate on pickup): ${err.message}`);
+    });
+
+  return { callId: call.id, twilioSid: twilioCall.sid, status: 'ringing' };
+}
+
+// Initiate an outbound call (HTTP endpoint)
 app.post('/call/initiate', async (req, res) => {
-  const { phoneNumber, language = 'hi', gender = 'female', customSurvey = null, autoDetectLanguage = false } = req.body;
+  const { phoneNumber, language, gender, customSurvey, autoDetectLanguage } = req.body;
 
   if (!phoneNumber) {
     return res.status(400).json({ error: 'phoneNumber is required' });
   }
 
-  // Create call record
-  const call = createCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage });
-
   try {
-    // Make outbound call via Twilio
-    const twilioCall = await twilioClient.calls.create({
-      to: phoneNumber,
-      from: TWILIO_PHONE,
-      url: `${PUBLIC_URL}/call/twilio-webhook?callId=${call.id}`,
-      statusCallback: `${PUBLIC_URL}/call/twilio-status?callId=${call.id}`,
-      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-      // Record the full call (both sides) for compliance & review
-      record: true,
-      recordingStatusCallback: `${PUBLIC_URL}/call/recording-callback?callId=${call.id}`,
-      recordingStatusCallbackMethod: 'POST',
-      recordingStatusCallbackEvent: ['completed'],
-      // Answering Machine Detection — waits for beep before signaling
-      machineDetection: 'DetectMessageEnd',
-      asyncAmdStatusCallback: `${PUBLIC_URL}/call/amd-callback?callId=${call.id}`,
-      asyncAmdStatusCallbackMethod: 'POST',
-    });
-
-    updateCall(call.id, {
-      twilioCallSid: twilioCall.sid,
-      status: 'ringing',
-    });
-
-    console.log(`[Call] Initiated: ${call.id} -> ${phoneNumber} (${language}/${gender})`);
-
-    // Pre-generate greeting TTS while phone is ringing (eliminates lag on pickup)
-    const greetingLang = autoDetectLanguage ? 'en' : language;
-    let greetingText;
-    if (autoDetectLanguage) {
-      greetingText = customSurvey
-        ? `Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${customSurvey.name}. Do you have a few minutes to share your thoughts?`
-        : "Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
-    } else if (customSurvey) {
-      greetingText = generateCustomGreeting(language, gender, customSurvey.name);
-    } else if (SURVEY_SCRIPTS[language]) {
-      greetingText = SURVEY_SCRIPTS[language].greeting;
-    } else {
-      greetingText = generateCustomGreeting(language, gender, 'VoxBharat Survey');
-    }
-
-    // Fire-and-forget: generate TTS in background while phone rings
-    generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 1.0 })
-      .then(mulawBase64 => {
-        greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
-        console.log(`[Call:${call.id}] Greeting audio pre-cached`);
-      })
-      .catch(err => {
-        console.warn(`[Call:${call.id}] Greeting pre-cache failed (will generate on pickup): ${err.message}`);
-      });
-
-    res.json({ callId: call.id, twilioSid: twilioCall.sid, status: 'ringing' });
+    const result = await initiateCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage });
+    res.json(result);
   } catch (error) {
     console.error('[Call] Initiation failed:', error.message);
-    updateCall(call.id, { status: 'failed', error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -306,6 +310,126 @@ app.post('/call/twilio-webhook', (req, res) => {
   <Connect>
     <Stream url="${wsUrl}/call/media-stream" statusCallback="${PUBLIC_URL}/call/twilio-status?callId=${callId}">
       <Parameter name="callId" value="${callId}" />
+    </Stream>
+  </Connect>
+</Response>`;
+
+  res.type('text/xml').send(twiml);
+});
+
+// Inbound call webhook — Twilio sends POST here when someone calls our number
+app.post('/call/inbound', async (req, res) => {
+  const callerNumber = req.body.From;
+  const twilioNumber = req.body.To;
+  const twilioCallSid = req.body.CallSid;
+
+  console.log(`[Inbound] Incoming call from ${callerNumber} to ${twilioNumber} (SID: ${twilioCallSid})`);
+
+  // Capacity check — reject if at concurrent limit
+  if (getActiveCalls().length >= 2) {
+    console.log(`[Inbound] Rejecting — at capacity (2 concurrent calls)`);
+    return res.type('text/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">All our agents are currently busy. Please try again in a few minutes. Thank you.</Say>
+  <Hangup/>
+</Response>`);
+  }
+
+  let surveyConfig = null;
+  let language = 'hi';
+  let gender = 'female';
+  let autoDetectLanguage = false;
+  let campaignId = null;
+  let customGreeting = null;
+  let inboundConfigId = null;
+
+  // 1. Check if caller is a campaign callback (missed call, calling back)
+  const campaignMatch = await findCallerInCampaigns(callerNumber);
+  if (campaignMatch) {
+    console.log(`[Inbound] Campaign callback detected — campaign: ${campaignMatch.campaign_id}, survey: ${campaignMatch.name}`);
+    surveyConfig = campaignMatch.survey_config;
+    language = campaignMatch.language || 'hi';
+    gender = campaignMatch.gender || 'female';
+    autoDetectLanguage = campaignMatch.auto_detect_language || false;
+    campaignId = campaignMatch.campaign_id;
+  } else {
+    // 2. Check for standalone inbound config on this number
+    const config = await getInboundConfigByNumber(twilioNumber);
+    if (config && config.enabled) {
+      console.log(`[Inbound] Standalone config found: "${config.name}" (id: ${config.id})`);
+      surveyConfig = config.survey_config;
+      language = config.language || 'hi';
+      gender = config.gender || 'female';
+      autoDetectLanguage = config.auto_detect_language || false;
+      customGreeting = config.greeting_text || null;
+      inboundConfigId = config.id;
+    } else {
+      // No config for this number — reject gracefully
+      console.log(`[Inbound] No inbound config found for ${twilioNumber} — rejecting`);
+      return res.type('text/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">This number is not currently configured to receive calls. Thank you for calling.</Say>
+  <Hangup/>
+</Response>`);
+    }
+  }
+
+  // Create call record
+  const call = createCall({
+    phoneNumber: callerNumber,
+    language,
+    gender,
+    customSurvey: surveyConfig,
+    autoDetectLanguage,
+    campaignId,
+    direction: 'inbound',
+  });
+
+  updateCall(call.id, {
+    twilioCallSid,
+    status: 'ringing',
+    customGreeting,
+    inboundConfigId,
+  });
+
+  // Pre-generate greeting TTS
+  const greetingLang = autoDetectLanguage ? 'en' : language;
+  const surveyName = surveyConfig?.name || 'our survey';
+  let greetingText;
+  if (campaignId) {
+    greetingText = generateCallbackGreeting(greetingLang, gender, surveyName);
+  } else {
+    greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName);
+  }
+
+  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 1.0 })
+    .then(mulawBase64 => {
+      greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
+      console.log(`[Inbound:${call.id}] Greeting audio pre-cached`);
+    })
+    .catch(err => {
+      console.warn(`[Inbound:${call.id}] Greeting pre-cache failed: ${err.message}`);
+    });
+
+  // Start recording for inbound call
+  twilioClient.calls(twilioCallSid).recordings.create({
+    recordingStatusCallback: `${PUBLIC_URL}/call/recording-callback?callId=${call.id}`,
+    recordingStatusCallbackMethod: 'POST',
+    recordingStatusCallbackEvent: ['completed'],
+  }).then(rec => {
+    console.log(`[Inbound:${call.id}] Recording started: ${rec.sid}`);
+    updateCall(call.id, { recordingSid: rec.sid });
+  }).catch(err => {
+    console.warn(`[Inbound:${call.id}] Recording start failed: ${err.message}`);
+  });
+
+  // Return TwiML to connect media stream (same as outbound webhook)
+  const wsUrl = PUBLIC_URL.replace('http', 'ws');
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Connect>
+    <Stream url="${wsUrl}/call/media-stream" statusCallback="${PUBLIC_URL}/call/twilio-status?callId=${call.id}">
+      <Parameter name="callId" value="${call.id}" />
     </Stream>
   </Connect>
 </Response>`;
@@ -718,6 +842,9 @@ async function initSession(callId, call, ws, streamSid) {
     gender: call.gender,
     customSurvey: call.customSurvey || null,
     autoDetectLanguage: call.autoDetectLanguage || false,
+    direction: call.direction || 'outbound',
+    inboundType: call.direction === 'inbound' ? (call.campaignId ? 'callback' : 'standalone') : null,
+    customGreeting: call.customGreeting || null,
   });
 
   // Persistent TTS WebSocket for streaming (low-latency)
@@ -1298,6 +1425,22 @@ async function handleCallEnd(callId, reason) {
     }
   }
 
+  // Notify campaign runner if this was an outbound campaign call
+  const finalCall = getCall(callId);
+  if (finalCall?.campaignId && campaignRunner && finalCall.direction !== 'inbound') {
+    const numberStatus = (reason === 'completed' || finalCall.status === 'saved') ? 'completed'
+      : (reason === 'no-answer' || reason === 'busy') ? 'no_answer'
+      : 'failed';
+    campaignRunner.onCallCompleted(finalCall.id, finalCall.campaignId, numberStatus);
+  }
+
+  // Inbound campaign callback — mark the campaign number as completed
+  if (finalCall?.direction === 'inbound' && finalCall?.campaignId) {
+    completeCampaignCallback(finalCall.campaignId, finalCall.phoneNumber, finalCall.id)
+      .then(() => console.log(`[Inbound:${callId}] Campaign callback completed — updated campaign_numbers`))
+      .catch(err => console.error(`[Inbound:${callId}] Failed to update campaign_numbers:`, err.message));
+  }
+
   cleanupSession(callId);
 }
 
@@ -1320,11 +1463,230 @@ function cleanupSession(callId) {
 }
 
 // ============================================
+// Campaign API Routes
+// ============================================
+
+// Create a new campaign
+app.post('/api/campaigns', requireAuth, requireDb, async (req, res) => {
+  try {
+    const { name, surveyConfig, phoneNumbers, language, gender, autoDetectLanguage, concurrency } = req.body;
+
+    if (!name || !surveyConfig || !phoneNumbers || !Array.isArray(phoneNumbers) || phoneNumbers.length === 0) {
+      return res.status(400).json({ error: 'name, surveyConfig, and phoneNumbers[] are required' });
+    }
+
+    const validConcurrency = Math.min(Math.max(concurrency || 2, 1), 2);
+
+    const campaign = await createCampaign(req.user.id, {
+      name, surveyConfig, language, gender, autoDetectLanguage, concurrency: validConcurrency,
+    });
+
+    await addCampaignNumbers(campaign.id, phoneNumbers);
+
+    const progress = await getProgressCounts(campaign.id);
+    res.json({ ...campaign, progress });
+  } catch (error) {
+    console.error('[Campaign API] Create error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// List user's campaigns
+app.get('/api/campaigns', requireAuth, requireDb, async (req, res) => {
+  try {
+    const campaigns = await getCampaignsByUser(req.user.id);
+    res.json(campaigns);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get campaign detail with per-number status
+app.get('/api/campaigns/:id', requireAuth, requireDb, async (req, res) => {
+  try {
+    const campaign = await getCampaignById(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    const numbers = await getCampaignNumbersByCampaign(campaign.id);
+    const progress = await getProgressCounts(campaign.id);
+
+    res.json({ ...campaign, numbers, progress });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start or resume a campaign
+app.post('/api/campaigns/:id/start', requireAuth, requireDb, async (req, res) => {
+  try {
+    const campaign = await getCampaignById(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    if (!campaignRunner) return res.status(500).json({ error: 'Campaign runner not initialized' });
+
+    await campaignRunner.startCampaign(campaign.id);
+    const updated = await getCampaignById(campaign.id);
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Pause a campaign
+app.post('/api/campaigns/:id/pause', requireAuth, requireDb, async (req, res) => {
+  try {
+    const campaign = await getCampaignById(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    if (!campaignRunner) return res.status(500).json({ error: 'Campaign runner not initialized' });
+
+    await campaignRunner.pauseCampaign(campaign.id);
+    const updated = await getCampaignById(campaign.id);
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Cancel a campaign
+app.post('/api/campaigns/:id/cancel', requireAuth, requireDb, async (req, res) => {
+  try {
+    const campaign = await getCampaignById(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    if (!campaignRunner) return res.status(500).json({ error: 'Campaign runner not initialized' });
+
+    await campaignRunner.cancelCampaign(campaign.id);
+    const updated = await getCampaignById(campaign.id);
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ============================================
+// Inbound Config API Routes
+// ============================================
+
+// Create an inbound config
+app.post('/api/inbound-configs', requireAuth, requireDb, async (req, res) => {
+  try {
+    const { name, surveyConfig, greetingText, language, gender, autoDetectLanguage } = req.body;
+    if (!name || !surveyConfig) {
+      return res.status(400).json({ error: 'name and surveyConfig are required' });
+    }
+    const config = await createInboundConfig(req.user.id, {
+      twilioNumber: TWILIO_PHONE,
+      name,
+      surveyConfig,
+      greetingText: greetingText || null,
+      language: language || 'hi',
+      gender: gender || 'female',
+      autoDetectLanguage: autoDetectLanguage || false,
+    });
+    res.json(config);
+  } catch (error) {
+    console.error('[Inbound API] Create error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// List user's inbound configs
+app.get('/api/inbound-configs', requireAuth, requireDb, async (req, res) => {
+  try {
+    const configs = await getInboundConfigsByUser(req.user.id);
+    res.json(configs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single inbound config
+app.get('/api/inbound-configs/:id', requireAuth, requireDb, async (req, res) => {
+  try {
+    const config = await getInboundConfigById(req.params.id);
+    if (!config) return res.status(404).json({ error: 'Not found' });
+    if (config.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+    res.json(config);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update inbound config
+app.put('/api/inbound-configs/:id', requireAuth, requireDb, async (req, res) => {
+  try {
+    const config = await getInboundConfigById(req.params.id);
+    if (!config) return res.status(404).json({ error: 'Not found' });
+    if (config.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    const updated = await updateInboundConfig(req.params.id, req.body);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete inbound config
+app.delete('/api/inbound-configs/:id', requireAuth, requireDb, async (req, res) => {
+  try {
+    const config = await getInboundConfigById(req.params.id);
+    if (!config) return res.status(404).json({ error: 'Not found' });
+    if (config.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    await deleteInboundConfig(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle inbound config enabled/disabled
+app.post('/api/inbound-configs/:id/toggle', requireAuth, requireDb, async (req, res) => {
+  try {
+    const config = await getInboundConfigById(req.params.id);
+    if (!config) return res.status(404).json({ error: 'Not found' });
+    if (config.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    const updated = await toggleInboundConfig(req.params.id, !config.enabled);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // Start Server
 // ============================================
 
-// Initialize Postgres, then start server
-initDb().then(() => {
+// Initialize Postgres + Campaign Runner, then start server
+initDb().then(async () => {
+  // Initialize campaign runner
+  campaignRunner = new CampaignRunner({
+    initiateCallFn: initiateCall,
+    getActiveCallsFn: getActiveCalls,
+  });
+  await campaignRunner.init();
+
+  // Auto-configure Twilio number to point inbound calls to our webhook
+  if (TWILIO_PHONE && PUBLIC_URL && !PUBLIC_URL.includes('localhost')) {
+    twilioClient.incomingPhoneNumbers.list({ phoneNumber: TWILIO_PHONE })
+      .then(nums => {
+        if (nums[0]) {
+          return twilioClient.incomingPhoneNumbers(nums[0].sid).update({
+            voiceUrl: `${PUBLIC_URL}/call/inbound`,
+            voiceMethod: 'POST',
+          });
+        }
+      })
+      .then(() => console.log(`[Twilio] Inbound webhook configured: ${PUBLIC_URL}/call/inbound`))
+      .catch(err => console.warn(`[Twilio] Auto-config failed (set manually): ${err.message}`));
+  }
+
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`
   ╔═══════════════════════════════════════════════╗
@@ -1333,10 +1695,13 @@ initDb().then(() => {
   ╠═══════════════════════════════════════════════╣
   ║  Endpoints:                                   ║
   ║  POST   /call/initiate     - Start a call     ║
+  ║  POST   /call/inbound      - Inbound webhook  ║
   ║  GET    /call/active       - List active      ║
   ║  GET    /call/:id          - Call details      ║
   ║  POST   /call/:id/end     - Force end         ║
   ║  WS     /call/media-stream - Twilio stream    ║
+  ║  POST   /api/campaigns     - Campaigns        ║
+  ║  CRUD   /api/inbound-configs - Inbound        ║
   ╠═══════════════════════════════════════════════╣
   ║  Public URL: ${PUBLIC_URL.padEnd(32)}║
   ╚═══════════════════════════════════════════════╝

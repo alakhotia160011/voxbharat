@@ -62,7 +62,68 @@ export async function initDb() {
     );
   `);
 
-  console.log('✓ Postgres connected, users + calls tables ready');
+  // Campaign tables
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS campaigns (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id INTEGER REFERENCES users(id) NOT NULL,
+      name TEXT NOT NULL,
+      survey_config JSONB NOT NULL,
+      language TEXT DEFAULT 'hi',
+      gender TEXT DEFAULT 'female',
+      auto_detect_language BOOLEAN DEFAULT FALSE,
+      concurrency INTEGER DEFAULT 2 CHECK (concurrency BETWEEN 1 AND 2),
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending','running','paused','completed','cancelled')),
+      progress JSONB DEFAULT '{"pending":0,"calling":0,"completed":0,"failed":0,"no_answer":0}'::jsonb,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS campaign_numbers (
+      id SERIAL PRIMARY KEY,
+      campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE NOT NULL,
+      phone_number TEXT NOT NULL,
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending','calling','completed','failed','no_answer')),
+      call_id UUID,
+      attempts INTEGER DEFAULT 0,
+      error TEXT,
+      started_at TIMESTAMPTZ,
+      completed_at TIMESTAMPTZ
+    );
+  `);
+
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_numbers_campaign ON campaign_numbers(campaign_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_numbers_status ON campaign_numbers(campaign_id, status)`);
+
+  // Add campaign_id to calls table if not present
+  await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS campaign_id UUID`);
+
+  // Add direction column to calls table
+  await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS direction TEXT DEFAULT 'outbound'`);
+
+  // Inbound configs table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS inbound_configs (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id INTEGER REFERENCES users(id) NOT NULL,
+      twilio_number TEXT NOT NULL,
+      name TEXT NOT NULL,
+      survey_config JSONB NOT NULL,
+      greeting_text TEXT,
+      language TEXT DEFAULT 'hi',
+      gender TEXT DEFAULT 'female',
+      auto_detect_language BOOLEAN DEFAULT FALSE,
+      enabled BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_inbound_configs_number ON inbound_configs(twilio_number, enabled)`);
+
+  console.log('✓ Postgres connected, all tables ready');
   return true;
 }
 
@@ -124,12 +185,14 @@ export async function saveCall(call) {
       id, phone_number, language, gender, auto_detect_language, detected_language,
       custom_survey, answered_by, voicemail_left, status, duration, summary,
       transcript, demographics, structured, responses, sentiment,
-      recording_url, recording_duration, started_at, connected_at, ended_at
+      recording_url, recording_duration, started_at, connected_at, ended_at,
+      campaign_id, direction
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10, $11, $12,
       $13, $14, $15, $16, $17,
-      $18, $19, $20, $21, $22
+      $18, $19, $20, $21, $22,
+      $23, $24
     )
     ON CONFLICT (id) DO UPDATE SET
       status = EXCLUDED.status,
@@ -142,7 +205,9 @@ export async function saveCall(call) {
       sentiment = EXCLUDED.sentiment,
       recording_url = EXCLUDED.recording_url,
       recording_duration = EXCLUDED.recording_duration,
-      ended_at = EXCLUDED.ended_at
+      ended_at = EXCLUDED.ended_at,
+      campaign_id = EXCLUDED.campaign_id,
+      direction = EXCLUDED.direction
   `, [
     call.id,
     call.phoneNumber,
@@ -166,6 +231,8 @@ export async function saveCall(call) {
     call.startedAt,
     call.connectedAt,
     call.endedAt,
+    call.campaignId || null,
+    call.direction || 'outbound',
   ]);
 
   return call.id;
@@ -404,4 +471,208 @@ export async function deleteCall(id) {
 
   const result = await pool.query('DELETE FROM calls WHERE id = $1', [id]);
   return result.rowCount > 0;
+}
+
+// ─── Campaigns ───────────────────────────────────────────
+
+export async function createCampaign(userId, data) {
+  if (!pool) throw new Error('Database unavailable');
+  const { rows } = await pool.query(`
+    INSERT INTO campaigns (user_id, name, survey_config, language, gender, auto_detect_language, concurrency)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING *
+  `, [userId, data.name, JSON.stringify(data.surveyConfig), data.language || 'hi', data.gender || 'female', data.autoDetectLanguage || false, data.concurrency || 2]);
+  return rows[0];
+}
+
+export async function getCampaignById(id) {
+  if (!pool) return null;
+  const { rows } = await pool.query('SELECT * FROM campaigns WHERE id = $1', [id]);
+  return rows[0] || null;
+}
+
+export async function getCampaignsByUser(userId) {
+  if (!pool) return [];
+  const { rows } = await pool.query(`
+    SELECT * FROM campaigns WHERE user_id = $1 ORDER BY created_at DESC
+  `, [userId]);
+  return rows;
+}
+
+export async function updateCampaignStatus(id, status) {
+  if (!pool) return null;
+  const { rows } = await pool.query(`
+    UPDATE campaigns SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING *
+  `, [id, status]);
+  return rows[0] || null;
+}
+
+export async function updateCampaignProgress(id, progress) {
+  if (!pool) return null;
+  await pool.query(`
+    UPDATE campaigns SET progress = $2, updated_at = NOW() WHERE id = $1
+  `, [id, JSON.stringify(progress)]);
+}
+
+export async function addCampaignNumbers(campaignId, phoneNumbers) {
+  if (!pool) return;
+  const values = phoneNumbers.map((num, i) => `($1, $${i + 2})`).join(', ');
+  await pool.query(
+    `INSERT INTO campaign_numbers (campaign_id, phone_number) VALUES ${values}`,
+    [campaignId, ...phoneNumbers]
+  );
+  // Update initial progress
+  await pool.query(`
+    UPDATE campaigns SET progress = jsonb_set(progress, '{pending}', to_jsonb($2::int)), updated_at = NOW()
+    WHERE id = $1
+  `, [campaignId, phoneNumbers.length]);
+}
+
+export async function getNextPendingNumbers(campaignId, limit) {
+  if (!pool) return [];
+  const { rows } = await pool.query(`
+    SELECT id, phone_number FROM campaign_numbers
+    WHERE campaign_id = $1 AND status = 'pending'
+    ORDER BY id LIMIT $2
+  `, [campaignId, limit]);
+  return rows;
+}
+
+export async function updateCampaignNumberStatus(id, status, callId, error) {
+  if (!pool) return;
+  const now = new Date().toISOString();
+  await pool.query(`
+    UPDATE campaign_numbers SET
+      status = $2,
+      call_id = $3,
+      error = $4,
+      attempts = attempts + 1,
+      started_at = CASE WHEN $2 = 'calling' THEN $5::timestamptz ELSE started_at END,
+      completed_at = CASE WHEN $2 IN ('completed','failed','no_answer') THEN $5::timestamptz ELSE completed_at END
+    WHERE id = $1
+  `, [id, status, callId || null, error || null, now]);
+}
+
+export async function getCampaignNumbersByCampaign(campaignId) {
+  if (!pool) return [];
+  const { rows } = await pool.query(`
+    SELECT * FROM campaign_numbers WHERE campaign_id = $1 ORDER BY id
+  `, [campaignId]);
+  return rows;
+}
+
+export async function getProgressCounts(campaignId) {
+  if (!pool) return { pending: 0, calling: 0, completed: 0, failed: 0, no_answer: 0 };
+  const { rows } = await pool.query(`
+    SELECT status, COUNT(*)::int as count FROM campaign_numbers
+    WHERE campaign_id = $1 GROUP BY status
+  `, [campaignId]);
+  const counts = { pending: 0, calling: 0, completed: 0, failed: 0, no_answer: 0 };
+  for (const row of rows) counts[row.status] = row.count;
+  return counts;
+}
+
+export async function resetCallingNumbers(campaignId) {
+  if (!pool) return;
+  await pool.query(`
+    UPDATE campaign_numbers SET status = 'pending', call_id = NULL
+    WHERE campaign_id = $1 AND status = 'calling'
+  `, [campaignId]);
+}
+
+export async function getRunningCampaigns() {
+  if (!pool) return [];
+  const { rows } = await pool.query(`SELECT id FROM campaigns WHERE status = 'running'`);
+  return rows;
+}
+
+export function getPool() {
+  return pool;
+}
+
+// ─── Inbound Configs ─────────────────────────────────────
+
+export async function createInboundConfig(userId, data) {
+  if (!pool) throw new Error('Database unavailable');
+  const { rows } = await pool.query(`
+    INSERT INTO inbound_configs (user_id, twilio_number, name, survey_config, greeting_text, language, gender, auto_detect_language)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING *
+  `, [userId, data.twilioNumber, data.name, JSON.stringify(data.surveyConfig), data.greetingText || null, data.language || 'hi', data.gender || 'female', data.autoDetectLanguage || false]);
+  return rows[0];
+}
+
+export async function getInboundConfigById(id) {
+  if (!pool) return null;
+  const { rows } = await pool.query('SELECT * FROM inbound_configs WHERE id = $1', [id]);
+  return rows[0] || null;
+}
+
+export async function getInboundConfigsByUser(userId) {
+  if (!pool) return [];
+  const { rows } = await pool.query('SELECT * FROM inbound_configs WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+  return rows;
+}
+
+export async function getInboundConfigByNumber(twilioNumber) {
+  if (!pool) return null;
+  const { rows } = await pool.query('SELECT * FROM inbound_configs WHERE twilio_number = $1 AND enabled = TRUE LIMIT 1', [twilioNumber]);
+  return rows[0] || null;
+}
+
+export async function updateInboundConfig(id, data) {
+  if (!pool) return null;
+  const fields = [];
+  const vals = [id];
+  let idx = 2;
+  for (const key of ['name', 'survey_config', 'greeting_text', 'language', 'gender', 'auto_detect_language', 'enabled']) {
+    if (data[key] !== undefined) {
+      const col = key === 'survey_config' ? 'survey_config' : key;
+      const val = key === 'survey_config' ? JSON.stringify(data[key]) : data[key];
+      fields.push(`${col} = $${idx}`);
+      vals.push(val);
+      idx++;
+    }
+  }
+  if (fields.length === 0) return getInboundConfigById(id);
+  fields.push('updated_at = NOW()');
+  const { rows } = await pool.query(`UPDATE inbound_configs SET ${fields.join(', ')} WHERE id = $1 RETURNING *`, vals);
+  return rows[0] || null;
+}
+
+export async function deleteInboundConfig(id) {
+  if (!pool) return false;
+  const result = await pool.query('DELETE FROM inbound_configs WHERE id = $1', [id]);
+  return result.rowCount > 0;
+}
+
+export async function toggleInboundConfig(id, enabled) {
+  if (!pool) return null;
+  const { rows } = await pool.query('UPDATE inbound_configs SET enabled = $2, updated_at = NOW() WHERE id = $1 RETURNING *', [id, enabled]);
+  return rows[0] || null;
+}
+
+export async function findCallerInCampaigns(phoneNumber) {
+  if (!pool) return null;
+  const { rows } = await pool.query(`
+    SELECT cn.*, c.survey_config, c.language, c.gender, c.auto_detect_language, c.name as campaign_name
+    FROM campaign_numbers cn
+    JOIN campaigns c ON cn.campaign_id = c.id
+    WHERE cn.phone_number = $1
+      AND c.status IN ('running', 'paused', 'completed')
+      AND cn.status IN ('no_answer', 'failed', 'pending')
+      AND c.created_at > NOW() - INTERVAL '7 days'
+    ORDER BY cn.completed_at DESC NULLS LAST
+    LIMIT 1
+  `, [phoneNumber]);
+  return rows[0] || null;
+}
+
+export async function completeCampaignCallback(campaignId, phoneNumber, callId) {
+  if (!pool) return;
+  await pool.query(
+    `UPDATE campaign_numbers SET status = 'completed', completed_at = NOW(), call_id = $3
+     WHERE campaign_id = $1 AND phone_number = $2 AND status IN ('no_answer','failed','pending')`,
+    [campaignId, phoneNumber, callId]
+  );
 }

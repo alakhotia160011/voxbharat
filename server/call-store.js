@@ -17,6 +17,8 @@ export function createCall(options = {}) {
     gender: options.gender || 'female',
     customSurvey: options.customSurvey || null,
     autoDetectLanguage: options.autoDetectLanguage || false,
+    campaignId: options.campaignId || null,
+    direction: options.direction || 'outbound',
     detectedLanguage: null,
     answeredBy: null,       // 'human' | 'machine_end_beep' | etc. (from Twilio AMD)
     voicemailLeft: false,   // true if voicemail message was played

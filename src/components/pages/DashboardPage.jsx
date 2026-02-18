@@ -2,6 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarChart from '../shared/BarChart';
 import { fadeInUp, staggerContainer } from '../../styles/animations';
+import CampaignList from '../campaigns/CampaignList';
+import CampaignDetail from '../campaigns/CampaignDetail';
+import NewCampaignFlow from '../campaigns/NewCampaignFlow';
+import InboundList from '../inbound/InboundList';
+import InboundDetail from '../inbound/InboundDetail';
+import InboundConfigForm from '../inbound/InboundConfigForm';
 
 const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
 const TOKEN_KEY = 'voxbharat_token';
@@ -792,6 +798,19 @@ export default function DashboardPage({ setShowBuilder }) {
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedCallId, setSelectedCallId] = useState(null);
 
+  // Campaign state
+  const [activeTab, setActiveTab] = useState('projects');
+  const [campaigns, setCampaigns] = useState([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
+  const [showNewCampaign, setShowNewCampaign] = useState(false);
+
+  // Inbound state
+  const [inboundConfigs, setInboundConfigs] = useState([]);
+  const [inboundLoading, setInboundLoading] = useState(false);
+  const [selectedInboundId, setSelectedInboundId] = useState(null);
+  const [showNewInbound, setShowNewInbound] = useState(false);
+
   // Listen for forced logout (401 from any authFetch)
   useEffect(() => {
     const handleLogout = () => { setAuthed(false); setSelectedProject(null); setSelectedCallId(null); };
@@ -818,10 +837,30 @@ export default function DashboardPage({ setShowBuilder }) {
       .catch(() => { setProjects([]); setLoading(false); });
   }, []);
 
-  // Fetch projects once authenticated
+  const fetchCampaigns = useCallback(() => {
+    setCampaignsLoading(true);
+    authFetch(`${CALL_SERVER}/api/campaigns`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { setCampaigns(Array.isArray(d) ? d : []); setCampaignsLoading(false); })
+      .catch(() => { setCampaigns([]); setCampaignsLoading(false); });
+  }, []);
+
+  const fetchInboundConfigs = useCallback(() => {
+    setInboundLoading(true);
+    authFetch(`${CALL_SERVER}/api/inbound-configs`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { setInboundConfigs(Array.isArray(d) ? d : []); setInboundLoading(false); })
+      .catch(() => { setInboundConfigs([]); setInboundLoading(false); });
+  }, []);
+
+  // Fetch projects + campaigns + inbound configs once authenticated
   useEffect(() => {
-    if (authed && !checkingAuth) fetchProjects();
-  }, [authed, checkingAuth, fetchProjects]);
+    if (authed && !checkingAuth) {
+      fetchProjects();
+      fetchCampaigns();
+      fetchInboundConfigs();
+    }
+  }, [authed, checkingAuth, fetchProjects, fetchCampaigns, fetchInboundConfigs]);
 
   const handleLogout = () => {
     clearToken();
@@ -829,6 +868,12 @@ export default function DashboardPage({ setShowBuilder }) {
     setProjects([]);
     setSelectedProject(null);
     setSelectedCallId(null);
+    setCampaigns([]);
+    setSelectedCampaignId(null);
+    setShowNewCampaign(false);
+    setInboundConfigs([]);
+    setSelectedInboundId(null);
+    setShowNewInbound(false);
   };
 
   // Checking saved token
@@ -839,6 +884,62 @@ export default function DashboardPage({ setShowBuilder }) {
   // Not authenticated — show login
   if (!authed) {
     return <LoginScreen onLogin={() => setAuthed(true)} />;
+  }
+
+  // Inbound: New Config Form
+  if (showNewInbound) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <InboundConfigForm
+          onBack={() => setShowNewInbound(false)}
+          onCreated={(id) => {
+            setShowNewInbound(false);
+            setSelectedInboundId(id);
+            fetchInboundConfigs();
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Inbound: Detail View
+  if (selectedInboundId) {
+    return (
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <InboundDetail
+          configId={selectedInboundId}
+          onBack={() => { setSelectedInboundId(null); fetchInboundConfigs(); }}
+        />
+      </div>
+    );
+  }
+
+  // Campaign: New Campaign Flow
+  if (showNewCampaign) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <NewCampaignFlow
+          onBack={() => setShowNewCampaign(false)}
+          onCreated={(id) => {
+            setShowNewCampaign(false);
+            setSelectedCampaignId(id);
+            fetchCampaigns();
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Campaign: Detail View
+  if (selectedCampaignId) {
+    return (
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <CampaignDetail
+          campaignId={selectedCampaignId}
+          onBack={() => { setSelectedCampaignId(null); fetchCampaigns(); }}
+        />
+      </div>
+    );
   }
 
   // Level 3: Call Detail
@@ -867,16 +968,13 @@ export default function DashboardPage({ setShowBuilder }) {
     );
   }
 
-  // Level 1: Projects List
+  // Level 1: Projects / Campaigns tabs
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
       {/* Page header */}
-      <div className="mb-10">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-8 rounded-full bg-gradient-to-b from-saffron to-gold" />
-            <h1 className="font-display text-3xl font-bold text-earth">Dashboard</h1>
-          </div>
+          <h1 className="font-display text-3xl font-bold text-earth">Dashboard</h1>
           <button
             onClick={handleLogout}
             className="px-3 py-1.5 text-sm font-body text-earth-mid border border-cream-warm rounded-lg hover:bg-cream-warm hover:text-earth transition-colors cursor-pointer"
@@ -889,25 +987,97 @@ export default function DashboardPage({ setShowBuilder }) {
         </p>
       </div>
 
-      <AnimatePresence mode="wait">
-        {loading ? (
-          <Spinner text="Loading projects" />
-        ) : (
-          <motion.div
-            key="projects"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
+      {/* Tab navigation */}
+      <div className="flex items-center gap-8 mb-8 border-b border-cream-warm">
+        {[
+          { key: 'projects', label: 'Projects', desc: 'Analytics & results' },
+          { key: 'campaigns', label: 'Campaigns', desc: 'Batch calling' },
+          { key: 'inbound', label: 'Inbound', desc: 'Receive calls' },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`pb-3 text-left transition-colors cursor-pointer relative ${
+              activeTab === tab.key
+                ? 'text-saffron'
+                : 'text-earth-mid hover:text-earth'
+            }`}
           >
-            <ProjectsList
-              projects={projects}
-              loading={loading}
-              onSelect={setSelectedProject}
-              onRefresh={fetchProjects}
-              setShowBuilder={setShowBuilder}
-            />
-          </motion.div>
+            <span className="text-sm font-body font-medium">{tab.label}</span>
+            <span className={`block text-[11px] font-body mt-0.5 ${activeTab === tab.key ? 'text-saffron/60' : 'text-earth-mid/50'}`}>{tab.desc}</span>
+            {activeTab === tab.key && (
+              <motion.div
+                layoutId="dashboard-tab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-saffron rounded-full"
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'projects' && (
+          loading ? (
+            <Spinner text="Loading projects" />
+          ) : (
+            <motion.div
+              key="projects"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ProjectsList
+                projects={projects}
+                loading={loading}
+                onSelect={setSelectedProject}
+                onRefresh={fetchProjects}
+                setShowBuilder={setShowBuilder}
+              />
+            </motion.div>
+          )
+        )}
+        {activeTab === 'campaigns' && (
+          campaignsLoading && campaigns.length === 0 ? (
+            <Spinner text="Loading campaigns" />
+          ) : (
+            <motion.div
+              key="campaigns"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <CampaignList
+                campaigns={campaigns}
+                loading={campaignsLoading}
+                onSelect={setSelectedCampaignId}
+                onNewCampaign={() => setShowNewCampaign(true)}
+                onRefresh={fetchCampaigns}
+              />
+            </motion.div>
+          )
+        )}
+        {activeTab === 'inbound' && (
+          inboundLoading && inboundConfigs.length === 0 ? (
+            <Spinner text="Loading inbound agents" />
+          ) : (
+            <motion.div
+              key="inbound"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <InboundList
+                configs={inboundConfigs}
+                loading={inboundLoading}
+                onSelect={setSelectedInboundId}
+                onNewConfig={() => setShowNewInbound(true)}
+                onRefresh={fetchInboundConfigs}
+              />
+            </motion.div>
+          )
         )}
       </AnimatePresence>
     </div>
