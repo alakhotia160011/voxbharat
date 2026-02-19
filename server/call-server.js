@@ -21,7 +21,7 @@ import {
   initDb, updateCallRecording, isDbReady,
   getAllCalls, getCallById, getAnalytics,
   exportCallsJson, exportCallsCsv, deleteCall,
-  getProjects, getProjectCalls, getProjectAnalytics,
+  getProjects, getProjectCalls, getProjectAnalytics, getProjectResponseBreakdowns,
   createUser, verifyUser, getUserByEmail,
   createCampaign, getCampaignById, getCampaignsByUser,
   updateCampaignStatus, updateCampaignProgress,
@@ -710,6 +710,43 @@ app.get('/api/projects/:name/analytics', requireAuth, requireDb, async (req, res
     const analytics = await getProjectAnalytics(req.params.name);
     if (!analytics) return res.status(404).json({ error: 'No data' });
     res.json(analytics);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/projects/:name/response-breakdowns', requireAuth, requireDb, async (req, res) => {
+  try {
+    const data = await getProjectResponseBreakdowns(req.params.name);
+    if (!data) return res.status(404).json({ error: 'No data' });
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/calls/:id/recording', requireAuth, requireDb, async (req, res) => {
+  try {
+    const call = await getCallById(req.params.id);
+    if (!call) return res.status(404).json({ error: 'Call not found' });
+    if (!call.recording_url) return res.status(404).json({ error: 'No recording available' });
+
+    const twilioAuth = Buffer.from(`${TWILIO_SID}:${TWILIO_AUTH}`).toString('base64');
+    const upstream = await fetch(call.recording_url, {
+      headers: { Authorization: `Basic ${twilioAuth}` },
+    });
+
+    if (!upstream.ok) return res.status(upstream.status).json({ error: 'Failed to fetch recording' });
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Disposition', `attachment; filename="call-${req.params.id.slice(0, 8)}.mp3"`);
+
+    const reader = upstream.body.getReader();
+    const pump = async () => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+      res.end();
+    };
+    await pump();
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

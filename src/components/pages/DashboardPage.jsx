@@ -11,7 +11,51 @@ import InboundConfigForm from '../inbound/InboundConfigForm';
 
 const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
 const TOKEN_KEY = 'voxbharat_token';
-const sectionNumerals = ['१', '२', '३'];
+const sectionNumerals = ['१', '२', '३', '४'];
+
+// Built-in survey question map (snake_case field → camelCase key in `structured`)
+const BUILTIN_QUESTIONS = [
+  { field: 'age', camel: 'age', text: 'What is your age?' },
+  { field: 'religion', camel: 'religion', text: 'What religion do you follow?' },
+  { field: 'religion_importance', camel: 'religionImportance', text: 'How important is religion in your daily life?' },
+  { field: 'prayer_frequency', camel: 'prayerFrequency', text: 'How often do you pray or worship?' },
+  { field: 'religious_freedom', camel: 'religiousFreedom', text: 'Do people of all religions have freedom to practice?' },
+  { field: 'interfaith_neighbor', camel: 'interfaithNeighbor', text: 'How would you feel if another religion\'s family moved nearby?' },
+  { field: 'interfaith_marriage', camel: 'interfaithMarriage', text: 'What is your opinion on inter-faith marriage?' },
+  { field: 'diversity_opinion', camel: 'diversityOpinion', text: 'Does religious diversity make India better or more challenging?' },
+];
+
+function deriveFieldName(textEn) {
+  return textEn.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').substring(0, 40);
+}
+
+function buildQuestionAnswerPairs(callData) {
+  const pairs = [];
+  if (callData.custom_survey?.questions) {
+    for (const q of callData.custom_survey.questions) {
+      const fieldName = q.textEn
+        ? deriveFieldName(q.textEn)
+        : `question_${q.id}`;
+      const answer = callData.responses?.[fieldName] ?? null;
+      pairs.push({
+        question: q.textEn || q.text,
+        questionOriginal: q.text !== q.textEn ? q.text : null,
+        answer,
+      });
+    }
+  } else if (callData.structured) {
+    for (const q of BUILTIN_QUESTIONS) {
+      const answer = callData.structured[q.camel] ?? callData.demographics?.[q.field] ?? null;
+      pairs.push({ question: q.text, questionOriginal: null, answer });
+    }
+  }
+  return pairs;
+}
+
+function formatAnswer(val) {
+  if (val == null || val === '') return null;
+  return String(val).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 // ─── Auth helpers ───────────────────────────────────────────
 
@@ -389,6 +433,7 @@ function ProjectsList({ projects, onSelect, onRefresh, loading, setShowBuilder }
 function ProjectDashboard({ projectName, onBack, onSelectCall }) {
   const [calls, setCalls] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [breakdowns, setBreakdowns] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -396,10 +441,12 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
     Promise.all([
       authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/calls`).then(r => r.ok ? r.json() : []),
       authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/analytics`).then(r => r.ok ? r.json() : null),
+      authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/response-breakdowns`).then(r => r.ok ? r.json() : null),
     ])
-      .then(([callsData, analyticsData]) => {
+      .then(([callsData, analyticsData, breakdownsData]) => {
         setCalls(Array.isArray(callsData) ? callsData : []);
         setAnalytics(analyticsData);
+        setBreakdowns(breakdownsData);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -499,10 +546,49 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
         </div>
       )}
 
+      {/* Response Breakdowns */}
+      {breakdowns?.questions?.length > 0 && (
+        <div>
+          <SectionTitle numeral={sectionNumerals[1]} title="Survey Responses" />
+          <div className="text-xs font-body text-earth-mid mb-4">
+            {breakdowns.totalResponses} completed {breakdowns.totalResponses === 1 ? 'response' : 'responses'}
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {breakdowns.questions.map((q, i) => {
+              const colors = ['#e8550f', '#c4a04a', '#2d3a6e', '#c24a0e', '#6b7280', '#059669'];
+              const chartColor = colors[i % colors.length];
+              const chartData = q.breakdown.map(b => ({
+                label: b.value.replace(/_/g, ' '),
+                pct: b.pct,
+              }));
+
+              return (
+                <div key={q.field} className="bg-white border border-cream-warm rounded-xl p-5">
+                  <h4 className="font-semibold text-earth mb-1 font-body text-sm">
+                    Q{i + 1}. {q.text}
+                  </h4>
+                  {q.textOriginal && (
+                    <div className="text-xs text-earth-mid/60 font-serif-indic mb-2">{q.textOriginal}</div>
+                  )}
+                  <div className="text-xs text-earth-mid/50 font-body mb-3">
+                    {q.answered} answered &middot; {q.unanswered} unanswered
+                  </div>
+                  {chartData.length > 0 ? (
+                    <BarChart data={chartData} color={chartColor} />
+                  ) : (
+                    <div className="text-xs text-earth-mid/40 italic font-body">No responses yet</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Call list */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <SectionTitle numeral={sectionNumerals[1]} title="Individual Calls" />
+          <SectionTitle numeral={sectionNumerals[2]} title="Individual Calls" />
           {calls.length > 0 && (
             <button
               onClick={() => {
@@ -613,7 +699,6 @@ function CallDetail({ callId, onBack, projectName }) {
   const duration = data.duration || 0;
   const transcript = data.transcript || [];
   const demographics = data.demographics || {};
-  const structured = data.structured || {};
   const sentiment = data.sentiment || {};
   const summary = data.summary || '';
 
@@ -639,15 +724,25 @@ function CallDetail({ callId, onBack, projectName }) {
             <div className="flex gap-2">
               {data.recording_url && (
                 <a
-                  href={data.recording_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white/15 backdrop-blur-sm rounded-lg text-sm font-body hover:bg-white/25 transition-colors border border-white/10"
+                  href={`${CALL_SERVER}/api/calls/${data.id}/recording`}
+                  download={`call-${data.id.slice(0, 8)}.mp3`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    authFetch(`${CALL_SERVER}/api/calls/${data.id}/recording`)
+                      .then(r => r.blob())
+                      .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = `call-${data.id.slice(0, 8)}.mp3`; a.click();
+                        URL.revokeObjectURL(url);
+                      });
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white/15 backdrop-blur-sm rounded-lg text-sm font-body hover:bg-white/25 transition-colors border border-white/10 cursor-pointer"
                 >
-                  <span className="w-3 h-3 rounded-full bg-white/80 flex items-center justify-center">
-                    <span className="w-0 h-0 border-l-[5px] border-l-earth border-y-[3px] border-y-transparent ml-0.5" />
-                  </span>
-                  Recording
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3" />
+                  </svg>
+                  Download Recording
                 </a>
               )}
               <button
@@ -761,19 +856,29 @@ function CallDetail({ callId, onBack, projectName }) {
           )}
         </div>
 
-        {Object.keys(structured).length > 0 && (
-          <div className="bg-white border border-cream-warm rounded-xl p-4 mt-4">
-            <h4 className="font-semibold text-earth mb-3 text-xs uppercase tracking-wider font-body">Survey Responses</h4>
-            <div className="grid md:grid-cols-2 gap-x-6 gap-y-0 text-sm font-body">
-              {Object.entries(structured).map(([key, value]) => (
-                <div key={key} className="flex justify-between py-2 border-b border-cream-warm/60">
-                  <span className="text-earth-mid">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()}</span>
-                  <span className="font-medium text-earth">{value !== null ? String(value).replace(/_/g, ' ') : '-'}</span>
-                </div>
-              ))}
+        {(() => {
+          const qaPairs = buildQuestionAnswerPairs(data);
+          return qaPairs.length > 0 && (
+            <div className="bg-white border border-cream-warm rounded-xl p-4 mt-4">
+              <h4 className="font-semibold text-earth mb-3 text-xs uppercase tracking-wider font-body">Survey Responses</h4>
+              <div className="space-y-3 text-sm font-body">
+                {qaPairs.map((pair, i) => (
+                  <div key={i} className="py-2 border-b border-cream-warm/60 last:border-0">
+                    <div className="text-earth-mid text-xs mb-1">
+                      <span className="font-medium text-earth">Q{i + 1}.</span> {pair.question}
+                    </div>
+                    {pair.questionOriginal && (
+                      <div className="text-earth-mid/60 text-xs mb-1 font-serif-indic">{pair.questionOriginal}</div>
+                    )}
+                    <div className={`font-medium ${pair.answer != null ? 'text-earth' : 'text-earth-mid/40 italic'}`}>
+                      {formatAnswer(pair.answer) || 'Not answered'}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </section>
 
       {/* Footer */}
