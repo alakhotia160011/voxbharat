@@ -22,6 +22,7 @@ import {
   getAllCalls, getCallById, getAnalytics,
   exportCallsJson, exportCallsCsv, deleteCall,
   getProjects, getProjectCalls, getProjectAnalytics, getProjectResponseBreakdowns,
+  exportProjectCallsJson, exportProjectCallsCsv,
   createUser, verifyUser, getUserByEmail,
   createCampaign, getCampaignById, getCampaignsByUser,
   updateCampaignStatus, updateCampaignProgress,
@@ -718,6 +719,24 @@ app.get('/api/projects/:name/response-breakdowns', requireAuth, requireDb, async
     const data = await getProjectResponseBreakdowns(req.params.name);
     if (!data) return res.status(404).json({ error: 'No data' });
     res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/projects/:name/export/json', requireAuth, requireDb, async (req, res) => {
+  try {
+    const data = await exportProjectCallsJson(req.params.name);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(req.params.name)}-export.json"`);
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/projects/:name/export/csv', requireAuth, requireDb, async (req, res) => {
+  try {
+    const csv = await exportProjectCallsCsv(req.params.name);
+    if (!csv) return res.status(404).json({ error: 'No data' });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(req.params.name)}-export.csv"`);
+    res.send(csv);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

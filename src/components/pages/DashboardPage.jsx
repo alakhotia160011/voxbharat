@@ -590,21 +590,39 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
         <div className="flex items-center justify-between mb-4">
           <SectionTitle numeral={sectionNumerals[2]} title="Individual Calls" />
           {calls.length > 0 && (
-            <button
-              onClick={() => {
-                authFetch(`${CALL_SERVER}/api/export/csv`)
-                  .then(r => r.blob())
-                  .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = 'voxbharat-export.csv'; a.click();
-                    URL.revokeObjectURL(url);
-                  });
-              }}
-              className="px-3 py-1.5 text-sm font-body bg-saffron text-white rounded-lg hover:bg-saffron-deep transition-colors cursor-pointer flex-shrink-0 ml-4"
-            >
-              Export CSV
-            </button>
+            <div className="flex gap-2 flex-shrink-0 ml-4">
+              <button
+                onClick={() => {
+                  authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/export/csv`)
+                    .then(r => r.blob())
+                    .then(blob => {
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url; a.download = `${projectName}-export.csv`; a.click();
+                      URL.revokeObjectURL(url);
+                    });
+                }}
+                className="px-3 py-1.5 text-sm font-body bg-saffron text-white rounded-lg hover:bg-saffron-deep transition-colors cursor-pointer"
+              >
+                Export CSV
+              </button>
+              <button
+                onClick={() => {
+                  authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/export/json`)
+                    .then(r => r.json())
+                    .then(data => {
+                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url; a.download = `${projectName}-export.json`; a.click();
+                      URL.revokeObjectURL(url);
+                    });
+                }}
+                className="px-3 py-1.5 text-sm font-body bg-white text-saffron border border-saffron/30 rounded-lg hover:bg-saffron/5 transition-colors cursor-pointer"
+              >
+                Export JSON
+              </button>
+            </div>
           )}
         </div>
 
@@ -756,6 +774,29 @@ function CallDetail({ callId, onBack, projectName }) {
                 className="px-3.5 py-1.5 bg-white/15 backdrop-blur-sm rounded-lg text-sm font-body hover:bg-white/25 transition-colors border border-white/10 cursor-pointer"
               >
                 Export JSON
+              </button>
+              <button
+                onClick={() => {
+                  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+                  const qaPairs = buildQuestionAnswerPairs(data);
+                  const headers = ['id', 'timestamp', 'duration', 'language', 'phone_number',
+                    'age', 'age_group', 'religion',
+                    ...qaPairs.map(p => p.question),
+                    'sentiment_overall', 'summary', 'recording_url'];
+                  const values = [data.id, data.started_at, data.duration, data.language, data.phone_number,
+                    demographics.age ?? '', demographics.ageGroup ?? '', demographics.religion ?? '',
+                    ...qaPairs.map(p => p.answer ?? ''),
+                    sentiment.overall ?? '', summary, data.recording_url ?? ''];
+                  const csv = headers.map(esc).join(',') + '\n' + values.map(esc).join(',');
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = `voxbharat-call-${data.id.slice(0, 8)}.csv`; a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-3.5 py-1.5 bg-white/15 backdrop-blur-sm rounded-lg text-sm font-body hover:bg-white/25 transition-colors border border-white/10 cursor-pointer"
+              >
+                Export CSV
               </button>
             </div>
           </div>

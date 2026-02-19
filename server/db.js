@@ -385,6 +385,106 @@ export async function exportCallsCsv() {
 }
 
 /**
+ * Export all calls for a specific project as JSON (full data)
+ */
+export async function exportProjectCallsJson(projectName) {
+  if (!pool) return [];
+
+  const { rows } = await pool.query(`
+    SELECT * FROM calls
+    WHERE status = 'completed'
+      AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+    ORDER BY started_at DESC
+  `, [projectName]);
+
+  return rows;
+}
+
+/**
+ * Export all calls for a specific project as CSV (flattened).
+ * Dynamically builds columns based on survey type (built-in or custom).
+ */
+export async function exportProjectCallsCsv(projectName) {
+  if (!pool) return '';
+
+  const { rows } = await pool.query(`
+    SELECT * FROM calls
+    WHERE status = 'completed'
+      AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+    ORDER BY started_at DESC
+  `, [projectName]);
+
+  if (rows.length === 0) return '';
+
+  const isCustom = rows[0].custom_survey != null;
+
+  // Build question columns dynamically
+  let questionColumns = [];
+  if (isCustom) {
+    const surveyDef = rows[0].custom_survey;
+    if (surveyDef?.questions) {
+      questionColumns = surveyDef.questions.map(q => {
+        const fieldName = q.textEn
+          ? q.textEn.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').substring(0, 40)
+          : `question_${q.id}`;
+        return { header: q.textEn || q.text, field: fieldName, source: 'responses' };
+      });
+    }
+  } else {
+    const lang = rows[0].language || 'hi';
+    const script = SURVEY_SCRIPTS[lang] || SURVEY_SCRIPTS.hi;
+    if (script?.questions) {
+      questionColumns = script.questions.map(q => {
+        const camelField = q.field.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+        return { header: q.text, field: camelField, source: 'structured' };
+      });
+    }
+  }
+
+  // Build flat rows
+  const headers = [
+    'id', 'timestamp', 'duration', 'language', 'phone_number',
+    'age', 'age_group', 'religion',
+    ...questionColumns.map(q => q.header),
+    'sentiment_overall', 'summary', 'recording_url',
+  ];
+
+  const csvRows = rows.map(row => {
+    const base = [
+      row.id,
+      row.started_at,
+      row.duration,
+      row.language,
+      row.phone_number,
+      row.demographics?.age ?? '',
+      row.demographics?.ageGroup ?? '',
+      row.demographics?.religion ?? '',
+    ];
+
+    const answers = questionColumns.map(q => {
+      const data = q.source === 'responses' ? row.responses : row.structured;
+      return data?.[q.field] ?? '';
+    });
+
+    const tail = [
+      row.sentiment?.overall ?? '',
+      row.summary ?? '',
+      row.recording_url ?? '',
+    ];
+
+    return [...base, ...answers, ...tail];
+  });
+
+  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = [
+    headers.map(escape).join(','),
+    ...csvRows.map(row => row.map(escape).join(',')),
+  ].join('\n');
+
+  return csv;
+}
+
+/**
  * Get all survey projects (grouped by survey name) with summary stats
  */
 export async function getProjects() {
