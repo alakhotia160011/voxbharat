@@ -3,6 +3,7 @@
 
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
+import { SURVEY_SCRIPTS } from './survey-scripts.js';
 const { Pool } = pg;
 
 let pool = null;
@@ -461,6 +462,118 @@ export async function getProjectAnalytics(projectName) {
     byReligion: byReligionResult.rows,
     sentimentBreakdown: sentimentResult.rows,
   };
+}
+
+/**
+ * Convert snake_case to camelCase (e.g. religion_importance → religionImportance)
+ */
+function snakeToCamel(str) {
+  return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+/**
+ * Derive a field name from English question text (same algorithm as getCustomExtractionPrompt)
+ */
+function deriveFieldName(textEn) {
+  return textEn.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').substring(0, 40);
+}
+
+/**
+ * Get per-question response breakdowns for a project.
+ * Works for both built-in surveys (SURVEY_SCRIPTS) and custom surveys.
+ */
+export async function getProjectResponseBreakdowns(projectName) {
+  if (!pool) return null;
+
+  const { rows } = await pool.query(`
+    SELECT structured, responses, custom_survey, language
+    FROM calls
+    WHERE status = 'completed'
+      AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+    ORDER BY started_at DESC
+  `, [projectName]);
+
+  if (rows.length === 0) return { totalResponses: 0, questions: [] };
+
+  const isCustom = rows[0].custom_survey != null;
+  const totalResponses = rows.length;
+  const questions = [];
+
+  if (isCustom) {
+    // Custom survey — get questions from custom_survey definition
+    const surveyDef = rows[0].custom_survey;
+    if (!surveyDef?.questions) return { totalResponses, questions: [] };
+
+    for (const q of surveyDef.questions) {
+      const fieldName = q.textEn
+        ? deriveFieldName(q.textEn)
+        : `question_${q.id}`;
+
+      const counts = {};
+      let answered = 0;
+
+      for (const row of rows) {
+        const val = row.responses?.[fieldName];
+        if (val != null && val !== '') {
+          const strVal = String(val);
+          counts[strVal] = (counts[strVal] || 0) + 1;
+          answered++;
+        }
+      }
+
+      const breakdown = Object.entries(counts)
+        .map(([value, count]) => ({ value, count, pct: answered > 0 ? Math.round((count / answered) * 100) : 0 }))
+        .sort((a, b) => b.count - a.count);
+
+      questions.push({
+        field: fieldName,
+        text: q.textEn || q.text,
+        textOriginal: q.text !== q.textEn ? q.text : undefined,
+        type: q.options?.length > 0 ? 'categorical' : 'free_text',
+        options: q.options || null,
+        breakdown,
+        answered,
+        unanswered: totalResponses - answered,
+      });
+    }
+  } else {
+    // Built-in survey — use SURVEY_SCRIPTS
+    const lang = rows[0].language || 'hi';
+    const script = SURVEY_SCRIPTS[lang] || SURVEY_SCRIPTS.hi;
+    if (!script?.questions) return { totalResponses, questions: [] };
+
+    for (const q of script.questions) {
+      const camelField = snakeToCamel(q.field);
+      const counts = {};
+      let answered = 0;
+
+      for (const row of rows) {
+        // Built-in stores both in structured (camelCase) and demographics
+        const val = row.structured?.[camelField] ?? row.demographics?.[q.field];
+        if (val != null && val !== '') {
+          const strVal = String(val);
+          counts[strVal] = (counts[strVal] || 0) + 1;
+          answered++;
+        }
+      }
+
+      const breakdown = Object.entries(counts)
+        .map(([value, count]) => ({ value, count, pct: answered > 0 ? Math.round((count / answered) * 100) : 0 }))
+        .sort((a, b) => b.count - a.count);
+
+      questions.push({
+        field: camelField,
+        text: q.text,
+        type: q.options?.length > 0 ? 'categorical' : 'free_text',
+        options: q.options || null,
+        breakdown,
+        answered,
+        unanswered: totalResponses - answered,
+      });
+    }
+  }
+
+  return { totalResponses, questions };
 }
 
 /**
