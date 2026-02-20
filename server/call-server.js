@@ -30,6 +30,7 @@ import {
   createInboundConfig, getInboundConfigById, getInboundConfigsByUser,
   getInboundConfigByNumber, updateInboundConfig, deleteInboundConfig,
   toggleInboundConfig, findCallerInCampaigns, completeCampaignCallback,
+  getBucketMappings, saveBucketMappingsBatch, deleteBucketMapping,
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting } from './survey-scripts.js';
@@ -154,6 +155,28 @@ function isBackchannel(normalizedText) {
   // Check if text is just repeated tokens ("haan haan haan")
   const words = normalizedText.split(/\s+/);
   if (words.length <= 3 && words.every(w => BACKCHANNEL_TOKENS.has(w))) return true;
+  return false;
+}
+
+/**
+ * Detect hesitation / filler words that indicate the user is still thinking.
+ * When detected, the silence timer is extended to avoid cutting them off mid-thought.
+ */
+const HESITATION_TOKENS = new Set([
+  // English
+  'um', 'umm', 'uh', 'uhh', 'er', 'err', 'ah', 'ahh',
+  'like', 'so', 'well', 'let me think', 'how do i say', 'you know',
+  // Hindi / Urdu
+  'matlab', 'kya bolu', 'kaise bolu', 'woh', 'toh', 'dekhiye', 'basically',
+  // Bengali
+  'mane', 'ki boli',
+  // Generic fillers
+  'hmm', 'hmmm',
+]);
+
+function isHesitation(normalizedText) {
+  if (HESITATION_TOKENS.has(normalizedText)) return true;
+  if (normalizedText.length < 12 && /^(um+|uh+|er+|ah+|hmm+)$/.test(normalizedText)) return true;
   return false;
 }
 
@@ -740,6 +763,32 @@ app.get('/api/projects/:name/export/csv', requireAuth, requireDb, async (req, re
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Bucket Mappings ─────────────────────────────────
+app.get('/api/projects/:name/bucket-mappings', requireAuth, requireDb, async (req, res) => {
+  try {
+    const mappings = await getBucketMappings(req.params.name);
+    res.json(mappings);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/projects/:name/bucket-mappings', requireAuth, requireDb, async (req, res) => {
+  try {
+    const { mappings } = req.body;
+    if (!Array.isArray(mappings)) return res.status(400).json({ error: 'mappings array required' });
+    await saveBucketMappingsBatch(req.params.name, mappings);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/projects/:name/bucket-mappings', requireAuth, requireDb, async (req, res) => {
+  try {
+    const { field, rawValue } = req.body;
+    if (!field || !rawValue) return res.status(400).json({ error: 'field and rawValue required' });
+    await deleteBucketMapping(req.params.name, field, rawValue);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/calls/:id/recording', requireAuth, requireDb, async (req, res) => {
   try {
     const call = await getCallById(req.params.id);
@@ -916,6 +965,7 @@ async function initSession(callId, call, ws, streamSid) {
     streamSid,
     timeout: null,
     silenceTimer: null,
+    maxWaitTimer: null,
     isAiSpeaking: false,
     isProcessing: false,
     isEnding: false,
@@ -1020,10 +1070,17 @@ async function initSession(callId, call, ws, streamSid) {
           if (cleaned.length >= 2) {
             sessionObj.accumulatedText.push(cleaned);
           }
+          // Give the user a brief window to finish their interrupting thought
+          // (they may have more to say after "No, I don't want to...")
           if (!sessionObj.isProcessing) {
-            const fullText = sessionObj.accumulatedText.join(' ');
-            sessionObj.accumulatedText = [];
-            processUserSpeech(callId, fullText);
+            if (sessionObj.silenceTimer) clearTimeout(sessionObj.silenceTimer);
+            sessionObj.silenceTimer = setTimeout(() => {
+              if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
+                const fullText = sessionObj.accumulatedText.join(' ');
+                sessionObj.accumulatedText = [];
+                processUserSpeech(callId, fullText);
+              }
+            }, 400); // Short post-barge-in window
           }
         }
         return;
@@ -1040,25 +1097,46 @@ async function initSession(callId, call, ws, streamSid) {
         sessionObj.accumulatedText.push(trimmed);
         console.log(`[STT:${callId}] Accumulated: "${trimmed}" (lang=${detectedLang || '?'}, total: ${sessionObj.accumulatedText.length}, processing: ${sessionObj.isProcessing})`);
 
-        // Reset silence timer
+        // Hesitation detection: if the user is saying "umm", "matlab", etc.,
+        // extend the silence timer significantly to let them finish thinking
+        const normalizedForHesitation = trimmed.toLowerCase().replace(/[^\w\s]/g, '');
+        if (sessionObj.firstResponseDone && isHesitation(normalizedForHesitation)) {
+          console.log(`[STT:${callId}] Hesitation detected: "${trimmed}" — extending silence timer`);
+          if (sessionObj.silenceTimer) clearTimeout(sessionObj.silenceTimer);
+          if (sessionObj.maxWaitTimer) { clearTimeout(sessionObj.maxWaitTimer); sessionObj.maxWaitTimer = null; }
+          sessionObj.silenceTimer = setTimeout(() => {
+            if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
+              const fullText = sessionObj.accumulatedText.join(' ');
+              sessionObj.accumulatedText = [];
+              processUserSpeech(callId, fullText);
+            }
+          }, 1200); // 1.2s after a filler — they need time to continue
+          return;
+        }
+
+        // Reset silence timer and max-wait ceiling
         if (sessionObj.silenceTimer) clearTimeout(sessionObj.silenceTimer);
+        if (sessionObj.maxWaitTimer) { clearTimeout(sessionObj.maxWaitTimer); sessionObj.maxWaitTimer = null; }
 
         // If Claude is busy, just accumulate (it will be processed when Claude finishes)
         if (sessionObj.isProcessing) return;
 
         // Wait for brief silence after last transcript, then send to Claude
-        // Adaptive silence timer (tuned for low latency):
-        //  - First response (consent): 150ms
-        //  - Short utterances (<15 chars): 250ms
-        //  - Normal responses: 350ms
+        // Adaptive silence timer:
+        //  - First response (consent "haan"/"yes"): 200ms — stay fast
+        //  - Short single-word answers (<10 chars): 500ms — wait for elaboration
+        //  - Medium responses (<30 chars): 650ms — covers mid-sentence thinking pauses
+        //  - Long responses (30+ chars): 550ms — they've said a lot, likely done
         const currentText = sessionObj.accumulatedText.join(' ');
         let silenceMs;
         if (!sessionObj.firstResponseDone) {
-          silenceMs = 150;
-        } else if (currentText.length < 15) {
-          silenceMs = 250;
+          silenceMs = 200;
+        } else if (currentText.length < 10) {
+          silenceMs = 500;
+        } else if (currentText.length < 30) {
+          silenceMs = 650;
         } else {
-          silenceMs = 350;
+          silenceMs = 550;
         }
         sessionObj.silenceTimer = setTimeout(() => {
           if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
@@ -1067,6 +1145,20 @@ async function initSession(callId, call, ws, streamSid) {
             processUserSpeech(callId, fullText);
           }
         }, silenceMs);
+
+        // Max-wait ceiling: process after 3s of silence regardless, to prevent indefinite waiting
+        if (!sessionObj.maxWaitTimer) {
+          sessionObj.maxWaitTimer = setTimeout(() => {
+            sessionObj.maxWaitTimer = null;
+            if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
+              console.log(`[STT:${callId}] Max wait (3s) reached — processing accumulated text`);
+              if (sessionObj.silenceTimer) { clearTimeout(sessionObj.silenceTimer); sessionObj.silenceTimer = null; }
+              const fullText = sessionObj.accumulatedText.join(' ');
+              sessionObj.accumulatedText = [];
+              processUserSpeech(callId, fullText);
+            }
+          }, 3000);
+        }
       }
     },
     onError: (msg) => console.error(`[STT:${callId}]`, msg),
@@ -1161,6 +1253,7 @@ async function processUserSpeech(callId, text) {
 
   session.isProcessing = true;
   session.interrupted = false;
+  if (session.maxWaitTimer) { clearTimeout(session.maxWaitTimer); session.maxWaitTimer = null; }
 
   // In auto-detect mode, prepend STT-detected language hint for Claude
   const sttLang = session.sttDetectedLanguage;
@@ -1370,13 +1463,31 @@ async function processUserSpeech(callId, text) {
  */
 const VALID_EMOTIONS = new Set(['neutral', 'angry', 'excited', 'content', 'sad', 'scared', 'enthusiastic', 'triumphant', 'sympathetic', 'confident', 'curious', 'surprised']);
 
+// Speed varies by emotion to sound more natural:
+// Slower for empathetic/thoughtful moments, slightly faster for energy/acknowledgments
+const EMOTION_SPEED = {
+  sympathetic: 0.9,
+  sad: 0.9,
+  curious: 0.95,
+  neutral: 1.0,
+  confident: 1.0,
+  content: 1.0,
+  enthusiastic: 1.05,
+  excited: 1.05,
+  triumphant: 1.05,
+  angry: 1.0,
+  scared: 0.95,
+  surprised: 1.0,
+};
+
 async function speakSentence(session, text, language, emotion = 'content') {
   if (!session || session.isEnding || session.interrupted) return;
 
   const gender = session.call.gender;
   // Validate emotion — fall back to 'content' if unrecognized
   const safeEmotion = VALID_EMOTIONS.has(emotion) ? emotion : 'content';
-  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, emotion=${safeEmotion}, "${text.substring(0, 50)}..."`);
+  const speed = EMOTION_SPEED[safeEmotion] || 1.0;
+  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, emotion=${safeEmotion}, speed=${speed}, "${text.substring(0, 50)}..."`);
 
   // Track for echo detection (keep last 5 sentences)
   session.recentTtsTexts.push(text);
@@ -1389,7 +1500,7 @@ async function speakSentence(session, text, language, emotion = 'content') {
   if (session.ttsStream?.connected) {
     try {
       let chunkCount = 0;
-      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed: 1.0 })) {
+      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed })) {
         if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
         session.ws.send(JSON.stringify({
           event: 'media',
@@ -1409,7 +1520,7 @@ async function speakSentence(session, text, language, emotion = 'content') {
 
   // Fallback: HTTP POST (used if WebSocket not connected or streaming failed)
   try {
-    const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed: 1.0 });
+    const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed });
     const chunks = chunkAudio(mulawBase64);
 
     for (let i = 0; i < chunks.length; i++) {
@@ -1541,6 +1652,7 @@ function cleanupSession(callId) {
   // Clear all timers
   if (session.timeout) clearTimeout(session.timeout);
   if (session.silenceTimer) clearTimeout(session.silenceTimer);
+  if (session.maxWaitTimer) clearTimeout(session.maxWaitTimer);
   session.isProcessing = false;
   session.isEnding = true;
 

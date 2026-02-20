@@ -1003,6 +1003,43 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
                           </div>
                         )}
 
+                        {q.type === 'free_text' && (
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">Answer Categories (optional)</label>
+                            <p className="text-xs text-gray-400 mb-2">
+                              Define expected categories so responses are automatically bucketed. Leave empty for open-ended answers.
+                            </p>
+                            <div className="space-y-2">
+                              {(q.options || []).map((opt, oi) => (
+                                <div key={oi} className="flex items-center gap-2">
+                                  <span className="w-6 text-center text-gray-400 text-xs">#{oi + 1}</span>
+                                  <input
+                                    type="text"
+                                    value={opt}
+                                    onChange={(e) => {
+                                      const newOpts = [...(q.options || [])];
+                                      newOpts[oi] = e.target.value;
+                                      updateQuestion(q.id, { options: newOpts });
+                                    }}
+                                    placeholder="e.g. Infrastructure, Healthcare..."
+                                    className="flex-1 px-3 py-1.5 border rounded-lg text-sm"
+                                  />
+                                  <button
+                                    onClick={() => updateQuestion(q.id, { options: (q.options || []).filter((_, i) => i !== oi) })}
+                                    className="p-1 text-red-400 hover:text-red-600"
+                                  >×</button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => updateQuestion(q.id, { options: [...(q.options || []), ''] })}
+                                className="text-sm text-saffron hover:underline"
+                              >
+                                + Add category
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-center gap-4 pt-2 border-t">
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
