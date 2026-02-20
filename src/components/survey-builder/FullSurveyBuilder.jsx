@@ -172,8 +172,31 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
     };
     if (initialSurvey) {
       base.name = initialSurvey.name || '';
+      base.type = initialSurvey.type || '';
       base.tone = initialSurvey.tone || 'conversational';
-      base.autoDetectLanguage = true;
+      base.purpose = initialSurvey.purpose || '';
+      base.keyQuestions = initialSurvey.keyQuestions || '';
+      base.analysisGoals = initialSurvey.analysisGoals || '';
+      base.targetAudience = initialSurvey.targetAudience || '';
+      base.languages = initialSurvey.languages || ['hi'];
+      base.autoDetectLanguage = initialSurvey.autoDetectLanguage ?? true;
+      base.geography = initialSurvey.geography || 'national';
+      base.states = initialSurvey.states || [];
+      base.sampleSize = initialSurvey.sampleSize || 1000;
+      base.demographics = initialSurvey.demographics || base.demographics;
+      base.exclusions = initialSurvey.exclusions || '';
+      base.duration = initialSurvey.duration || 10;
+      base.sensitivity = initialSurvey.sensitivity || 'low';
+      base.urgency = initialSurvey.urgency || 'standard';
+      base.deadline = initialSurvey.deadline || '';
+      base.budget = initialSurvey.budget || '';
+      base.previousSurveyLink = initialSurvey.previousSurveyLink || '';
+      base.brandNames = initialSurvey.brandNames || '';
+      base.callTiming = initialSurvey.callTiming || ['morning', 'afternoon', 'evening'];
+      base.retryPolicy = initialSurvey.retryPolicy ?? 3;
+      base.incentive = initialSurvey.incentive || '';
+      base.qualityChecks = initialSurvey.qualityChecks ?? true;
+      base.recordAudio = initialSurvey.recordAudio ?? true;
     }
     return base;
   });
@@ -296,6 +319,30 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
           customSurvey: {
             name: config.name || 'Custom Survey',
             tone: config.tone || 'conversational',
+            purpose: config.purpose || '',
+            keyQuestions: config.keyQuestions || '',
+            analysisGoals: config.analysisGoals || '',
+            targetAudience: config.targetAudience || '',
+            type: config.type || '',
+            languages: config.languages || ['hi'],
+            autoDetectLanguage: config.autoDetectLanguage || false,
+            geography: config.geography || 'national',
+            states: config.states || [],
+            sampleSize: config.sampleSize || 1000,
+            demographics: config.demographics || {},
+            exclusions: config.exclusions || '',
+            duration: config.duration || 10,
+            sensitivity: config.sensitivity || 'low',
+            urgency: config.urgency || 'standard',
+            deadline: config.deadline || '',
+            budget: config.budget || '',
+            previousSurveyLink: config.previousSurveyLink || '',
+            brandNames: config.brandNames || '',
+            callTiming: config.callTiming || [],
+            retryPolicy: config.retryPolicy ?? 3,
+            incentive: config.incentive || '',
+            qualityChecks: config.qualityChecks ?? true,
+            recordAudio: config.recordAudio ?? true,
             questions: questions.map(q => ({
               id: q.id,
               text: q.text,
