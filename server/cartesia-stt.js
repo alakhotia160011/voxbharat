@@ -150,27 +150,32 @@ export class CartesiaSTT {
     this.isSwitching = true;
     this.switchBuffer = [];
 
-    // Close current connection (prevent auto-reconnect)
-    const prevMaxReconnects = this.maxReconnects;
-    this.maxReconnects = 0;
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send('done');
-      this.ws.close();
-    }
-    this.ws = null;
-    this.isConnected = false;
+    try {
+      // Close current connection (prevent auto-reconnect)
+      const prevMaxReconnects = this.maxReconnects;
+      this.maxReconnects = 0;
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send('done');
+        this.ws.close();
+      }
+      this.ws = null;
+      this.isConnected = false;
 
-    // Reconnect with new language
-    this.maxReconnects = prevMaxReconnects;
-    await this.connect();
+      // Reconnect with new language
+      this.maxReconnects = prevMaxReconnects;
+      await this.connect();
 
-    // Replay buffered audio so the user's speech isn't lost
-    const buffered = this.switchBuffer;
-    this.switchBuffer = [];
-    this.isSwitching = false;
-    console.log(`[STT] Language switched to ${newLanguage}, replaying ${buffered.length} buffered frames`);
-    for (const frame of buffered) {
-      this.sendAudio(frame);
+      // Replay buffered audio so the user's speech isn't lost
+      const buffered = this.switchBuffer;
+      this.switchBuffer = [];
+      console.log(`[STT] Language switched to ${newLanguage}, replaying ${buffered.length} buffered frames`);
+      for (const frame of buffered) {
+        this.sendAudio(frame);
+      }
+    } finally {
+      // Always clear switching flag, even if connect() fails
+      this.isSwitching = false;
+      this.switchBuffer = [];
     }
   }
 
