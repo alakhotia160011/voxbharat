@@ -1021,7 +1021,9 @@ async function initSession(callId, call, ws, streamSid) {
 
   // Persistent TTS WebSocket for streaming (low-latency)
   const ttsStream = new CartesiaTTSStream(CARTESIA_KEY);
-  ttsStream.connect().catch(err => console.error(`[TTS:${callId}] Stream connect failed:`, err.message));
+  ttsStream.connect()
+    .then(() => console.log(`[TTS:${callId}] Stream connected`))
+    .catch(err => console.error(`[TTS:${callId}] Stream connect failed:`, err.message));
 
   // Session object created first so STT callback can reference it
   const sessionObj = {
@@ -1390,6 +1392,9 @@ async function processUserSpeech(callId, text) {
     ttsQueue = ttsQueue.then(() => {
       if (session.isEnding || session.interrupted) return;
       return speakSentence(session, text, lang, useEmotion ? emotion : null);
+    }).catch(err => {
+      // Prevent one TTS failure from breaking the entire queue chain
+      console.error(`[TTS] Queue error (continuing): ${err.message}`);
     });
   };
 
@@ -1583,7 +1588,9 @@ async function speakSentence(session, text, language, emotion = null) {
           await new Promise(r => setImmediate(r));
         }
       }
-      return; // Success — skip HTTP fallback
+      if (chunkCount > 0) return; // Success — skip HTTP fallback
+      // Zero chunks received — connection may have dropped silently, fall through to HTTP
+      console.warn(`[TTS] Streaming returned 0 chunks for "${text.substring(0, 40)}...", falling back to HTTP`);
     } catch (err) {
       console.error(`[TTS] Stream error (${language}/${gender}): ${err.message}, falling back to HTTP`);
     }

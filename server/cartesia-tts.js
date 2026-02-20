@@ -99,7 +99,14 @@ export class CartesiaTTSStream {
   }
 
   async connect() {
-    if (this.connected) return;
+    if (this.connected && this.ws?.readyState === WebSocket.OPEN) return;
+
+    // Clean up stale connection if any
+    if (this.ws) {
+      try { this.ws.close(); } catch {}
+      this.ws = null;
+    }
+    this.connected = false;
 
     const url = `${CARTESIA_TTS_WS_URL}?api_key=${this.apiKey}&cartesia_version=2025-11-04`;
 
@@ -163,7 +170,8 @@ export class CartesiaTTSStream {
    * Yields chunks as they arrive from Cartesia — no waiting for full audio.
    */
   async *streamSpeech(text, language, gender, options = {}) {
-    if (!this.connected) {
+    if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.connected = false;
       await this.connect();
     }
 
@@ -171,6 +179,11 @@ export class CartesiaTTSStream {
     const voiceId = VOICES[voiceKey];
     if (!voiceId) {
       throw new Error(`No voice found for ${voiceKey}`);
+    }
+
+    // Double-check WebSocket is still open after potential reconnect
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('TTS WebSocket not open after connect attempt');
     }
 
     const speed = options.speed ?? 1.0;
@@ -194,11 +207,21 @@ export class CartesiaTTSStream {
       generation_config: { speed },
     }));
 
+    // Timeout: if no chunks arrive within 10s, treat as connection failure
+    const timeout = setTimeout(() => {
+      if (!pending.done && pending.chunks.length === 0) {
+        pending.error = 'TTS streaming timeout — no response from Cartesia';
+        pending.done = true;
+        if (pending.onChunk) pending.onChunk();
+      }
+    }, 10000);
+
     // Yield chunks as they arrive
     try {
       while (true) {
         // Drain any available chunks
         while (pending.chunks.length > 0) {
+          clearTimeout(timeout); // Got data, cancel timeout
           yield pending.chunks.shift();
         }
 
@@ -214,6 +237,7 @@ export class CartesiaTTSStream {
         });
       }
     } finally {
+      clearTimeout(timeout);
       this.pendingRequests.delete(contextId);
     }
   }
