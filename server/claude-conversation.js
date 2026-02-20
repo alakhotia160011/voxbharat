@@ -59,8 +59,8 @@ export class ClaudeConversation {
     } else if (this.autoDetectLanguage) {
       const enName = getVoiceName('en', this.gender);
       greeting = this.customSurvey
-        ? `Namaste! Hello! I'm ${enName} calling from VoxBharat. I'd like to ask you a few questions about ${this.customSurvey.name}. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`
-        : `Namaste! Hello! I'm ${enName} calling from VoxBharat for a short survey. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`;
+        ? `Namaste! Hello! I'm ${enName} calling from VoxBharat. We're conducting a short survey about ${this.customSurvey.name}. It'll only take a few minutes. Would you like to participate? I can speak Hindi, English, Bengali, Tamil, and many other Indian languages. Aapko kis bhasha mein baat karni hai?`
+        : `Namaste! Hello! I'm ${enName} calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Would you like to participate? I can speak Hindi, English, Bengali, Tamil, and many other Indian languages. Aapko kis bhasha mein baat karni hai?`;
     } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name);
     } else if (SURVEY_SCRIPTS[this.language]) {
