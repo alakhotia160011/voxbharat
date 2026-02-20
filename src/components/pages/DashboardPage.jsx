@@ -8,6 +8,7 @@ import NewCampaignFlow from '../campaigns/NewCampaignFlow';
 import InboundList from '../inbound/InboundList';
 import InboundDetail from '../inbound/InboundDetail';
 import InboundConfigForm from '../inbound/InboundConfigForm';
+import FullSurveyBuilder from '../survey-builder/FullSurveyBuilder';
 
 const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
 const TOKEN_KEY = 'voxbharat_token';
@@ -441,6 +442,8 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
   const [selectedRaw, setSelectedRaw] = useState(new Set());
   const [bucketName, setBucketName] = useState('');
   const [savingMappings, setSavingMappings] = useState(false);
+  const [editingSurvey, setEditingSurvey] = useState(null);
+  const [loadingSurveyConfig, setLoadingSurveyConfig] = useState(false);
 
   // Filters + pagination
   const [filterLang, setFilterLang] = useState('');
@@ -502,6 +505,33 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
     }
   };
 
+  const handleEditSurvey = async () => {
+    setLoadingSurveyConfig(true);
+    try {
+      const res = await authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/survey-config`);
+      if (res.ok) {
+        const config = await res.json();
+        setEditingSurvey(config);
+      } else {
+        alert('Could not load survey config for this project.');
+      }
+    } catch (e) {
+      console.error('Failed to load survey config:', e);
+      alert('Failed to load survey config.');
+    }
+    setLoadingSurveyConfig(false);
+  };
+
+  if (editingSurvey) {
+    return (
+      <FullSurveyBuilder
+        initialSurvey={editingSurvey}
+        onClose={() => setEditingSurvey(null)}
+        onLaunch={() => setEditingSurvey(null)}
+      />
+    );
+  }
+
   if (loading) return <Spinner text="Loading project data" />;
 
   const totalCalls = analytics?.totalCalls || calls.length;
@@ -539,15 +569,27 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
       <BackButton onClick={onBack} label="All Projects" />
 
       {/* Project header */}
-      <div>
-        <h2 className="font-display text-2xl font-bold text-earth">{projectName}</h2>
-        <div className="flex flex-wrap items-center gap-2 mt-2">
-          {languages.map(lang => (
-            <span key={lang} className="px-2.5 py-1 rounded-full text-xs bg-saffron/8 text-saffron font-medium border border-saffron/15">
-              {lang}
-            </span>
-          ))}
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-earth">{projectName}</h2>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {languages.map(lang => (
+              <span key={lang} className="px-2.5 py-1 rounded-full text-xs bg-saffron/8 text-saffron font-medium border border-saffron/15">
+                {lang}
+              </span>
+            ))}
+          </div>
         </div>
+        <button
+          onClick={handleEditSurvey}
+          disabled={loadingSurveyConfig}
+          className="px-4 py-2 text-sm font-body font-medium bg-saffron text-white rounded-lg hover:bg-saffron/90 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          {loadingSurveyConfig ? 'Loading\u2026' : 'Edit Survey & Test Call'}
+        </button>
       </div>
 
       {/* Stats */}
