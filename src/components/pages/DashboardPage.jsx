@@ -430,18 +430,36 @@ function ProjectsList({ projects, onSelect, onRefresh, loading, setShowBuilder }
 // LEVEL 2: Project Dashboard (Analytics + Call List)
 // ═══════════════════════════════════════════════════════════
 
+const CALLS_PER_PAGE = 25;
+
 function ProjectDashboard({ projectName, onBack, onSelectCall }) {
   const [calls, setCalls] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [breakdowns, setBreakdowns] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [categorizingField, setCategorizingField] = useState(null);
+  const [selectedRaw, setSelectedRaw] = useState(new Set());
+  const [bucketName, setBucketName] = useState('');
+  const [savingMappings, setSavingMappings] = useState(false);
+
+  // Filters + pagination
+  const [filterLang, setFilterLang] = useState('');
+  const [filterSearch, setFilterSearch] = useState('');
+  const [visibleCount, setVisibleCount] = useState(CALLS_PER_PAGE);
+
+  const encodedProject = encodeURIComponent(projectName);
+
+  const refetchBreakdowns = () =>
+    authFetch(`${CALL_SERVER}/api/projects/${encodedProject}/response-breakdowns`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setBreakdowns(data));
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/calls`).then(r => r.ok ? r.json() : []),
-      authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/analytics`).then(r => r.ok ? r.json() : null),
-      authFetch(`${CALL_SERVER}/api/projects/${encodeURIComponent(projectName)}/response-breakdowns`).then(r => r.ok ? r.json() : null),
+      authFetch(`${CALL_SERVER}/api/projects/${encodedProject}/calls`).then(r => r.ok ? r.json() : []),
+      authFetch(`${CALL_SERVER}/api/projects/${encodedProject}/analytics`).then(r => r.ok ? r.json() : null),
+      authFetch(`${CALL_SERVER}/api/projects/${encodedProject}/response-breakdowns`).then(r => r.ok ? r.json() : null),
     ])
       .then(([callsData, analyticsData, breakdownsData]) => {
         setCalls(Array.isArray(callsData) ? callsData : []);
@@ -451,6 +469,38 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
       })
       .catch(() => setLoading(false));
   }, [projectName]);
+
+  const handleSaveMappings = async (field) => {
+    if (selectedRaw.size === 0 || !bucketName.trim()) return;
+    setSavingMappings(true);
+    try {
+      const mappings = [...selectedRaw].map(rawValue => ({ field, rawValue, bucket: bucketName.trim() }));
+      await authFetch(`${CALL_SERVER}/api/projects/${encodedProject}/bucket-mappings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mappings }),
+      });
+      await refetchBreakdowns();
+      setSelectedRaw(new Set());
+      setBucketName('');
+    } catch (e) {
+      console.error('Failed to save mappings:', e);
+    }
+    setSavingMappings(false);
+  };
+
+  const handleUnmerge = async (field, rawValue) => {
+    try {
+      await authFetch(`${CALL_SERVER}/api/projects/${encodedProject}/bucket-mappings`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field, rawValue }),
+      });
+      await refetchBreakdowns();
+    } catch (e) {
+      console.error('Failed to unmerge:', e);
+    }
+  };
 
   if (loading) return <Spinner text="Loading project data" />;
 
@@ -561,6 +611,8 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
                 label: b.value.replace(/_/g, ' '),
                 pct: b.pct,
               }));
+              const isOpen = categorizingField === q.field;
+              const rawItems = q.rawBreakdown || q.breakdown;
 
               return (
                 <div key={q.field} className="bg-white border border-cream-warm rounded-xl p-5">
@@ -577,6 +629,75 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
                     <BarChart data={chartData} color={chartColor} />
                   ) : (
                     <div className="text-xs text-earth-mid/40 italic font-body">No responses yet</div>
+                  )}
+
+                  {/* Categorize button */}
+                  {rawItems.length >= 2 && (
+                    <button
+                      onClick={() => {
+                        if (isOpen) {
+                          setCategorizingField(null);
+                          setSelectedRaw(new Set());
+                          setBucketName('');
+                        } else {
+                          setCategorizingField(q.field);
+                          setSelectedRaw(new Set());
+                          setBucketName('');
+                        }
+                      }}
+                      className={`mt-3 text-xs font-body px-3 py-1.5 rounded-lg border transition-colors ${
+                        isOpen
+                          ? 'bg-saffron/10 border-saffron/30 text-saffron'
+                          : 'border-cream-warm text-earth-mid hover:border-saffron/30 hover:text-saffron'
+                      }`}
+                    >
+                      {isOpen ? 'Close' : q.hasMappings ? 'Edit Categories' : 'Categorize Answers'}
+                    </button>
+                  )}
+
+                  {/* Merge panel */}
+                  {isOpen && (
+                    <div className="mt-3 pt-3 border-t border-cream-warm space-y-2">
+                      <div className="text-xs font-body text-earth-mid mb-2">
+                        Select answers to merge into a single category:
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-1">
+                        {rawItems.map((b) => (
+                          <label key={b.value} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-cream/30 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedRaw.has(b.value)}
+                              onChange={(e) => {
+                                const next = new Set(selectedRaw);
+                                e.target.checked ? next.add(b.value) : next.delete(b.value);
+                                setSelectedRaw(next);
+                              }}
+                              className="w-3.5 h-3.5 accent-saffron"
+                            />
+                            <span className="flex-1 text-xs font-body text-earth truncate">{b.value}</span>
+                            <span className="text-xs text-earth-mid/50 tabular-nums">{b.count}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {selectedRaw.size >= 1 && (
+                        <div className="flex items-center gap-2 pt-2">
+                          <input
+                            type="text"
+                            value={bucketName}
+                            onChange={(e) => setBucketName(e.target.value)}
+                            placeholder="Category name..."
+                            className="flex-1 px-2.5 py-1.5 border border-cream-warm rounded-lg text-xs font-body focus:outline-none focus:ring-1 focus:ring-saffron"
+                          />
+                          <button
+                            onClick={() => handleSaveMappings(q.field)}
+                            disabled={!bucketName.trim() || savingMappings}
+                            className="px-3 py-1.5 bg-saffron text-white text-xs font-body rounded-lg hover:bg-saffron/90 disabled:opacity-40 transition-colors"
+                          >
+                            {savingMappings ? 'Saving...' : 'Merge'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               );
@@ -631,53 +752,123 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
             title="No calls yet"
             subtitle="Completed calls for this project will appear here."
           />
-        ) : (
-          <div className="bg-white border border-cream-warm rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm font-body">
-                <thead>
-                  <tr className="border-b border-cream-warm">
-                    <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Date</th>
-                    <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Language</th>
-                    <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Duration</th>
-                    <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Summary</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {calls.map((call, idx) => (
-                    <motion.tr
-                      key={call.id}
-                      onClick={() => onSelectCall(call.id)}
-                      className="border-b border-cream-warm/60 last:border-0 hover:bg-saffron/[0.03] cursor-pointer transition-colors group"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.03, duration: 0.25 }}
+        ) : (() => {
+          // Compute unique languages for filter dropdown
+          const uniqueLangs = [...new Set(calls.map(c => c.language).filter(Boolean))].sort();
+
+          // Apply filters
+          const filtered = calls.filter(c => {
+            if (filterLang && c.language !== filterLang) return false;
+            if (filterSearch) {
+              const q = filterSearch.toLowerCase();
+              const matchesSummary = (c.summary || '').toLowerCase().includes(q);
+              const matchesPhone = (c.phone_number || '').includes(q);
+              if (!matchesSummary && !matchesPhone) return false;
+            }
+            return true;
+          });
+
+          const paginated = filtered.slice(0, visibleCount);
+          const hasMore = filtered.length > visibleCount;
+
+          return (
+            <>
+              {/* Filter bar */}
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <select
+                  value={filterLang}
+                  onChange={e => { setFilterLang(e.target.value); setVisibleCount(CALLS_PER_PAGE); }}
+                  className="px-3 py-1.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:ring-1 focus:ring-saffron/30 bg-white cursor-pointer"
+                >
+                  <option value="">All languages</option>
+                  {uniqueLangs.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+                <input
+                  type="text"
+                  value={filterSearch}
+                  onChange={e => { setFilterSearch(e.target.value); setVisibleCount(CALLS_PER_PAGE); }}
+                  placeholder="Search summary or phone..."
+                  className="px-3 py-1.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:ring-1 focus:ring-saffron/30 w-64"
+                />
+                {(filterLang || filterSearch) && (
+                  <button
+                    onClick={() => { setFilterLang(''); setFilterSearch(''); setVisibleCount(CALLS_PER_PAGE); }}
+                    className="text-xs font-body text-earth-mid hover:text-saffron transition-colors cursor-pointer"
+                  >
+                    Clear filters
+                  </button>
+                )}
+                <span className="text-xs font-body text-earth-mid/50 ml-auto">
+                  {filtered.length === calls.length
+                    ? `${calls.length} calls`
+                    : `${filtered.length} of ${calls.length} calls`}
+                </span>
+              </div>
+
+              <div className="bg-white border border-cream-warm rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm font-body">
+                    <thead>
+                      <tr className="border-b border-cream-warm">
+                        <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Date</th>
+                        <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Phone</th>
+                        <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Language</th>
+                        <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Duration</th>
+                        <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Summary</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginated.map((call, idx) => (
+                        <motion.tr
+                          key={call.id}
+                          onClick={() => onSelectCall(call.id)}
+                          className="border-b border-cream-warm/60 last:border-0 hover:bg-saffron/[0.03] cursor-pointer transition-colors group"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.03, duration: 0.25 }}
+                        >
+                          <td className="py-3.5 px-5 whitespace-nowrap text-earth-mid">
+                            {new Date(call.timestamp).toLocaleDateString('en-IN', {
+                              day: 'numeric', month: 'short', year: 'numeric',
+                            })}
+                          </td>
+                          <td className="py-3.5 px-5 text-earth-mid whitespace-nowrap text-xs">
+                            {call.phone_number || '-'}
+                          </td>
+                          <td className="py-3.5 px-5">
+                            <span className="px-2.5 py-1 rounded-full text-xs bg-saffron/8 text-saffron font-medium border border-saffron/15">
+                              {call.language || '-'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-5 text-earth-mid whitespace-nowrap">
+                            {formatDuration(call.duration)}
+                          </td>
+                          <td className="py-3.5 px-5 text-earth-mid max-w-xs">
+                            <span className="line-clamp-1 group-hover:text-saffron transition-colors">
+                              {call.summary || '-'}
+                            </span>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Load more */}
+                {hasMore && (
+                  <div className="border-t border-cream-warm py-3 text-center">
+                    <button
+                      onClick={() => setVisibleCount(v => v + CALLS_PER_PAGE)}
+                      className="text-sm font-body text-saffron hover:text-saffron-deep transition-colors cursor-pointer"
                     >
-                      <td className="py-3.5 px-5 whitespace-nowrap text-earth-mid">
-                        {new Date(call.timestamp).toLocaleDateString('en-IN', {
-                          day: 'numeric', month: 'short', year: 'numeric',
-                        })}
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <span className="px-2.5 py-1 rounded-full text-xs bg-saffron/8 text-saffron font-medium border border-saffron/15">
-                          {call.language || '-'}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-5 text-earth-mid whitespace-nowrap">
-                        {formatDuration(call.duration)}
-                      </td>
-                      <td className="py-3.5 px-5 text-earth-mid max-w-xs">
-                        <span className="line-clamp-1 group-hover:text-saffron transition-colors">
-                          {call.summary || '-'}
-                        </span>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+                      Show more ({filtered.length - visibleCount} remaining)
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
       </div>
     </motion.div>
   );
@@ -936,6 +1127,39 @@ function CallDetail({ callId, onBack, projectName }) {
 // Main Dashboard (with auth gate)
 // ═══════════════════════════════════════════════════════════
 
+// ─── Hash routing helpers ────────────────────────────────
+// Encodes dashboard navigation state into window.location.hash
+// so browser back/forward works and URLs are shareable.
+
+function buildHash(state) {
+  if (state.showNewInbound) return '#inbound/new';
+  if (state.selectedInboundId) return `#inbound/${state.selectedInboundId}`;
+  if (state.showNewCampaign) return '#campaign/new';
+  if (state.selectedCampaignId) return `#campaign/${state.selectedCampaignId}`;
+  if (state.selectedCallId && state.selectedProject)
+    return `#project/${encodeURIComponent(state.selectedProject)}/call/${state.selectedCallId}`;
+  if (state.selectedProject) return `#project/${encodeURIComponent(state.selectedProject)}`;
+  if (state.activeTab && state.activeTab !== 'projects') return `#${state.activeTab}`;
+  return '#';
+}
+
+function parseHash(hash) {
+  const h = (hash || '').replace(/^#/, '');
+  let m;
+
+  if ((m = h.match(/^inbound\/new$/))) return { showNewInbound: true };
+  if ((m = h.match(/^inbound\/(.+)$/))) return { selectedInboundId: m[1], activeTab: 'inbound' };
+  if ((m = h.match(/^campaign\/new$/))) return { showNewCampaign: true };
+  if ((m = h.match(/^campaign\/(.+)$/))) return { selectedCampaignId: m[1], activeTab: 'campaigns' };
+  if ((m = h.match(/^project\/([^/]+)\/call\/(.+)$/)))
+    return { selectedProject: decodeURIComponent(m[1]), selectedCallId: m[2] };
+  if ((m = h.match(/^project\/(.+)$/)))
+    return { selectedProject: decodeURIComponent(m[1]) };
+  if (h === 'campaigns') return { activeTab: 'campaigns' };
+  if (h === 'inbound') return { activeTab: 'inbound' };
+  return {};
+}
+
 export default function DashboardPage({ setShowBuilder }) {
   const [authed, setAuthed] = useState(!!getToken());
   const [checkingAuth, setCheckingAuth] = useState(!!getToken());
@@ -956,6 +1180,42 @@ export default function DashboardPage({ setShowBuilder }) {
   const [inboundLoading, setInboundLoading] = useState(false);
   const [selectedInboundId, setSelectedInboundId] = useState(null);
   const [showNewInbound, setShowNewInbound] = useState(false);
+
+  // ─── Hash-based routing ──────────────────────────────────
+  // Sync state → hash whenever navigation state changes
+  const skipHashSync = React.useRef(false);
+  useEffect(() => {
+    if (skipHashSync.current) { skipHashSync.current = false; return; }
+    const newHash = buildHash({
+      selectedProject, selectedCallId, selectedCampaignId,
+      showNewCampaign, selectedInboundId, showNewInbound, activeTab,
+    });
+    if (window.location.hash !== newHash) {
+      window.history.pushState(null, '', newHash);
+    }
+  }, [selectedProject, selectedCallId, selectedCampaignId, showNewCampaign, selectedInboundId, showNewInbound, activeTab]);
+
+  // Restore state from hash on mount + popstate (browser back/forward)
+  useEffect(() => {
+    const applyHash = () => {
+      skipHashSync.current = true;
+      const state = parseHash(window.location.hash);
+      setSelectedProject(state.selectedProject || null);
+      setSelectedCallId(state.selectedCallId || null);
+      setSelectedCampaignId(state.selectedCampaignId || null);
+      setShowNewCampaign(state.showNewCampaign || false);
+      setSelectedInboundId(state.selectedInboundId || null);
+      setShowNewInbound(state.showNewInbound || false);
+      if (state.activeTab) setActiveTab(state.activeTab);
+    };
+
+    // Restore on initial mount
+    if (window.location.hash && window.location.hash !== '#') applyHash();
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', applyHash);
+    return () => window.removeEventListener('popstate', applyHash);
+  }, []);
 
   // Listen for forced logout (401 from any authFetch)
   useEffect(() => {

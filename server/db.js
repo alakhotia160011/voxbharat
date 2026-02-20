@@ -124,6 +124,19 @@ export async function initDb() {
 
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_inbound_configs_number ON inbound_configs(twilio_number, enabled)`);
 
+  // Bucket mappings for post-hoc answer categorization
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bucket_mappings (
+      id SERIAL PRIMARY KEY,
+      project_name TEXT NOT NULL,
+      field TEXT NOT NULL,
+      raw_value TEXT NOT NULL,
+      bucket TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(project_name, field, raw_value)
+    );
+  `);
+
   console.log('✓ Postgres connected, all tables ready');
   return true;
 }
@@ -599,8 +612,66 @@ export async function getProjectResponseBreakdowns(projectName) {
   const totalResponses = rows.length;
   const questions = [];
 
+  // Load bucket mappings for this project (field → rawValue → bucket)
+  const mappingsRows = await getBucketMappings(projectName);
+  const mappingIndex = {};
+  for (const m of mappingsRows) {
+    if (!mappingIndex[m.field]) mappingIndex[m.field] = {};
+    mappingIndex[m.field][m.raw_value] = m.bucket;
+  }
+
+  // Helper: count answers with case normalization + bucket mapping
+  function countAnswers(fieldName, valueExtractor) {
+    const rawCounts = {};       // raw value → count (for merge UI)
+    const bucketedCounts = {};  // bucketed display label → count
+    const displayLabels = {};   // lowercased key → most-frequent original casing
+    const labelFreq = {};       // lowercased key → max count seen for a casing
+    let answered = 0;
+    const fieldMappings = mappingIndex[fieldName] || {};
+
+    for (const row of rows) {
+      const val = valueExtractor(row);
+      if (val == null || val === '') continue;
+      const strVal = String(val).trim();
+      if (!strVal) continue;
+
+      answered++;
+      // Raw counts (for merge UI)
+      rawCounts[strVal] = (rawCounts[strVal] || 0) + 1;
+
+      // Apply bucket mapping if exists, otherwise case-normalize
+      const mapped = fieldMappings[strVal];
+      if (mapped !== undefined) {
+        bucketedCounts[mapped] = (bucketedCounts[mapped] || 0) + 1;
+      } else {
+        const normalKey = strVal.toLowerCase();
+        bucketedCounts[normalKey] = (bucketedCounts[normalKey] || 0) + 1;
+        // Track best display label (most frequent casing)
+        if (!labelFreq[normalKey] || rawCounts[strVal] > labelFreq[normalKey]) {
+          labelFreq[normalKey] = rawCounts[strVal];
+          displayLabels[normalKey] = strVal;
+        }
+      }
+    }
+
+    // Build bucketed breakdown with proper display labels
+    const breakdown = Object.entries(bucketedCounts)
+      .map(([key, count]) => ({
+        value: displayLabels[key] || key,
+        count,
+        pct: answered > 0 ? Math.round((count / answered) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Build raw breakdown for merge UI
+    const rawBreakdown = Object.entries(rawCounts)
+      .map(([value, count]) => ({ value, count, pct: answered > 0 ? Math.round((count / answered) * 100) : 0 }))
+      .sort((a, b) => b.count - a.count);
+
+    return { breakdown, rawBreakdown, answered, hasMappings: Object.keys(fieldMappings).length > 0 };
+  }
+
   if (isCustom) {
-    // Custom survey — get questions from custom_survey definition
     const surveyDef = rows[0].custom_survey;
     if (!surveyDef?.questions) return { totalResponses, questions: [] };
 
@@ -609,21 +680,10 @@ export async function getProjectResponseBreakdowns(projectName) {
         ? deriveFieldName(q.textEn)
         : `question_${q.id}`;
 
-      const counts = {};
-      let answered = 0;
-
-      for (const row of rows) {
-        const val = row.responses?.[fieldName];
-        if (val != null && val !== '') {
-          const strVal = String(val);
-          counts[strVal] = (counts[strVal] || 0) + 1;
-          answered++;
-        }
-      }
-
-      const breakdown = Object.entries(counts)
-        .map(([value, count]) => ({ value, count, pct: answered > 0 ? Math.round((count / answered) * 100) : 0 }))
-        .sort((a, b) => b.count - a.count);
+      const { breakdown, rawBreakdown, answered, hasMappings } = countAnswers(
+        fieldName,
+        (row) => row.responses?.[fieldName]
+      );
 
       questions.push({
         field: fieldName,
@@ -632,34 +692,24 @@ export async function getProjectResponseBreakdowns(projectName) {
         type: q.options?.length > 0 ? 'categorical' : 'free_text',
         options: q.options || null,
         breakdown,
+        rawBreakdown,
+        hasMappings,
         answered,
         unanswered: totalResponses - answered,
       });
     }
   } else {
-    // Built-in survey — use SURVEY_SCRIPTS
     const lang = rows[0].language || 'hi';
     const script = SURVEY_SCRIPTS[lang] || SURVEY_SCRIPTS.hi;
     if (!script?.questions) return { totalResponses, questions: [] };
 
     for (const q of script.questions) {
       const camelField = snakeToCamel(q.field);
-      const counts = {};
-      let answered = 0;
 
-      for (const row of rows) {
-        // Built-in stores both in structured (camelCase) and demographics
-        const val = row.structured?.[camelField] ?? row.demographics?.[q.field];
-        if (val != null && val !== '') {
-          const strVal = String(val);
-          counts[strVal] = (counts[strVal] || 0) + 1;
-          answered++;
-        }
-      }
-
-      const breakdown = Object.entries(counts)
-        .map(([value, count]) => ({ value, count, pct: answered > 0 ? Math.round((count / answered) * 100) : 0 }))
-        .sort((a, b) => b.count - a.count);
+      const { breakdown, rawBreakdown, answered, hasMappings } = countAnswers(
+        camelField,
+        (row) => row.structured?.[camelField] ?? row.demographics?.[q.field]
+      );
 
       questions.push({
         field: camelField,
@@ -667,6 +717,8 @@ export async function getProjectResponseBreakdowns(projectName) {
         type: q.options?.length > 0 ? 'categorical' : 'free_text',
         options: q.options || null,
         breakdown,
+        rawBreakdown,
+        hasMappings,
         answered,
         unanswered: totalResponses - answered,
       });
@@ -674,6 +726,45 @@ export async function getProjectResponseBreakdowns(projectName) {
   }
 
   return { totalResponses, questions };
+}
+
+// ─── Bucket Mappings ────────────────────────────────────
+
+export async function getBucketMappings(projectName) {
+  if (!pool) return [];
+  const { rows } = await pool.query(
+    'SELECT field, raw_value, bucket FROM bucket_mappings WHERE project_name = $1 ORDER BY field, bucket',
+    [projectName]
+  );
+  return rows;
+}
+
+export async function saveBucketMapping(projectName, field, rawValue, bucket) {
+  if (!pool) return null;
+  const { rows } = await pool.query(`
+    INSERT INTO bucket_mappings (project_name, field, raw_value, bucket)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (project_name, field, raw_value)
+    DO UPDATE SET bucket = EXCLUDED.bucket
+    RETURNING *
+  `, [projectName, field, rawValue, bucket]);
+  return rows[0];
+}
+
+export async function saveBucketMappingsBatch(projectName, mappings) {
+  if (!pool) return;
+  for (const m of mappings) {
+    await saveBucketMapping(projectName, m.field, m.rawValue, m.bucket);
+  }
+}
+
+export async function deleteBucketMapping(projectName, field, rawValue) {
+  if (!pool) return false;
+  const result = await pool.query(
+    'DELETE FROM bucket_mappings WHERE project_name = $1 AND field = $2 AND raw_value = $3',
+    [projectName, field, rawValue]
+  );
+  return result.rowCount > 0;
 }
 
 /**
