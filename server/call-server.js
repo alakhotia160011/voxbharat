@@ -1365,11 +1365,14 @@ async function processUserSpeech(callId, text) {
   // Pipeline: queue TTS calls so Claude keeps streaming while TTS generates/plays.
   // Each call runs in sequence (audio order preserved) but Claude isn't blocked.
   let ttsQueue = Promise.resolve();
+  let isFirstChunk = true;
   const enqueueTTS = (text, lang, emotion) => {
+    const useEmotion = isFirstChunk;
+    isFirstChunk = false;
     spokenSentences.push(text);
     ttsQueue = ttsQueue.then(() => {
       if (session.isEnding || session.interrupted) return;
-      return speakSentence(session, text, lang, emotion);
+      return speakSentence(session, text, lang, useEmotion ? emotion : null);
     });
   };
 
@@ -1411,12 +1414,12 @@ async function processUserSpeech(callId, text) {
         }
       }
 
-      // Split text at natural break points — very aggressive for minimal latency
+      // Split text at natural sentence boundaries — avoid tiny fragments that cause voice resets
       if (langTagParsed && emotionTagParsed && pendingText.trim().length > 2) {
         const trimLen = pendingText.trim().length;
         const sentenceEnd = /[.!?।]\s*$/.test(pendingText);
-        const clauseBreak = trimLen > 20 && /[,;:—]\s*$/.test(pendingText);
-        const longChunk = trimLen > 40;
+        const clauseBreak = trimLen > 80 && /[,;:—]\s*$/.test(pendingText);
+        const longChunk = trimLen > 120;
 
         if (sentenceEnd || clauseBreak || longChunk) {
           const sentence = pendingText.trim();
@@ -1530,21 +1533,21 @@ const EMOTION_SPEED = {
   surprised: 1.0,
 };
 
-async function speakSentence(session, text, language, emotion = 'content') {
+async function speakSentence(session, text, language, emotion = null) {
   if (!session || session.isEnding || session.interrupted) return;
 
   const gender = session.call.gender;
   // Validate emotion — fall back to 'content' if unrecognized
-  const safeEmotion = VALID_EMOTIONS.has(emotion) ? emotion : 'content';
-  const speed = EMOTION_SPEED[safeEmotion] || 1.0;
-  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, emotion=${safeEmotion}, speed=${speed}, "${text.substring(0, 50)}..."`);
+  const safeEmotion = emotion && VALID_EMOTIONS.has(emotion) ? emotion : null;
+  const speed = safeEmotion ? (EMOTION_SPEED[safeEmotion] || 1.0) : 1.0;
+  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, emotion=${safeEmotion || 'none'}, speed=${speed}, "${text.substring(0, 50)}..."`);
 
   // Track for echo detection (keep last 5 sentences)
   session.recentTtsTexts.push(text);
   if (session.recentTtsTexts.length > 5) session.recentTtsTexts.shift();
 
-  // Add Cartesia emotion tag — dynamically chosen by Claude based on context
-  const emotionText = `<emotion value="${safeEmotion}"/> ${text}`;
+  // Only prepend emotion tag on the first chunk of a response to avoid voice resets
+  const emotionText = safeEmotion ? `<emotion value="${safeEmotion}"/> ${text}` : text;
 
   // Try streaming TTS first (lowest latency)
   if (session.ttsStream?.connected) {
