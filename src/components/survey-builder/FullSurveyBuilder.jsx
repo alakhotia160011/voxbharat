@@ -7,8 +7,8 @@ import VoiceWave from '../shared/VoiceWave';
 // FULL SURVEY BUILDER COMPONENT
 // ============================================
 
-const FullSurveyBuilder = ({ onClose, onLaunch }) => {
-  const [step, setStep] = useState(1);
+const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
+  const [step, setStep] = useState(initialSurvey ? 3 : 1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
@@ -125,52 +125,72 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
     }
   };
 
-  const [config, setConfig] = useState({
-    // Basic
-    name: '',
-    type: '',
-    languages: ['hi'],
-    autoDetectLanguage: false,
+  const [config, setConfig] = useState(() => {
+    const base = {
+      // Basic
+      name: '',
+      type: '',
+      languages: ['hi'],
+      autoDetectLanguage: false,
 
-    // Audience
-    geography: 'national',
-    states: [],
-    sampleSize: 1000,
-    targetAudience: '',
-    demographics: {
-      ageGroups: ['all'],
-      gender: 'all',
-      education: 'all',
-      income: 'all',
-      occupation: 'all',
-      caste: 'all',
-    },
-    exclusions: '',
+      // Audience
+      geography: 'national',
+      states: [],
+      sampleSize: 1000,
+      targetAudience: '',
+      demographics: {
+        ageGroups: ['all'],
+        gender: 'all',
+        education: 'all',
+        income: 'all',
+        occupation: 'all',
+        caste: 'all',
+      },
+      exclusions: '',
 
-    // Goals
-    purpose: '',
-    keyQuestions: '',
-    analysisGoals: '',
+      // Goals
+      purpose: '',
+      keyQuestions: '',
+      analysisGoals: '',
 
-    // Settings
-    duration: 10,
-    tone: 'conversational',
-    sensitivity: 'low',
+      // Settings
+      duration: 10,
+      tone: 'conversational',
+      sensitivity: 'low',
 
-    // NEW: Additional Metrics
-    urgency: 'standard',
-    deadline: '',
-    budget: '',
-    previousSurveyLink: '',
-    brandNames: '',
-    callTiming: ['morning', 'afternoon', 'evening'],
-    retryPolicy: 3,
-    incentive: '',
-    qualityChecks: true,
-    recordAudio: true,
+      // NEW: Additional Metrics
+      urgency: 'standard',
+      deadline: '',
+      budget: '',
+      previousSurveyLink: '',
+      brandNames: '',
+      callTiming: ['morning', 'afternoon', 'evening'],
+      retryPolicy: 3,
+      incentive: '',
+      qualityChecks: true,
+      recordAudio: true,
+    };
+    if (initialSurvey) {
+      base.name = initialSurvey.name || '';
+      base.tone = initialSurvey.tone || 'conversational';
+      base.autoDetectLanguage = true;
+    }
+    return base;
   });
 
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState(() => {
+    if (initialSurvey?.questions?.length) {
+      return initialSurvey.questions.map((q, i) => ({
+        id: q.id || `q${i + 1}`,
+        text: q.text || '',
+        textEn: q.textEn || '',
+        type: q.type || 'open',
+        options: q.options || null,
+        category: q.category || 'General',
+      }));
+    }
+    return [];
+  });
 
   // Generate questions dynamically using Claude API
   const generateQuestions = async () => {

@@ -592,6 +592,20 @@ function deriveFieldName(textEn) {
 }
 
 /**
+ * Get the survey config (questions, tone, etc.) for a project from its most recent call.
+ */
+export async function getProjectSurveyConfig(projectName) {
+  if (!pool) return null;
+  const { rows } = await pool.query(`
+    SELECT custom_survey FROM calls
+    WHERE COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+      AND custom_survey IS NOT NULL
+    ORDER BY started_at DESC LIMIT 1
+  `, [projectName]);
+  return rows[0]?.custom_survey || null;
+}
+
+/**
  * Get per-question response breakdowns for a project.
  * Works for both built-in surveys (SURVEY_SCRIPTS) and custom surveys.
  */

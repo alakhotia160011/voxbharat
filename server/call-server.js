@@ -21,7 +21,7 @@ import {
   initDb, updateCallRecording, isDbReady,
   getAllCalls, getCallById, getAnalytics,
   exportCallsJson, exportCallsCsv, deleteCall,
-  getProjects, getProjectCalls, getProjectAnalytics, getProjectResponseBreakdowns,
+  getProjects, getProjectCalls, getProjectAnalytics, getProjectResponseBreakdowns, getProjectSurveyConfig,
   exportProjectCallsJson, exportProjectCallsCsv,
   createUser, verifyUser, getUserByEmail,
   createCampaign, getCampaignById, getCampaignsByUser,
@@ -775,6 +775,14 @@ app.get('/api/projects/:name/response-breakdowns', requireAuth, requireDb, async
     const data = await getProjectResponseBreakdowns(req.params.name);
     if (!data) return res.status(404).json({ error: 'No data' });
     res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/projects/:name/survey-config', requireAuth, requireDb, async (req, res) => {
+  try {
+    const config = await getProjectSurveyConfig(req.params.name);
+    if (!config) return res.status(404).json({ error: 'No survey config found' });
+    res.json(config);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
