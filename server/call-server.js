@@ -942,17 +942,6 @@ wss.on('connection', (ws) => {
 
           // Convert mulaw 8kHz -> PCM s16le 16kHz and send to STT
           const pcmAudio = mulawToPcm16k(msg.media.payload);
-
-          // Energy gate: skip quiet frames (background noise) before sending to STT
-          // PCM s16le samples range -32768 to 32767; compute RMS energy
-          let sumSq = 0;
-          for (let i = 0; i < pcmAudio.length - 1; i += 2) {
-            const sample = pcmAudio.readInt16LE(i);
-            sumSq += sample * sample;
-          }
-          const rms = Math.sqrt(sumSq / (pcmAudio.length / 2));
-          if (rms < 150) break; // Below noise floor, skip
-
           session.stt.sendAudio(pcmAudio);
           break;
 

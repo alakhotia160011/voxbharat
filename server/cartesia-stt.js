@@ -29,7 +29,6 @@ export class CartesiaSTT {
         sample_rate: '16000',
         api_key: this.apiKey,
         cartesia_version: '2025-11-04',
-        min_volume: '0.15',
       };
       // Omit language for auto-detection mode
       if (this.language && this.language !== 'auto') {
