@@ -1355,6 +1355,18 @@ async function processUserSpeech(callId, text) {
   // --- Streaming pipeline: Claude → sentence TTS → Twilio ---
   const stream = session.conversation.startResponseStream(textForClaude);
   if (!stream) {
+    // Survey already complete — speak a closing message before hanging up
+    console.log(`[Call:${callId}] Survey already complete, speaking closing before hangup`);
+    const closingLang = session.currentLanguage || session.call.language;
+    const closings = {
+      hi: 'Dhanyavaad! Aapka din shubh ho.',
+      bn: 'Dhonnobad! Apnar din shubho hok.',
+      en: 'Thank you! Have a great day.',
+      ta: 'Nandri! Ungal naal nalladhu.',
+      te: 'Dhanyavaadaalu! Mee rojulu subhamuga undali.',
+    };
+    const closingText = closings[closingLang] || closings.en;
+    await speakAndStream(session, closingText);
     session.isProcessing = false;
     await handleCallEnd(callId, 'completed');
     return;
