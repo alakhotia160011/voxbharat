@@ -391,7 +391,7 @@ export async function exportCallsCsv() {
   const headers = Object.keys(rows[0]);
   const csv = [
     headers.join(','),
-    ...rows.map(row => headers.map(h => `"${(row[h] ?? '').toString().replace(/"/g, '""')}"`).join(','))
+    ...rows.map(row => headers.map(h => `"${(row[h] ?? '').toString().replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`).join(','))
   ].join('\n');
 
   return csv;
@@ -488,7 +488,7 @@ export async function exportProjectCallsCsv(projectName) {
     return [...base, ...answers, ...tail];
   });
 
-  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, '')}"`;
   const csv = [
     headers.map(escape).join(','),
     ...csvRows.map(row => row.map(escape).join(',')),

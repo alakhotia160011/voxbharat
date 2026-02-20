@@ -247,16 +247,29 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
 
   const initiateTestCall = async () => {
     if (!testPhoneNumber.trim()) return;
+
+    // Validate phone number format
+    let cleanedPhone = testPhoneNumber.trim().replace(/[\s\-().]/g, '');
+    if (/^[6-9]\d{9}$/.test(cleanedPhone)) cleanedPhone = '+91' + cleanedPhone;
+    if (!/^\+\d{8,15}$/.test(cleanedPhone)) {
+      setTestCallError('Enter a valid phone number (e.g. +919876543210 or 10-digit Indian number)');
+      return;
+    }
+
     setTestCallStatus('calling');
     setTestCallError(null);
     setTestCallResult(null);
 
     try {
+      const token = localStorage.getItem('voxbharat_token');
       const response = await fetch(`${CALL_SERVER}/call/initiate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
-          phoneNumber: testPhoneNumber.trim(),
+          phoneNumber: cleanedPhone,
           language: config.autoDetectLanguage ? 'en' : (config.languages[0] || 'hi'),
           gender: 'female',
           autoDetectLanguage: config.autoDetectLanguage,
@@ -284,7 +297,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch }) => {
       if (testCallPollRef.current) clearInterval(testCallPollRef.current);
       testCallPollRef.current = setInterval(async () => {
         try {
-          const res = await fetch(`${CALL_SERVER}/call/${data.callId}`);
+          const pollToken = localStorage.getItem('voxbharat_token');
+          const res = await fetch(`${CALL_SERVER}/call/${data.callId}`, {
+            headers: pollToken ? { Authorization: `Bearer ${pollToken}` } : {},
+          });
           if (!res.ok) return;
           const callData = await res.json();
           if (callData.status === 'in-progress' || callData.status === 'surveying') {

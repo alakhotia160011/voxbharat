@@ -33,8 +33,9 @@ import {
   getBucketMappings, saveBucketMappingsBatch, deleteBucketMapping,
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
-import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting } from './survey-scripts.js';
+import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,10 +51,10 @@ const TWILIO_PHONE = process.env.TWILIO_PHONE_NUMBER;
 const CARTESIA_KEY = process.env.CARTESIA_API_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
-const JWT_SECRET = process.env.JWT_SECRET || 'voxbharat_default_jwt_secret_change_me';
+const JWT_SECRET = process.env.JWT_SECRET;
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-const NOTIFY_EMAIL = 'ary.lakhoti@gmail.com';
+const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'ary.lakhoti@gmail.com';
 
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
   ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } })
@@ -80,6 +81,7 @@ if (!TWILIO_AUTH) missing.push('TWILIO_AUTH_TOKEN');
 if (!TWILIO_PHONE) missing.push('TWILIO_PHONE_NUMBER');
 if (!CARTESIA_KEY) missing.push('CARTESIA_API_KEY');
 if (!ANTHROPIC_KEY) missing.push('ANTHROPIC_API_KEY');
+if (!JWT_SECRET) missing.push('JWT_SECRET');
 if (missing.length) {
   console.error(`Missing env vars: ${missing.join(', ')}`);
   console.error('Copy server/.env.example to server/.env and fill in values');
@@ -91,9 +93,34 @@ const twilioClient = twilio(TWILIO_SID, TWILIO_AUTH);
 const app = express();
 const server = createServer(app);
 
-app.use(cors());
+const FRONTEND_URL = process.env.FRONTEND_URL || '';
+app.use(cors({
+  origin: FRONTEND_URL ? FRONTEND_URL.split(',').map(u => u.trim()) : true,
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Rate limiter for auth endpoints (Finding #5)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again later' },
+});
+
+// Twilio webhook signature validation (Finding #4)
+const validateTwilioSignature = (req, res, next) => {
+  if (!PUBLIC_URL || PUBLIC_URL.includes('localhost')) return next();
+  const sig = req.headers['x-twilio-signature'] || '';
+  const url = PUBLIC_URL + req.originalUrl;
+  if (!twilio.validateRequest(TWILIO_AUTH, sig, url, req.body || {})) {
+    console.warn(`[Security] Invalid Twilio signature for ${req.originalUrl}`);
+    return res.status(403).send('Forbidden');
+  }
+  next();
+};
 
 // Per-call state: conversation instances, STT sessions, timers
 const callSessions = new Map();
@@ -284,13 +311,14 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   const greetingLang = autoDetectLanguage ? 'en' : language;
   let greetingText;
   if (autoDetectLanguage) {
+    const enName = getVoiceName('en', gender);
     greetingText = customSurvey
-      ? `<emotion value="enthusiastic"/> Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${customSurvey.name}. Do you have a few minutes to share your thoughts?`
-      : `<emotion value="enthusiastic"/> Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?`;
+      ? `<emotion value="enthusiastic"/> Namaste! Hello! I'm ${enName} calling from VoxBharat. I'd like to ask you a few questions about ${customSurvey.name}. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`
+      : `<emotion value="enthusiastic"/> Namaste! Hello! I'm ${enName} calling from VoxBharat for a short survey. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name);
   } else if (SURVEY_SCRIPTS[language]) {
-    greetingText = SURVEY_SCRIPTS[language].greeting;
+    greetingText = generateCustomGreeting(language, gender, SURVEY_SCRIPTS[language].name);
   } else {
     greetingText = generateCustomGreeting(language, gender, 'VoxBharat Survey');
   }
@@ -308,11 +336,17 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
 }
 
 // Initiate an outbound call (HTTP endpoint)
-app.post('/call/initiate', async (req, res) => {
+app.post('/call/initiate', requireAuth, async (req, res) => {
   const { phoneNumber, language, gender, customSurvey, autoDetectLanguage } = req.body;
 
   if (!phoneNumber) {
     return res.status(400).json({ error: 'phoneNumber is required' });
+  }
+
+  // Validate E.164 format
+  const cleaned = phoneNumber.replace(/[\s\-().]/g, '');
+  if (!/^\+\d{8,15}$/.test(cleaned)) {
+    return res.status(400).json({ error: 'Phone number must be in E.164 format (e.g. +919876543210)' });
   }
 
   try {
@@ -325,7 +359,7 @@ app.post('/call/initiate', async (req, res) => {
 });
 
 // Twilio webhook - returns TwiML to connect media stream
-app.post('/call/twilio-webhook', (req, res) => {
+app.post('/call/twilio-webhook', validateTwilioSignature, (req, res) => {
   const callId = req.query.callId;
   const wsUrl = PUBLIC_URL.replace('http', 'ws');
 
@@ -342,7 +376,7 @@ app.post('/call/twilio-webhook', (req, res) => {
 });
 
 // Inbound call webhook — Twilio sends POST here when someone calls our number
-app.post('/call/inbound', async (req, res) => {
+app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
   const callerNumber = req.body.From;
   const twilioNumber = req.body.To;
   const twilioCallSid = req.body.CallSid;
@@ -462,7 +496,7 @@ app.post('/call/inbound', async (req, res) => {
 });
 
 // Twilio status callback
-app.post('/call/twilio-status', (req, res) => {
+app.post('/call/twilio-status', validateTwilioSignature, (req, res) => {
   const callId = req.query.callId;
   const status = req.body.CallStatus;
 
@@ -477,7 +511,7 @@ app.post('/call/twilio-status', (req, res) => {
 });
 
 // Twilio AMD (Answering Machine Detection) callback
-app.post('/call/amd-callback', async (req, res) => {
+app.post('/call/amd-callback', validateTwilioSignature, async (req, res) => {
   const callId = req.query.callId;
   const answeredBy = req.body.AnsweredBy; // 'human' | 'machine_end_beep' | 'machine_end_silence' | 'machine_end_other' | 'fax' | 'unknown'
 
@@ -553,7 +587,7 @@ app.post('/call/amd-callback', async (req, res) => {
 });
 
 // Twilio recording callback — fires when recording is ready
-app.post('/call/recording-callback', (req, res) => {
+app.post('/call/recording-callback', validateTwilioSignature, (req, res) => {
   const callId = req.query.callId;
   const { RecordingSid, RecordingUrl, RecordingDuration, RecordingStatus } = req.body;
 
@@ -580,19 +614,19 @@ app.post('/call/recording-callback', (req, res) => {
 });
 
 // List active calls
-app.get('/call/active', (req, res) => {
+app.get('/call/active', requireAuth, (req, res) => {
   res.json(getActiveCalls());
 });
 
 // Get call details
-app.get('/call/:id', (req, res) => {
+app.get('/call/:id', requireAuth, (req, res) => {
   const call = getCall(req.params.id);
   if (!call) return res.status(404).json({ error: 'Call not found' });
   res.json(call);
 });
 
 // Force-end a call
-app.post('/call/:id/end', async (req, res) => {
+app.post('/call/:id/end', requireAuth, async (req, res) => {
   const call = getCall(req.params.id);
   if (!call) return res.status(404).json({ error: 'Call not found' });
 
@@ -631,7 +665,7 @@ const requireAuth = (req, res, next) => {
 };
 
 // Signup endpoint
-app.post('/api/signup', requireDb, async (req, res) => {
+app.post('/api/signup', authLimiter, requireDb, async (req, res) => {
   const { email, password, name } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -654,7 +688,7 @@ app.post('/api/signup', requireDb, async (req, res) => {
 });
 
 // Login endpoint
-app.post('/api/login', requireDb, async (req, res) => {
+app.post('/api/login', authLimiter, requireDb, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -824,7 +858,22 @@ app.get('/api/calls/:id/recording', requireAuth, requireDb, async (req, res) => 
 
 const wss = new WebSocketServer({ server, path: '/call/media-stream' });
 
+// Ping/pong heartbeat to keep Railway proxy connection alive
+setInterval(() => {
+  wss.clients.forEach(ws => {
+    if (ws.isAlive === false) {
+      console.log('[WS] Terminating stale connection');
+      return ws.terminate();
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30_000);
+
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
   let callId = null;
   let streamSid = null;
   let session = null;
@@ -1658,6 +1707,9 @@ function cleanupSession(callId) {
 
   callSessions.delete(callId);
   greetingAudioCache.delete(callId); // Clean up any unused pre-cached greeting
+
+  // Remove from activeCalls after delay (recording callback may still arrive)
+  setTimeout(() => removeCall(callId), 60_000);
 }
 
 // ============================================
