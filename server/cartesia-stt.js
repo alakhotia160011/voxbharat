@@ -15,6 +15,8 @@ export class CartesiaSTT {
     this.onError = options.onError || console.error;
     this.reconnectAttempts = 0;
     this.maxReconnects = 1;
+    this.isSwitching = false;
+    this.switchBuffer = [];
   }
 
   /**
@@ -109,6 +111,14 @@ export class CartesiaSTT {
    * @param {Buffer} pcmBuffer - PCM s16le 16kHz audio data
    */
   sendAudio(pcmBuffer) {
+    // Buffer audio during language switch so we don't lose speech
+    if (this.isSwitching) {
+      if (this.switchBuffer.length < 200) { // ~4 seconds of buffered audio
+        this.switchBuffer.push(pcmBuffer);
+      }
+      return;
+    }
+
     if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -136,6 +146,10 @@ export class CartesiaSTT {
     console.log(`[STT] Switching language: ${this.language} → ${newLanguage}`);
     this.language = newLanguage;
 
+    // Start buffering audio so we don't lose speech during reconnect
+    this.isSwitching = true;
+    this.switchBuffer = [];
+
     // Close current connection (prevent auto-reconnect)
     const prevMaxReconnects = this.maxReconnects;
     this.maxReconnects = 0;
@@ -149,6 +163,15 @@ export class CartesiaSTT {
     // Reconnect with new language
     this.maxReconnects = prevMaxReconnects;
     await this.connect();
+
+    // Replay buffered audio so the user's speech isn't lost
+    const buffered = this.switchBuffer;
+    this.switchBuffer = [];
+    this.isSwitching = false;
+    console.log(`[STT] Language switched to ${newLanguage}, replaying ${buffered.length} buffered frames`);
+    for (const frame of buffered) {
+      this.sendAudio(frame);
+    }
   }
 
   /**
