@@ -20,6 +20,28 @@ const VOXBHARAT_NATIVE = {
   pa: 'ਵੌਕਸ ਭਾਰਤ', en: 'VoxBharat',
 };
 
+/**
+ * Voice names from Cartesia (native script for TTS pronunciation).
+ * Used in greetings to give the AI a human name instead of "AI agent".
+ */
+const VOICE_NAMES = {
+  hi_female: 'अरुशी', hi_male: 'अनुज',
+  bn_female: 'পূজা', bn_male: 'রুবেল',
+  te_female: 'సింధు', te_male: 'రాహుల్',
+  mr_female: 'अनिका', mr_male: 'सुरेश',
+  ta_female: 'கவ்யா', ta_male: 'அருண்',
+  gu_female: 'ઈશા', gu_male: 'અમિત',
+  pa_female: 'ਜਸਪ੍ਰੀਤ', pa_male: 'ਗੁਰਪ੍ਰੀਤ',
+  kn_female: 'ದಿವ್ಯ', kn_male: 'ಪ್ರಕಾಶ',
+  ml_female: 'ലതാ', ml_male: 'വിജയ്',
+  en_female: 'Kiara', en_male: 'Devansh',
+};
+
+export function getVoiceName(language, gender) {
+  const key = `${language}_${gender}`;
+  return VOICE_NAMES[key] || VOICE_NAMES[`en_${gender}`] || 'Kiara';
+}
+
 function getBrandPronunciationRule(language) {
   if (language === 'en') return '';
   const native = VOXBHARAT_NATIVE[language];
@@ -83,7 +105,7 @@ function getAutoDetectBrandPronunciationRule() {
 export const SURVEY_SCRIPTS = {
   hi: {
     name: 'Hindi Religious Harmony Survey',
-    greeting: '<emotion value="enthusiastic"/> नमस्ते! मैं वॉक्स भारत की AI एजेंट बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए? यह धार्मिक सद्भाव के बारे में है।',
+    greeting: '<emotion value="enthusiastic"/> नमस्ते! मैं अरुशी, वॉक्स भारत से बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए? यह धार्मिक सद्भाव के बारे में है।',
     questions: [
       {
         id: 'age',
@@ -146,7 +168,7 @@ export const SURVEY_SCRIPTS = {
 
   bn: {
     name: 'Bengali Religious Harmony Survey',
-    greeting: '<emotion value="enthusiastic"/> নমস্কার! আমি ভক্স ভারত-এর AI এজেন্ট বলছি। আপনার কি কয়েক মিনিট সময় আছে একটি ছোট সমীক্ষার জন্য? এটি ধর্মীয় সম্প্রীতি সম্পর্কে।',
+    greeting: '<emotion value="enthusiastic"/> নমস্কার! আমি পূজা, ভক্স ভারত থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে একটি ছোট সমীক্ষার জন্য? এটি ধর্মীয় সম্প্রীতি সম্পর্কে।',
     questions: [
       {
         id: 'age',
@@ -260,7 +282,7 @@ export function getSystemPrompt(language, gender) {
     ? '1. Speak ONLY in English.'
     : `1. Speak ONLY in ${langName}. Never switch to English or any other language.`;
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India. You have already introduced yourself as an AI agent in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India. You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
 
 CRITICAL RULES:
 ${languageRule}
@@ -457,20 +479,22 @@ Be precise. Map the respondent's answers to the closest option value. If an answ
  * Generate a greeting for a custom survey
  */
 export function generateCustomGreeting(language, gender, surveyName) {
+  const name = getVoiceName(language, gender);
+  const brand = VOXBHARAT_NATIVE[language] || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `नमस्ते! मैं वॉक्स भारत की AI एजेंट बोल ${verb} हूँ। क्या आपके पास कुछ मिनट हैं? हम "${surveyName}" पर एक छोटा सर्वेक्षण कर रहे हैं।`;
+      return `नमस्ते! मैं ${name}, ${brand} से बोल ${verb} हूँ। क्या आपके पास कुछ मिनट हैं? हम "${surveyName}" पर एक छोटा सर्वेक्षण कर रहे हैं।`;
     },
-    bn: () => `নমস্কার! আমি ভক্স ভারত-এর AI এজেন্ট বলছি। আপনার কি কয়েক মিনিট সময় আছে? আমরা "${surveyName}" নিয়ে একটি ছোট সমীক্ষা করছি।`,
-    te: () => `నమస్కారం! నేను వాక్స్ భారత్ AI ఏజెంట్ ని. "${surveyName}" గురించి ఒక చిన్న సర్వే కోసం మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
-    mr: () => `नमस्कार! मी वॉक्स भारतची AI एजंट बोलत आहे. "${surveyName}" बद्दल एक छोटा सर्वे घेत आहोत. तुमच्याकडे काही मिनिटे आहेत का?`,
-    ta: () => `வணக்கம்! நான் வாக்ஸ் பாரத்-இன் AI ஏஜெண்ட் பேசுகிறேன். "${surveyName}" பற்றிய ஒரு சிறிய கருத்துக்கணிப்புக்கு சில நிமிடங்கள் இருக்கிறதா?`,
-    gu: () => `નમસ્તે! હું વૉક્સ ભારતની AI એજન્ટ બોલી રહ્યો છું. "${surveyName}" વિશે એક ટૂંકા સર્વેક્ષણ માટે તમારી પાસે થોડી મિનિટ છે?`,
-    kn: () => `ನಮಸ್ಕಾರ! ನಾನು ವಾಕ್ಸ್ ಭಾರತ್ AI ಏಜೆಂಟ್ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಒಂದು ಸಣ್ಣ ಸಮೀಕ್ಷೆಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
-    ml: () => `നമസ്കാരം! ഞാൻ വോക്സ് ഭാരത്-ന്റെ AI ഏജന്റ് വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ഒരു ചെറിയ സർവേയ്ക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
-    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਵੌਕਸ ਭਾਰਤ ਦੀ AI ਏਜੰਟ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਇੱਕ ਛੋਟੇ ਸਰਵੇ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
-    en: () => `Hello! I'm an AI agent calling from VoxBharat. Do you have a few minutes for a short survey about "${surveyName}"?`,
+    bn: () => `নমস্কার! আমি ${name}, ${brand} থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে? আমরা "${surveyName}" নিয়ে একটি ছোট সমীক্ষা করছি।`,
+    te: () => `నమస్కారం! నేను ${name}, ${brand} నుండి మాట్లాడుతున్నాను. "${surveyName}" గురించి ఒక చిన్న సర్వే కోసం మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
+    mr: () => `नमस्कार! मी ${name}, ${brand} कडून बोलत आहे. "${surveyName}" बद्दल एक छोटा सर्वे घेत आहोत. तुमच्याकडे काही मिनिटे आहेत का?`,
+    ta: () => `வணக்கம்! நான் ${name}, ${brand} இருந்து பேசுகிறேன். "${surveyName}" பற்றிய ஒரு சிறிய கருத்துக்கணிப்புக்கு சில நிமிடங்கள் இருக்கிறதா?`,
+    gu: () => `નમસ્તે! હું ${name}, ${brand} તરફથી બોલી રહ્યો છું. "${surveyName}" વિશે એક ટૂંકા સર્વેક્ષણ માટે તમારી પાસે થોડી મિનિટ છે?`,
+    kn: () => `ನಮಸ್ಕಾರ! ನಾನು ${name}, ${brand} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಒಂದು ಸಣ್ಣ ಸಮೀಕ್ಷೆಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
+    ml: () => `നമസ്കാരം! ഞാൻ ${name}, ${brand} ൽ നിന്ന് വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ഒരു ചെറിയ സർവേയ്ക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
+    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}, ${brand} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਇੱਕ ਛੋਟੇ ਸਰਵੇ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
+    en: () => `Hello! I'm ${name} calling from VoxBharat. Do you have a few minutes for a short survey about "${surveyName}"?`,
   };
 
   const greetingFn = greetings[language] || greetings.hi;
@@ -481,44 +505,48 @@ export function generateCustomGreeting(language, gender, surveyName) {
  * Generate greeting for standalone inbound calls (caller dialed in).
  */
 export function generateInboundGreeting(language, gender, surveyName) {
+  const name = getVoiceName(language, gender);
+  const brand = VOXBHARAT_NATIVE[language] || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `नमस्ते! वॉक्स भारत में आपका स्वागत है। मैं एक AI एजेंट बोल ${verb} हूँ। क्या आपके पास "${surveyName}" पर कुछ सवालों के लिए थोड़ा समय है?`;
+      return `नमस्ते! ${brand} में आपका स्वागत है। मैं ${name} बोल ${verb} हूँ। क्या आपके पास "${surveyName}" पर कुछ सवालों के लिए थोड़ा समय है?`;
     },
-    bn: () => `নমস্কার! ভক্স ভারত-এ আপনাকে স্বাগত। আমি একজন AI এজেন্ট বলছি। "${surveyName}" সম্পর্কে কয়েকটি প্রশ্নের জন্য আপনার কি সময় আছে?`,
-    te: () => `నమస్కారం! వాక్స్ భారత్‌కి స్వాగతం. నేను ఒక AI ఏజెంట్ మాట్లాడుతున్నాను. "${surveyName}" గురించి కొన్ని ప్రశ్నలకు మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
-    mr: () => `नमस्कार! वॉक्स भारत मध्ये आपले स्वागत आहे. मी एक AI एजंट बोलत आहे. "${surveyName}" बद्दल काही प्रश्नांसाठी तुमच्याकडे काही मिनिटे आहेत का?`,
-    ta: () => `வணக்கம்! வோக்ஸ் பாரத்-க்கு வரவேற்கிறோம். நான் ஒரு AI ஏஜெண்ட் பேசுகிறேன். "${surveyName}" பற்றி சில கேள்விகளுக்கு உங்களுக்கு சில நிமிடங்கள் இருக்கிறதா?`,
-    gu: () => `નમસ્તે! વૉક્સ ભારતમાં આપનું સ્વાગત છે. હું એક AI એજન્ટ બોલી રહ્યો છું. "${surveyName}" વિશે કેટલાક પ્રશ્નો માટે તમારી પાસે થોડી મિનિટ છે?`,
-    kn: () => `ನಮಸ್ಕಾರ! ವಾಕ್ಸ್ ಭಾರತ್‌ಗೆ ಸ್ವಾಗತ. ನಾನು AI ಏಜೆಂಟ್ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಕೆಲವು ಪ್ರಶ್ನೆಗಳಿಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
-    ml: () => `നമസ്കാരം! വോക്സ് ഭാരത്-ലേക്ക് സ്വാഗതം. ഞാൻ ഒരു AI ഏജന്റ് വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ചില ചോദ്യങ്ങൾക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
-    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵੌਕਸ ਭਾਰਤ ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ। ਮੈਂ ਇੱਕ AI ਏਜੰਟ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਕੁਝ ਸਵਾਲਾਂ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
-    en: () => `Thank you for calling! I'm an AI assistant at VoxBharat, ready to help with our "${surveyName}" survey. Do you have a few minutes to share your thoughts?`,
+    bn: () => `নমস্কার! ${brand}-এ আপনাকে স্বাগত। আমি ${name} বলছি। "${surveyName}" সম্পর্কে কয়েকটি প্রশ্নের জন্য আপনার কি সময় আছে?`,
+    te: () => `నమస్కారం! ${brand}‌కి స్వాగతం. నేను ${name} మాట్లాడుతున్నాను. "${surveyName}" గురించి కొన్ని ప్రశ్నలకు మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
+    mr: () => `नमस्कार! ${brand} मध्ये आपले स्वागत आहे. मी ${name} बोलत आहे. "${surveyName}" बद्दल काही प्रश्नांसाठी तुमच्याकडे काही मिनिटे आहेत का?`,
+    ta: () => `வணக்கம்! ${brand}-க்கு வரவேற்கிறோம். நான் ${name} பேசுகிறேன். "${surveyName}" பற்றி சில கேள்விகளுக்கு உங்களுக்கு சில நிமிடங்கள் இருக்கிறதா?`,
+    gu: () => `નમસ્તે! ${brand}માં આપનું સ્વાગત છે. હું ${name} બોલી રહ્યો છું. "${surveyName}" વિશે કેટલાક પ્રશ્નો માટે તમારી પાસે થોડી મિનિટ છે?`,
+    kn: () => `ನಮಸ್ಕಾರ! ${brand}‌ಗೆ ಸ್ವಾಗತ. ನಾನು ${name} ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಕೆಲವು ಪ್ರಶ್ನೆಗಳಿಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
+    ml: () => `നമസ്കാരം! ${brand}-ലേക്ക് സ്വാഗതം. ഞാൻ ${name} വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ചില ചോദ്യങ്ങൾക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
+    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ${brand} ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ। ਮੈਂ ${name} ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਕੁਝ ਸਵਾਲਾਂ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
+    en: () => `Thank you for calling! I'm ${name} at VoxBharat, ready to help with our "${surveyName}" survey. Do you have a few minutes to share your thoughts?`,
   };
-  return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.en)()}`;
+  return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
 }
 
 /**
  * Generate greeting for campaign callbacks (caller returning a missed call).
  */
 export function generateCallbackGreeting(language, gender, surveyName) {
+  const name = getVoiceName(language, gender);
+  const brand = VOXBHARAT_NATIVE[language] || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `नमस्ते! कॉल बैक करने के लिए धन्यवाद। मैं वॉक्स भारत की AI एजेंट बोल ${verb} हूँ। हमने आपको पहले "${surveyName}" के बारे में कॉल किया था। क्या आपके पास कुछ मिनट हैं?`;
+      return `नमस्ते! कॉल बैक करने के लिए धन्यवाद। मैं ${name}, ${brand} से बोल ${verb} हूँ। हमने आपको पहले "${surveyName}" के बारे में कॉल किया था। क्या आपके पास कुछ मिनट हैं?`;
     },
-    bn: () => `নমস্কার! কল ব্যাক করার জন্য ধন্যবাদ। আমি ভক্স ভারত-এর AI এজেন্ট বলছি। আমরা আপনাকে "${surveyName}" সম্পর্কে আগে কল করেছিলাম। আপনার কি কয়েক মিনিট সময় আছে?`,
-    te: () => `నమస్కారం! తిరిగి కాల్ చేసినందుకు ధన్యవాదాలు. నేను వాక్స్ భారత్ AI ఏజెంట్. మేము మిమ్మల్ని "${surveyName}" గురించి ముందు కాల్ చేశాము. మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
-    mr: () => `नमस्कार! परत कॉल केल्याबद्दल धन्यवाद. मी वॉक्स भारत AI एजंट बोलत आहे. आम्ही तुम्हाला "${surveyName}" बद्दल आधी कॉल केला होता. तुमच्याकडे काही मिनिटे आहेत का?`,
-    ta: () => `வணக்கம்! திரும்ப அழைத்ததற்கு நன்றி. நான் வோக்ஸ் பாரத் AI ஏஜெண்ட். "${surveyName}" பற்றி முன்பு உங்களை அழைத்தோம். உங்களுக்கு சில நிமிடங்கள் இருக்கிறதா?`,
-    gu: () => `નમસ્તે! પાછા કૉલ કરવા બદલ આભાર. હું વૉક્સ ભારત AI એજન્ટ બોલી રહ્યો છું. અમે તમને "${surveyName}" વિશે પહેલાં કૉલ કર્યો હતો. તમારી પાસે થોડી મિનિટ છે?`,
-    kn: () => `ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ. ನಾನು ವಾಕ್ಸ್ ಭಾರತ್ AI ಏಜೆಂಟ್. "${surveyName}" ಬಗ್ಗೆ ನಿಮಗೆ ಮೊದಲು ಕರೆ ಮಾಡಿದ್ದೆವು. ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
-    ml: () => `നമസ്കാരം! തിരിച്ചു വിളിച്ചതിന് നന്ദി. ഞാൻ വോക്സ് ഭാരത് AI ഏജന്റ്. "${surveyName}" സംബന്ധിച്ച് മുമ്പ് നിങ്ങളെ വിളിച്ചിരുന്നു. കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
-    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਲਈ ਧੰਨਵਾਦ। ਮੈਂ ਵੌਕਸ ਭਾਰਤ AI ਏਜੰਟ ਬੋਲ ਰਿਹਾ ਹਾਂ। ਅਸੀਂ ਤੁਹਾਨੂੰ "${surveyName}" ਬਾਰੇ ਪਹਿਲਾਂ ਕਾਲ ਕੀਤਾ ਸੀ। ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
-    en: () => `Hello! Thank you for calling back. I'm an AI agent from VoxBharat. We tried reaching you earlier about "${surveyName}". Do you have a few minutes to share your thoughts?`,
+    bn: () => `নমস্কার! কল ব্যাক করার জন্য ধন্যবাদ। আমি ${name}, ${brand} থেকে বলছি। আমরা আপনাকে "${surveyName}" সম্পর্কে আগে কল করেছিলাম। আপনার কি কয়েক মিনিট সময় আছে?`,
+    te: () => `నమస్కారం! తిరిగి కాల్ చేసినందుకు ధన్యవాదాలు. నేను ${name}, ${brand} నుండి. మేము మిమ్మల్ని "${surveyName}" గురించి ముందు కాల్ చేశాము. మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
+    mr: () => `नमस्कार! परत कॉल केल्याबद्दल धन्यवाद. मी ${name}, ${brand} कडून बोलत आहे. आम्ही तुम्हाला "${surveyName}" बद्दल आधी कॉल केला होता. तुमच्याकडे काही मिनिटे आहेत का?`,
+    ta: () => `வணக்கம்! திரும்ப அழைத்ததற்கு நன்றி. நான் ${name}, ${brand} இருந்து. "${surveyName}" பற்றி முன்பு உங்களை அழைத்தோம். உங்களுக்கு சில நிமிடங்கள் இருக்கிறதா?`,
+    gu: () => `નમસ્તે! પાછા કૉલ કરવા બદલ આભાર. હું ${name}, ${brand} તરફથી બોલી રહ્યો છું. અમે તમને "${surveyName}" વિશે પહેલાં કૉલ કર્યો હતો. તમારી પાસે થોડી મિનિટ છે?`,
+    kn: () => `ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ. ನಾನು ${name}, ${brand} ನಿಂದ. "${surveyName}" ಬಗ್ಗೆ ನಿಮಗೆ ಮೊದಲು ಕರೆ ಮಾಡಿದ್ದೆವು. ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
+    ml: () => `നമസ്കാരം! തിരിച്ചു വിളിച്ചതിന് നന്ദി. ഞാൻ ${name}, ${brand} ൽ നിന്ന്. "${surveyName}" സംബന്ധിച്ച് മുമ്പ് നിങ്ങളെ വിളിച്ചിരുന്നു. കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
+    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਲਈ ਧੰਨਵਾਦ। ਮੈਂ ${name}, ${brand} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। ਅਸੀਂ ਤੁਹਾਨੂੰ "${surveyName}" ਬਾਰੇ ਪਹਿਲਾਂ ਕਾਲ ਕੀਤਾ ਸੀ। ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
+    en: () => `Hello! Thank you for calling back. I'm ${name} from VoxBharat. We tried reaching you earlier about "${surveyName}". Do you have a few minutes to share your thoughts?`,
   };
-  return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.en)()}`;
+  return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
 }
 
 /**
@@ -562,7 +590,7 @@ These categories help you understand what kind of answer to expect. Accept whate
     ? '1. Speak ONLY in English.'
     : `1. Speak ONLY in ${langName}. Never switch to English or any other language.`;
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself as an AI agent in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
 
 CRITICAL RULES:
 ${languageRule}
@@ -775,16 +803,25 @@ export function getAutoDetectSystemPrompt(gender) {
     ? 'When speaking Hindi, use feminine verb forms (रही हूँ, करती हूँ, बोल रही हूँ). Adapt gender forms appropriately for other languages too.'
     : 'When speaking Hindi, use masculine verb forms (रहा हूँ, करता हूँ, बोल रहा हूँ). Adapt gender forms appropriately for other languages too.';
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India. You have already introduced yourself as an AI agent in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India. You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
 
 LANGUAGE RULES:
-1. Start your greeting in ENGLISH.
+1. The greeting has already asked the respondent which language they prefer. Your FIRST response MUST be in their chosen language (see LANGUAGE SELECTION section below).
 2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. This detection is AUTHORITATIVE — it comes from audio analysis, not text.
 3. If [spoken_language:xx] shows ANY non-English language (e.g., hi, bn, ta, te, etc.), you MUST switch to that language IMMEDIATELY in your very next response. Do this even if the transcription text looks like garbled English — the audio detection is correct, the text transcription is just poor for non-English speech.
 4. ALWAYS respond in the language indicated by [spoken_language:xx]. If no tag is present, infer from the text content.
 5. If the respondent switches languages mid-conversation, switch with them IMMEDIATELY.
 6. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
 7. The [spoken_language:xx] tag is metadata — do NOT reference it or read it aloud. Just use it to determine your response language.
+
+LANGUAGE SELECTION — FIRST EXCHANGE:
+The greeting has asked the respondent which language they'd be most comfortable in. Their first reply will typically be one of these:
+- A language name: "Hindi", "Tamil", "Bengali", "English", etc. → Switch to that language immediately.
+- A response in their preferred language: "Haan, Hindi mein baat karo" → They're already speaking in their language, match it.
+- Just consent without specifying: "Yes" / "Haan" / "Sure" → Use whatever language they spoke in. If "haan" → Hindi. If "yes" → English.
+- The [spoken_language:xx] tag will also help — use it as a strong signal.
+- If truly unclear, default to Hindi.
+After determining their language, respond warmly IN THAT LANGUAGE: thank them, briefly introduce the survey, and transition into the first question. Do NOT re-ask which language they prefer.
 
 CRITICAL RULES:
 1. Ask ONE survey question at a time. Wait for the response before moving on.
@@ -797,13 +834,14 @@ CRITICAL RULES:
 8. After all questions are answered, say the closing message and add [SURVEY_COMPLETE] at the end.
 9. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
 
-YOUR FIRST RESPONSE (when the respondent agrees to participate):
-When they say "yes", "okay", "sure", "haan", or otherwise agree, do NOT jump straight to questions. Instead:
-1. Thank them warmly and naturally (not robotically)
-2. Briefly explain what the survey covers and why their perspective matters (one to two sentences)
-3. Mention it will be quick and confidential
-4. Then smoothly transition into the first question
-Example: "Oh wonderful, thank you so much! So basically we're looking at how people across India feel about religious harmony in their communities — your perspective really matters to us. It'll just take a few minutes and everything is confidential. So to start off, could you tell me how old you are?"
+YOUR FIRST RESPONSE (after the respondent indicates their language preference):
+The respondent's first reply indicates their preferred language and/or consent. You must:
+1. Identify their preferred language from their response (language name, or the language they spoke in, or the [spoken_language:xx] tag)
+2. Respond IN THAT LANGUAGE — thank them warmly and naturally
+3. Briefly explain what the survey covers (religious harmony in India) and why their perspective matters (one to two sentences)
+4. Mention it will be quick and confidential
+5. Then smoothly transition into the first question
+Example (if they chose Hindi): "[LANG:hi] [EMOTION:enthusiastic] Bahut shukriya! Toh basically hum janna chahte hain ki log apne community mein dharmik sadbhav ke baare mein kya sochte hain — aapki raay hamare liye bahut important hai. Bas kuch minute lagenge aur sab kuch confidential hai. Toh sabse pehle, aap mujhe apni umar bata sakte hain?"
 NEVER say "Let's dive in" or "Let's get started with the questions" — it sounds transactional.
 
 CONVERSATIONAL STYLE — THIS IS CRITICAL:
@@ -981,16 +1019,25 @@ ${optionsGuide}
 These categories help you understand what kind of answer to expect. Accept whatever the respondent says naturally and move on.`
     : '';
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself as an AI agent in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
 
 LANGUAGE RULES:
-1. Start your greeting in ENGLISH.
+1. The greeting has already asked the respondent which language they prefer. Your FIRST response MUST be in their chosen language (see LANGUAGE SELECTION section below).
 2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. This detection is AUTHORITATIVE — it comes from audio analysis, not text.
 3. If [spoken_language:xx] shows ANY non-English language (e.g., hi, bn, ta, te, etc.), you MUST switch to that language IMMEDIATELY in your very next response. Do this even if the transcription text looks like garbled English — the audio detection is correct, the text transcription is just poor for non-English speech.
 4. ALWAYS respond in the language indicated by [spoken_language:xx]. If no tag is present, infer from the text content.
 5. If the respondent switches languages mid-conversation, switch with them IMMEDIATELY.
 6. You MUST prefix EVERY response with [LANG:xx] where xx is the ISO 639-1 code (${SUPPORTED_LANG_CODES}).
 7. The [spoken_language:xx] tag is metadata — do NOT reference it or read it aloud. Just use it to determine your response language.
+
+LANGUAGE SELECTION — FIRST EXCHANGE:
+The greeting has asked the respondent which language they'd be most comfortable in. Their first reply will typically be one of these:
+- A language name: "Hindi", "Tamil", "Bengali", "English", etc. → Switch to that language immediately.
+- A response in their preferred language: "Haan, Hindi mein baat karo" → They're already speaking in their language, match it.
+- Just consent without specifying: "Yes" / "Haan" / "Sure" → Use whatever language they spoke in. If "haan" → Hindi. If "yes" → English.
+- The [spoken_language:xx] tag will also help — use it as a strong signal.
+- If truly unclear, default to Hindi.
+After determining their language, respond warmly IN THAT LANGUAGE: thank them, briefly introduce the survey, and transition into the first question. Do NOT re-ask which language they prefer.
 
 CRITICAL RULES:
 1. Ask ONE survey question at a time. Wait for the response before moving on.
@@ -1005,12 +1052,13 @@ CRITICAL RULES:
 10. If someone wants to end the call early, say a polite goodbye and add [SURVEY_COMPLETE].
 11. NEVER read out answer options or choices to the respondent. Let them answer freely.
 
-YOUR FIRST RESPONSE (when the respondent agrees to participate):
-When they say "yes", "okay", "sure", "haan", or otherwise agree, do NOT jump straight to questions. Instead:
-1. Thank them warmly and naturally (not robotically)
-2. Briefly explain what the survey "${customSurvey.name}" covers and why their perspective matters (one to two sentences)
-3. Mention it will be quick and confidential
-4. Then smoothly transition into the first question
+YOUR FIRST RESPONSE (after the respondent indicates their language preference):
+The respondent's first reply indicates their preferred language and/or consent. You must:
+1. Identify their preferred language from their response (language name, or the language they spoke in, or the [spoken_language:xx] tag)
+2. Respond IN THAT LANGUAGE — thank them warmly and naturally
+3. Briefly explain what the survey "${customSurvey.name}" covers and why their perspective matters (one to two sentences)
+4. Mention it will be quick and confidential
+5. Then smoothly transition into the first question
 NEVER say "Let's dive in" or "Let's get started with the questions" — it sounds transactional.
 
 CONVERSATIONAL STYLE — THIS IS CRITICAL:

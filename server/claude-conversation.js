@@ -4,7 +4,7 @@ import {
   getSystemPrompt, getExtractionPrompt, SURVEY_SCRIPTS,
   getCustomSystemPrompt, getCustomExtractionPrompt, generateCustomGreeting,
   getAutoDetectSystemPrompt, getAutoDetectCustomSystemPrompt,
-  generateInboundGreeting, generateCallbackGreeting,
+  generateInboundGreeting, generateCallbackGreeting, getVoiceName,
 } from './survey-scripts.js';
 
 export class ClaudeConversation {
@@ -57,13 +57,14 @@ export class ClaudeConversation {
         greeting = this.customGreeting || generateInboundGreeting(lang, this.gender, surveyName);
       }
     } else if (this.autoDetectLanguage) {
+      const enName = getVoiceName('en', this.gender);
       greeting = this.customSurvey
-        ? `Hello! I'm an AI agent calling from VoxBharat to conduct a survey about ${this.customSurvey.name}. Do you have a few minutes to share your thoughts?`
-        : "Hello! I'm an AI agent calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Shall we begin?";
+        ? `Namaste! Hello! I'm ${enName} calling from VoxBharat. I'd like to ask you a few questions about ${this.customSurvey.name}. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`
+        : `Namaste! Hello! I'm ${enName} calling from VoxBharat for a short survey. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`;
     } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name);
     } else if (SURVEY_SCRIPTS[this.language]) {
-      greeting = SURVEY_SCRIPTS[this.language].greeting;
+      greeting = generateCustomGreeting(this.language, this.gender, SURVEY_SCRIPTS[this.language].name);
     } else {
       greeting = generateCustomGreeting(this.language, this.gender, 'VoxBharat Survey');
     }

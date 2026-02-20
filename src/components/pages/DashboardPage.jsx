@@ -93,8 +93,8 @@ function authFetch(url, options = {}) {
 function sentimentBadge(value) {
   const v = (value || '').toLowerCase();
   if (v === 'positive' || v === 'high') return 'bg-green-100 text-green-700';
-  if (v === 'neutral' || v === 'medium') return 'bg-yellow-100 text-yellow-700';
-  return 'bg-red-100 text-red-700';
+  if (v === 'negative' || v === 'low') return 'bg-red-100 text-red-700';
+  return 'bg-yellow-100 text-yellow-700';
 }
 
 function SectionTitle({ numeral, title }) {
@@ -467,7 +467,7 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
         setBreakdowns(breakdownsData);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => { console.error('Failed to load project data:', err); setLoading(false); });
   }, [projectName]);
 
   const handleSaveMappings = async (field) => {
@@ -887,7 +887,7 @@ function CallDetail({ callId, onBack, projectName }) {
     authFetch(`${CALL_SERVER}/api/surveys/${callId}`)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch((err) => { console.error('Failed to load call details:', err); setLoading(false); });
   }, [callId]);
 
   if (loading) return <Spinner text="Loading call details" />;
@@ -1232,7 +1232,7 @@ export default function DashboardPage({ setShowBuilder }) {
         if (r.ok) { setAuthed(true); } else { clearToken(); setAuthed(false); }
         setCheckingAuth(false);
       })
-      .catch(() => { clearToken(); setAuthed(false); setCheckingAuth(false); });
+      .catch((err) => { console.error('Auth check failed:', err); clearToken(); setAuthed(false); setCheckingAuth(false); });
   }, []);
 
   const fetchProjects = useCallback(() => {
@@ -1240,7 +1240,7 @@ export default function DashboardPage({ setShowBuilder }) {
     authFetch(`${CALL_SERVER}/api/projects`)
       .then(r => r.ok ? r.json() : [])
       .then(d => { setProjects(Array.isArray(d) ? d : []); setLoading(false); })
-      .catch(() => { setProjects([]); setLoading(false); });
+      .catch((err) => { console.error('Failed to load projects:', err); setProjects([]); setLoading(false); });
   }, []);
 
   const fetchCampaigns = useCallback(() => {
@@ -1248,7 +1248,7 @@ export default function DashboardPage({ setShowBuilder }) {
     authFetch(`${CALL_SERVER}/api/campaigns`)
       .then(r => r.ok ? r.json() : [])
       .then(d => { setCampaigns(Array.isArray(d) ? d : []); setCampaignsLoading(false); })
-      .catch(() => { setCampaigns([]); setCampaignsLoading(false); });
+      .catch((err) => { console.error('Failed to load campaigns:', err); setCampaigns([]); setCampaignsLoading(false); });
   }, []);
 
   const fetchInboundConfigs = useCallback(() => {
@@ -1256,7 +1256,7 @@ export default function DashboardPage({ setShowBuilder }) {
     authFetch(`${CALL_SERVER}/api/inbound-configs`)
       .then(r => r.ok ? r.json() : [])
       .then(d => { setInboundConfigs(Array.isArray(d) ? d : []); setInboundLoading(false); })
-      .catch(() => { setInboundConfigs([]); setInboundLoading(false); });
+      .catch((err) => { console.error('Failed to load inbound configs:', err); setInboundConfigs([]); setInboundLoading(false); });
   }, []);
 
   // Fetch projects + campaigns + inbound configs once authenticated
