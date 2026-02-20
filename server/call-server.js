@@ -122,6 +122,26 @@ const validateTwilioSignature = (req, res, next) => {
   next();
 };
 
+// Auth middleware (must be before route definitions that use it)
+const requireDb = (req, res, next) => {
+  if (!isDbReady()) return res.status(503).json({ error: 'Database unavailable' });
+  next();
+};
+
+const requireAuth = (req, res, next) => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const decoded = jwt.verify(header.slice(7), JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
+
 // Per-call state: conversation instances, STT sessions, timers
 const callSessions = new Map();
 
@@ -644,25 +664,6 @@ app.post('/call/:id/end', requireAuth, async (req, res) => {
 // ============================================
 // Dashboard Auth + Survey / Analytics API
 // ============================================
-
-const requireDb = (req, res, next) => {
-  if (!isDbReady()) return res.status(503).json({ error: 'Database unavailable' });
-  next();
-};
-
-const requireAuth = (req, res, next) => {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  try {
-    const decoded = jwt.verify(header.slice(7), JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
-};
 
 // Signup endpoint
 app.post('/api/signup', authLimiter, requireDb, async (req, res) => {
