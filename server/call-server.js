@@ -1169,6 +1169,18 @@ async function initSession(callId, call, ws, streamSid) {
               processUserSpeech(callId, fullText);
             }
           }, 1200); // 1.2s after a filler — they need time to continue
+          // Re-set maxWaitTimer so hesitation can't cause infinite accumulation.
+          // 5s ceiling gives generous thinking time but guarantees eventual processing.
+          sessionObj.maxWaitTimer = setTimeout(() => {
+            sessionObj.maxWaitTimer = null;
+            if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
+              console.log(`[STT:${callId}] Max wait (5s post-hesitation) reached — processing accumulated text`);
+              if (sessionObj.silenceTimer) { clearTimeout(sessionObj.silenceTimer); sessionObj.silenceTimer = null; }
+              const fullText = sessionObj.accumulatedText.join(' ');
+              sessionObj.accumulatedText = [];
+              processUserSpeech(callId, fullText);
+            }
+          }, 5000);
           return;
         }
 
@@ -1415,6 +1427,19 @@ async function processUserSpeech(callId, text) {
             console.log(`[Call:${callId}] Language: ${session.currentLanguage} → ${ttsLanguage}`);
             session.currentLanguage = ttsLanguage;
             updateCall(callId, { detectedLanguage: ttsLanguage });
+
+            // Unlock STT language so it switches to match Claude's detected language.
+            // Handles mid-call code-switching (e.g. Hindi → English).
+            if (session.sttLanguageLocked && session.call.autoDetectLanguage) {
+              session.sttLanguageLocked = false;
+              session.sttDetectedLanguage = ttsLanguage;
+              console.log(`[STT:${callId}] Unlocking STT — switching to ${ttsLanguage} (Claude detected language change)`);
+              session.stt.switchLanguage(ttsLanguage).then(() => {
+                session.sttLanguageLocked = true;
+              }).catch(err => {
+                console.error(`[STT:${callId}] Language re-switch failed:`, err.message);
+              });
+            }
           }
           // Strip the tag from pending text
           pendingText = fullResponse.slice(match[0].length);
