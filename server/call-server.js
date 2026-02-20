@@ -332,9 +332,7 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   let greetingText;
   if (autoDetectLanguage) {
     const enName = getVoiceName('en', gender);
-    greetingText = customSurvey
-      ? `<emotion value="enthusiastic"/> Namaste! Hello! I'm ${enName} calling from VoxBharat. We're conducting a short survey about ${customSurvey.name}. It'll only take a few minutes. Would you like to participate? I can speak Hindi, English, Bengali, Tamil, and many other Indian languages. Aapko kis bhasha mein baat karni hai?`
-      : `<emotion value="enthusiastic"/> Namaste! Hello! I'm ${enName} calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Would you like to participate? I can speak Hindi, English, Bengali, Tamil, and many other Indian languages. Aapko kis bhasha mein baat karni hai?`;
+    greetingText = `<emotion value="enthusiastic"/> Hello! I'm ${enName} from VoxBharat. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name);
   } else if (SURVEY_SCRIPTS[language]) {
