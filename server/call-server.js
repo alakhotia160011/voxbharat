@@ -333,8 +333,8 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   if (autoDetectLanguage) {
     const enName = getVoiceName('en', gender);
     greetingText = customSurvey
-      ? `<emotion value="enthusiastic"/> Namaste! Hello! I'm ${enName} calling from VoxBharat. I'd like to ask you a few questions about ${customSurvey.name}. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`
-      : `<emotion value="enthusiastic"/> Namaste! Hello! I'm ${enName} calling from VoxBharat for a short survey. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`;
+      ? `<emotion value="enthusiastic"/> Namaste! Hello! I'm ${enName} calling from VoxBharat. We're conducting a short survey about ${customSurvey.name}. It'll only take a few minutes. Would you like to participate? I can speak Hindi, English, Bengali, Tamil, and many other Indian languages. Aapko kis bhasha mein baat karni hai?`
+      : `<emotion value="enthusiastic"/> Namaste! Hello! I'm ${enName} calling from VoxBharat. We're conducting a short survey about people's lives and experiences. It'll only take a few minutes. Would you like to participate? I can speak Hindi, English, Bengali, Tamil, and many other Indian languages. Aapko kis bhasha mein baat karni hai?`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name);
   } else if (SURVEY_SCRIPTS[language]) {
@@ -343,7 +343,7 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
     greetingText = generateCustomGreeting(language, gender, 'VoxBharat Survey');
   }
 
-  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 1.0 })
+  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85 })
     .then(mulawBase64 => {
       greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
       console.log(`[Call:${call.id}] Greeting audio pre-cached`);
@@ -480,7 +480,7 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
     greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName);
   }
 
-  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 1.0 })
+  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85 })
     .then(mulawBase64 => {
       greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
       console.log(`[Inbound:${call.id}] Greeting audio pre-cached`);
@@ -1517,21 +1517,22 @@ async function processUserSpeech(callId, text) {
 const VALID_EMOTIONS = new Set(['neutral', 'angry', 'excited', 'content', 'sad', 'scared', 'enthusiastic', 'triumphant', 'sympathetic', 'confident', 'curious', 'surprised']);
 
 // Speed varies by emotion to sound more natural:
-// Slower for empathetic/thoughtful moments, slightly faster for energy/acknowledgments
+// Base speed is 0.85 (phone-call pacing), adjusted per emotion
 const EMOTION_SPEED = {
-  sympathetic: 0.9,
-  sad: 0.9,
-  curious: 0.95,
-  neutral: 1.0,
-  confident: 1.0,
-  content: 1.0,
-  enthusiastic: 1.05,
-  excited: 1.05,
-  triumphant: 1.05,
-  angry: 1.0,
-  scared: 0.95,
-  surprised: 1.0,
+  sympathetic: 0.8,
+  sad: 0.8,
+  curious: 0.85,
+  neutral: 0.85,
+  confident: 0.85,
+  content: 0.85,
+  enthusiastic: 0.9,
+  excited: 0.9,
+  triumphant: 0.9,
+  angry: 0.85,
+  scared: 0.85,
+  surprised: 0.85,
 };
+const DEFAULT_TTS_SPEED = 0.85;
 
 async function speakSentence(session, text, language, emotion = null) {
   if (!session || session.isEnding || session.interrupted) return;
@@ -1539,7 +1540,7 @@ async function speakSentence(session, text, language, emotion = null) {
   const gender = session.call.gender;
   // Validate emotion — fall back to 'content' if unrecognized
   const safeEmotion = emotion && VALID_EMOTIONS.has(emotion) ? emotion : null;
-  const speed = safeEmotion ? (EMOTION_SPEED[safeEmotion] || 1.0) : 1.0;
+  const speed = safeEmotion ? (EMOTION_SPEED[safeEmotion] || DEFAULT_TTS_SPEED) : DEFAULT_TTS_SPEED;
   console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, emotion=${safeEmotion || 'none'}, speed=${speed}, "${text.substring(0, 50)}..."`);
 
   // Track for echo detection (keep last 5 sentences)
@@ -1591,7 +1592,7 @@ async function speakSentence(session, text, language, emotion = null) {
     console.error(`[TTS] HTTP error (${language}/${gender}): ${error.message}`);
     if (language !== 'en') {
       try {
-        const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 1.0 });
+        const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85 });
         const chunks = chunkAudio(fallbackBase64);
         for (let i = 0; i < chunks.length; i++) {
           if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
