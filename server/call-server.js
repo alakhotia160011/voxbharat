@@ -157,14 +157,15 @@ let campaignRunner = null;
 function isLikelyEcho(sttText, recentTtsTexts) {
   if (!recentTtsTexts || recentTtsTexts.length === 0) return false;
   const stt = sttText.toLowerCase().trim();
-  if (stt.length < 3) return true; // Too short, treat as noise
+  if (stt.length < 2) return false; // Too short to determine
 
   for (const tts of recentTtsTexts) {
     const ttsLower = tts.toLowerCase();
-    // If STT text is fully contained within recent TTS text, it's echo
-    if (ttsLower.includes(stt)) return true;
     // If first 12 chars match, likely same sentence being echoed back
     if (stt.length >= 12 && ttsLower.startsWith(stt.substring(0, 12))) return true;
+    // Substantial fragment contained in TTS — only flag for longer matches
+    // to avoid false positives on common short words (e.g. "haan", "no", "aap")
+    if (stt.length >= 8 && ttsLower.includes(stt)) return true;
   }
   return false;
 }
@@ -950,6 +951,7 @@ wss.on('connection', (ws) => {
           console.log(`[WS] Mark received: ${msg.mark?.name}`);
           if (session && msg.mark?.name === 'tts-done') {
             session.isAiSpeaking = false;
+            session.lastAiSpeechEnd = Date.now(); // Echo guard timestamp
             console.log('[WS] AI done speaking, now listening for user');
           }
           // Voicemail audio finished playing — hang up
@@ -1151,6 +1153,14 @@ async function initSession(callId, call, ws, streamSid) {
         // Filter out Whisper looping/hallucination artifacts
         trimmed = trimmed.replace(/(.{2,6}?)\1{4,}/g, '$1');
         if (trimmed.length < 2) return;
+
+        // Echo guard: filter AI speech echoed back through phone mic
+        // shortly after AI finishes speaking (before user actually responds)
+        const msSinceAiSpoke = Date.now() - (sessionObj.lastAiSpeechEnd || 0);
+        if (msSinceAiSpoke < 800 && isLikelyEcho(trimmed, sessionObj.recentTtsTexts)) {
+          console.log(`[STT:${callId}] Post-speech echo filtered (${msSinceAiSpoke}ms after AI): "${trimmed}"`);
+          return;
+        }
 
         sessionObj.accumulatedText.push(trimmed);
         console.log(`[STT:${callId}] Accumulated: "${trimmed}" (lang=${detectedLang || '?'}, total: ${sessionObj.accumulatedText.length}, processing: ${sessionObj.isProcessing})`);
@@ -1364,6 +1374,13 @@ async function processUserSpeech(callId, text) {
     textForClaude = `[spoken_language:${langHint}] ${textForClaude}`;
   }
 
+  // Prevent infinite question loops: if Claude has repeated the same question 2+ times,
+  // inject a hint to accept the response and move on
+  if (session.repeatCount >= 2) {
+    textForClaude = `[SYSTEM: You have repeated the same question ${session.repeatCount} times. The respondent HAS answered but speech recognition may have garbled it. Accept their response as-is and move to the NEXT question immediately. Do NOT repeat this question again.] ${textForClaude}`;
+    console.log(`[Call:${callId}] Injecting move-on hint (${session.repeatCount} repeats)`);
+  }
+
   // --- Streaming pipeline: Claude → sentence TTS → Twilio ---
   const stream = session.conversation.startResponseStream(textForClaude);
   if (!stream) {
@@ -1428,16 +1445,18 @@ async function processUserSpeech(callId, text) {
             session.currentLanguage = ttsLanguage;
             updateCall(callId, { detectedLanguage: ttsLanguage });
 
-            // Unlock STT language so it switches to match Claude's detected language.
-            // Handles mid-call code-switching (e.g. Hindi → English).
-            if (session.sttLanguageLocked && session.call.autoDetectLanguage) {
-              session.sttLanguageLocked = false;
+            // Switch STT to match Claude's detected language.
+            // Handles: first auto-detect lock, mid-call code-switching, and
+            // fixed-language calls where the user speaks a different language.
+            if (session.stt.language !== ttsLanguage) {
               session.sttDetectedLanguage = ttsLanguage;
-              console.log(`[STT:${callId}] Unlocking STT — switching to ${ttsLanguage} (Claude detected language change)`);
+              console.log(`[STT:${callId}] Switching STT ${session.stt.language} → ${ttsLanguage} (Claude language change)`);
+              session.sttLanguageLocked = false;
               session.stt.switchLanguage(ttsLanguage).then(() => {
                 session.sttLanguageLocked = true;
+                console.log(`[STT:${callId}] STT now locked to ${ttsLanguage}`);
               }).catch(err => {
-                console.error(`[STT:${callId}] Language re-switch failed:`, err.message);
+                console.error(`[STT:${callId}] STT language switch failed:`, err.message);
               });
             }
           }
@@ -1528,6 +1547,16 @@ async function processUserSpeech(callId, text) {
   if (call && cleanResponse) {
     call.transcript.push({ role: 'assistant', content: cleanResponse });
   }
+
+  // Track consecutive repeated responses to prevent infinite question loops
+  const responseStart = (cleanResponse || '').substring(0, 60).toLowerCase();
+  if (session.lastResponseStart && responseStart === session.lastResponseStart) {
+    session.repeatCount = (session.repeatCount || 0) + 1;
+    console.log(`[Call:${callId}] Repeat detected (${session.repeatCount}x): "${responseStart.substring(0, 40)}..."`);
+  } else {
+    session.repeatCount = 0;
+  }
+  session.lastResponseStart = responseStart;
 
   // Keep any speech accumulated while AI was speaking — the user may have been
   // eagerly answering before the AI finished. Don't discard real responses.
