@@ -1481,12 +1481,13 @@ async function processUserSpeech(callId, text) {
         }
       }
 
-      // Split text at natural sentence boundaries — avoid tiny fragments that cause voice resets
+      // Split text at natural sentence boundaries — avoid tiny fragments that cause voice resets.
+      // Each split = separate TTS call with ~200-500ms gap, so split sparingly.
       if (langTagParsed && emotionTagParsed && pendingText.trim().length > 2) {
         const trimLen = pendingText.trim().length;
         const sentenceEnd = /[.!?।]\s*$/.test(pendingText);
-        const clauseBreak = trimLen > 80 && /[,;:—]\s*$/.test(pendingText);
-        const longChunk = trimLen > 120;
+        const clauseBreak = trimLen > 180 && /[,;:—]\s*$/.test(pendingText);
+        const longChunk = trimLen > 250;
 
         if (sentenceEnd || clauseBreak || longChunk) {
           const sentence = pendingText.trim();
