@@ -210,6 +210,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
         type: q.type || 'open',
         options: q.options || null,
         category: q.category || 'General',
+        skipLogic: q.skipLogic || null,
       }));
     }
     return [];
@@ -280,7 +281,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       textEn: '',
       options: ['Option 1', 'Option 2'],
       required: true,
-      category: 'Custom'
+      category: 'Custom',
+      skipLogic: null,
     };
     setQuestions([...questions, newQ]);
     setEditingQuestion(newQ.id);
@@ -350,6 +352,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
               type: q.type,
               options: q.options || null,
               category: q.category || 'General',
+              skipLogic: q.skipLogic || null,
             })),
           },
         }),
@@ -1133,6 +1136,78 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                             />
                             <span className="text-sm">Required</span>
                           </label>
+                        </div>
+
+                        {/* Skip Logic / Branching */}
+                        <div className="pt-2">
+                          {!q.skipLogic ? (
+                            <button
+                              onClick={() => updateQuestion(q.id, { skipLogic: { condition: 'negative', value: '', skipTo: '' } })}
+                              className="text-sm text-indigo-500 hover:underline"
+                            >
+                              + Add skip logic
+                            </button>
+                          ) : (
+                            <div className="bg-indigo-50 rounded-lg p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">Skip Logic</span>
+                                <button
+                                  onClick={() => updateQuestion(q.id, { skipLogic: null })}
+                                  className="text-xs text-red-400 hover:text-red-600"
+                                >Remove</button>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 text-sm">
+                                <span className="text-gray-600">If answer is</span>
+                                <select
+                                  value={q.skipLogic.condition}
+                                  onChange={(e) => updateQuestion(q.id, { skipLogic: { ...q.skipLogic, condition: e.target.value, value: '' } })}
+                                  className="px-2 py-1 border rounded text-sm bg-white"
+                                >
+                                  <option value="negative">Negative (No / Nahi / Refuses)</option>
+                                  <option value="positive">Positive (Yes / Haan / Agrees)</option>
+                                  {q.options && q.options.length > 0 && <option value="option">Selects option...</option>}
+                                  <option value="specific">Contains text...</option>
+                                </select>
+
+                                {q.skipLogic.condition === 'option' && q.options && (
+                                  <select
+                                    value={q.skipLogic.value}
+                                    onChange={(e) => updateQuestion(q.id, { skipLogic: { ...q.skipLogic, value: e.target.value } })}
+                                    className="px-2 py-1 border rounded text-sm bg-white"
+                                  >
+                                    <option value="">Select option...</option>
+                                    {q.options.map((opt, oi) => (
+                                      <option key={oi} value={opt}>{opt}</option>
+                                    ))}
+                                  </select>
+                                )}
+
+                                {q.skipLogic.condition === 'specific' && (
+                                  <input
+                                    type="text"
+                                    value={q.skipLogic.value}
+                                    onChange={(e) => updateQuestion(q.id, { skipLogic: { ...q.skipLogic, value: e.target.value } })}
+                                    placeholder="keyword..."
+                                    className="px-2 py-1 border rounded text-sm w-32"
+                                  />
+                                )}
+
+                                <span className="text-gray-600">then skip to</span>
+                                <select
+                                  value={q.skipLogic.skipTo}
+                                  onChange={(e) => updateQuestion(q.id, { skipLogic: { ...q.skipLogic, skipTo: e.target.value } })}
+                                  className="px-2 py-1 border rounded text-sm bg-white"
+                                >
+                                  <option value="">Select question...</option>
+                                  {questions.filter((oq, oi) => oi > questions.findIndex(x => x.id === q.id)).map((oq, oi) => (
+                                    <option key={oq.id} value={oq.id}>
+                                      Q{questions.findIndex(x => x.id === oq.id) + 1}: {(oq.textEn || oq.text || '').substring(0, 40)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

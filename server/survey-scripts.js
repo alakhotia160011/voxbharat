@@ -550,6 +550,50 @@ export function generateCallbackGreeting(language, gender, surveyName) {
 }
 
 /**
+ * Build branching rules section from questions with skipLogic.
+ * Returns empty string if no questions have skip logic.
+ */
+function buildBranchingRules(questions) {
+  const rules = questions
+    .map((q, i) => {
+      if (!q.skipLogic || !q.skipLogic.skipTo) return null;
+      const qNum = i + 1;
+      const targetIdx = questions.findIndex(tq => String(tq.id) === String(q.skipLogic.skipTo));
+      if (targetIdx === -1) return null;
+      const targetNum = targetIdx + 1;
+
+      let conditionText;
+      switch (q.skipLogic.condition) {
+        case 'negative':
+          conditionText = 'gives a NEGATIVE answer (no, nahi, refuses, denies, doesn\'t, etc.)';
+          break;
+        case 'positive':
+          conditionText = 'gives a POSITIVE answer (yes, haan, agrees, confirms, does, etc.)';
+          break;
+        case 'option':
+          conditionText = `chooses or mentions "${q.skipLogic.value}"`;
+          break;
+        case 'specific':
+          conditionText = `mentions or relates to "${q.skipLogic.value}"`;
+          break;
+        default:
+          conditionText = 'gives a NEGATIVE answer';
+      }
+
+      return `- After Q${qNum}: If the respondent ${conditionText}, SKIP directly to Q${targetNum}.`;
+    })
+    .filter(Boolean);
+
+  if (rules.length === 0) return '';
+
+  return `\nBRANCHING RULES (follow these STRICTLY):
+${rules.join('\n')}
+When a branching rule triggers, skip all questions in between and go directly to the target question.
+Do NOT mention skipping or acknowledge that questions were skipped. Just transition naturally to the target question.
+If NO branching rule applies to an answer, continue to the next question in order as normal.\n`;
+}
+
+/**
  * Get system prompt for a custom survey (dynamic questions from builder)
  */
 export function getCustomSystemPrompt(language, gender, customSurvey) {
@@ -734,7 +778,7 @@ The user's speech is being transcribed by speech-to-text software, which often p
 SURVEY QUESTIONS (ask in this order):
 ${questionsBlock}
 ${optionsSection}
-
+${buildBranchingRules(customSurvey.questions)}
 After the last question, thank the respondent warmly and end the conversation. Add [SURVEY_COMPLETE] at the very end.
 
 PERSONALIZED CLOSING — MAKE IT MEMORABLE:
@@ -745,7 +789,7 @@ When ending the survey, do NOT give a generic "thank you, goodbye." Instead:
 - Keep the entire closing to two to three sentences — warm but not long-winded
 - Use [EMOTION:content] for the closing
 
-Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted. NEVER list choices or options aloud.
+Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions unless a BRANCHING RULE explicitly tells you to — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted. NEVER list choices or options aloud.
 ${getEmotionInstructions(false)}`;
 }
 
@@ -787,7 +831,8 @@ EXTRACTION RULES:
 1. When a field shows predefined values (e.g. <"Value1"|"Value2"|null>), you MUST return EXACTLY one of those strings or null. Do NOT paraphrase, change capitalization, or use synonyms. Pick the closest match.
 2. For free-text fields (<string or null>), extract as a concise English string.
 3. If the respondent did not answer or the answer is unclear, use null.
-4. For number fields, extract as an integer.`;
+4. For number fields, extract as an integer.
+5. Some questions may have been skipped due to conditional branching. Use null for any question that was not asked during the conversation.`;
 }
 
 /**
@@ -1191,7 +1236,7 @@ The user's speech is being transcribed by speech-to-text software, which may pro
 SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
 ${questionsBlock}
 ${optionsSection}
-
+${buildBranchingRules(customSurvey.questions)}
 After the last question, thank the respondent warmly and end the conversation. Add [SURVEY_COMPLETE] at the very end.
 
 PERSONALIZED CLOSING — MAKE IT MEMORABLE:
@@ -1202,7 +1247,7 @@ When ending the survey, do NOT give a generic "thank you, goodbye." Instead:
 - Keep the entire closing to two to three sentences — warm but not long-winded
 - Use [EMOTION:content] for the closing
 
-Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted. NEVER list choices or options aloud.
+Remember: You are an AI interviewer having a genuine phone conversation, not a robot reading a form. Keep moving through the questions — never skip questions unless a BRANCHING RULE explicitly tells you to — but make each transition feel like a natural part of the conversation. If a question was interrupted, re-ask it naturally. NEVER skip a question just because the user interrupted. NEVER list choices or options aloud.
 ${getEmotionInstructions(true)}`;
 }
 
