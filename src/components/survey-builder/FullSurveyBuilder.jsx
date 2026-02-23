@@ -23,6 +23,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
   const [testCallStatus, setTestCallStatus] = useState(null); // null | 'calling' | 'ringing' | 'connected' | 'completed' | 'voicemail' | 'error'
   const [testCallError, setTestCallError] = useState(null);
   const [testCallResult, setTestCallResult] = useState(null);
+  const [draftSaved, setDraftSaved] = useState(false);
   const testCallPollRef = useRef(null);
   const audioPreviewRef = useRef(null);
 
@@ -32,6 +33,30 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       if (testCallPollRef.current) clearInterval(testCallPollRef.current);
     };
   }, []);
+
+  // Load draft from localStorage on mount (only if no initialSurvey)
+  useEffect(() => {
+    if (initialSurvey) return;
+    try {
+      const saved = localStorage.getItem('voxbharat_survey_draft');
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft.config) setConfig(prev => ({ ...prev, ...draft.config }));
+        if (draft.questions?.length) setQuestions(draft.questions);
+        if (draft.step) setStep(draft.step);
+      }
+    } catch {}
+  }, []);
+
+  const saveDraft = () => {
+    try {
+      localStorage.setItem('voxbharat_survey_draft', JSON.stringify({ config, questions, step }));
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 2000);
+    } catch (e) {
+      console.error('Failed to save draft:', e);
+    }
+  };
 
   // Auto-expand test call section when results arrive
   useEffect(() => {
@@ -447,8 +472,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
           >
             <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" /></svg> Preview Voice
           </button>
-          <button className="px-4 py-2 bg-cream-warm rounded-lg hover:bg-cream-warm/80 cursor-pointer">
-            Save Draft
+          <button onClick={saveDraft} className="px-4 py-2 bg-cream-warm rounded-lg hover:bg-cream-warm/80 cursor-pointer">
+            {draftSaved ? 'Saved!' : 'Save Draft'}
           </button>
         </div>
       </header>
