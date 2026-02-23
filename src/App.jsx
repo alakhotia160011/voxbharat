@@ -20,6 +20,7 @@ import DataPolicyPage from './components/pages/DataPolicyPage';
 import AboutPage, { FaqsPage } from './components/pages/AboutPage';
 import DashboardPage from './components/pages/DashboardPage';
 import MemoPage from './components/pages/MemoPage';
+import ResetPasswordPage from './components/pages/ResetPasswordPage';
 
 
 export default function VoxBharat() {
@@ -86,6 +87,14 @@ if (currentPage === 'dashboard') {
     return (
       <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
         <DashboardPage setShowBuilder={setShowBuilder} />
+      </PageShell>
+    );
+  }
+
+  if (currentPage.startsWith('reset-password')) {
+    return (
+      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+        <ResetPasswordPage navigateTo={navigateTo} />
       </PageShell>
     );
   }
