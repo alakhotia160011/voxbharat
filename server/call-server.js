@@ -944,6 +944,38 @@ wss.on('connection', (ws) => {
           // Convert mulaw 8kHz -> PCM s16le 16kHz and send to STT
           const pcmAudio = mulawToPcm16k(msg.media.payload);
           session.stt.sendAudio(pcmAudio);
+
+          // VAD-based flush: detect silence after speech and flush STT
+          // to force Cartesia to finalize short utterances like "haan"/"nahi"
+          if (session.greetingDone && !session.isAiSpeaking) {
+            const samples = new Int16Array(pcmAudio.buffer, pcmAudio.byteOffset, pcmAudio.length / 2);
+            let sumSq = 0;
+            for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
+            const rms = Math.sqrt(sumSq / samples.length);
+
+            if (rms > 300) {
+              // Speech detected — mark active, cancel any pending flush
+              session.lastSpeechTime = Date.now();
+              session.hasFlushedSinceLastFinal = false;
+              if (session.flushTimer) {
+                clearTimeout(session.flushTimer);
+                session.flushTimer = null;
+              }
+            } else if (session.lastSpeechTime && !session.hasFlushedSinceLastFinal) {
+              // Silence after speech — schedule flush if not already pending
+              const silenceMs = Date.now() - session.lastSpeechTime;
+              if (silenceMs > 300 && !session.flushTimer) {
+                session.flushTimer = setTimeout(() => {
+                  session.flushTimer = null;
+                  if (!session.hasFlushedSinceLastFinal && session.stt?.isConnected) {
+                    console.log(`[STT:${callId}] VAD flush after ${Date.now() - session.lastSpeechTime}ms silence`);
+                    session.stt.flush();
+                    session.hasFlushedSinceLastFinal = true;
+                  }
+                }, 200);
+              }
+            }
+          }
           break;
 
         case 'mark':
@@ -1036,11 +1068,21 @@ async function initSession(callId, call, ws, streamSid) {
     recentTtsTexts: [],
     call,
     currentLanguage: call.autoDetectLanguage ? 'en' : call.language,
+    // VAD-based STT flush for short utterances
+    lastSpeechTime: null,
+    flushTimer: null,
+    hasFlushedSinceLastFinal: false,
+    // Partial transcript fallback
+    lastPartialText: null,
+    partialFallbackTimer: null,
   };
 
   // Create Cartesia STT - uses sessionObj directly (no separate closure vars)
   const stt = new CartesiaSTT(CARTESIA_KEY, {
     language: call.autoDetectLanguage ? 'auto' : call.language,
+    onFlushDone: () => {
+      console.log(`[STT:${callId}] Flush done acknowledged`);
+    },
     onTranscript: ({ text, isFinal, language: detectedLang }) => {
       if (sessionObj.isEnding || sessionObj.isVoicemail) return;
 
@@ -1146,9 +1188,44 @@ async function initSession(callId, call, ws, streamSid) {
         return;
       }
 
+      // --- PARTIAL TRANSCRIPT FALLBACK ---
+      // Track partials so we can promote them if no final arrives (e.g., short utterances)
+      if (!isFinal && text.trim() && !sessionObj.isAiSpeaking) {
+        const partialTrimmed = text.trim();
+        if (partialTrimmed.length >= 2) {
+          sessionObj.lastPartialText = partialTrimmed;
+          if (sessionObj.partialFallbackTimer) clearTimeout(sessionObj.partialFallbackTimer);
+          sessionObj.partialFallbackTimer = setTimeout(() => {
+            sessionObj.partialFallbackTimer = null;
+            if (sessionObj.lastPartialText && !sessionObj.isProcessing && !sessionObj.isAiSpeaking
+                && sessionObj.accumulatedText.length === 0) {
+              const promoted = sessionObj.lastPartialText;
+              sessionObj.lastPartialText = null;
+              let cleaned = promoted.replace(/(.{2,6}?)\1{4,}/g, '$1');
+              if (cleaned.length >= 2) {
+                console.log(`[STT:${callId}] Promoting partial (no final received): "${cleaned}"`);
+                sessionObj.accumulatedText.push(cleaned);
+                const fullText = sessionObj.accumulatedText.join(' ');
+                sessionObj.accumulatedText = [];
+                processUserSpeech(callId, fullText);
+              }
+            }
+          }, 1500);
+        }
+      }
+
       // --- NORMAL FLOW: only process final transcripts ---
       if (isFinal && text.trim()) {
         let trimmed = text.trim();
+
+        // Clear partial fallback — a final arrived, no need for the fallback
+        sessionObj.lastPartialText = null;
+        if (sessionObj.partialFallbackTimer) {
+          clearTimeout(sessionObj.partialFallbackTimer);
+          sessionObj.partialFallbackTimer = null;
+        }
+        // Reset VAD flush flag — we got a final, allow future flushes
+        sessionObj.hasFlushedSinceLastFinal = false;
 
         // Filter out Whisper looping/hallucination artifacts
         trimmed = trimmed.replace(/(.{2,6}?)\1{4,}/g, '$1');
@@ -1787,6 +1864,8 @@ function cleanupSession(callId) {
   if (session.timeout) clearTimeout(session.timeout);
   if (session.silenceTimer) clearTimeout(session.silenceTimer);
   if (session.maxWaitTimer) clearTimeout(session.maxWaitTimer);
+  if (session.flushTimer) clearTimeout(session.flushTimer);
+  if (session.partialFallbackTimer) clearTimeout(session.partialFallbackTimer);
   session.isProcessing = false;
   session.isEnding = true;
 

@@ -12,6 +12,7 @@ export class CartesiaSTT {
     this.ws = null;
     this.isConnected = false;
     this.onTranscript = options.onTranscript || (() => {});
+    this.onFlushDone = options.onFlushDone || (() => {});
     this.onError = options.onError || console.error;
     this.reconnectAttempts = 0;
     this.maxReconnects = 1;
@@ -93,6 +94,7 @@ export class CartesiaSTT {
         break;
       case 'flush_done':
         console.log('[STT] Flush acknowledged');
+        this.onFlushDone();
         break;
       case 'done':
         console.log('[STT] Session done');

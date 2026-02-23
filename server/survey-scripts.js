@@ -422,6 +422,16 @@ The user's speech is being transcribed by speech-to-text software, which often p
 - NEVER say you didn't understand. Just move naturally to the next single question.
 - NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted or the respondent asked you to repeat it, re-ask that SAME question — do NOT assume it was answered or refused and do NOT move to the next question.
 
+ONE-WORD AND SHORT RESPONSE INTERPRETATION:
+Phone survey respondents often give very short answers. Common responses and their meanings:
+- AGREEMENT/YES: haan, ha, han, ji, haanji, yes, yeah, bilkul, zaroor, sahi, theek hai, ok, ho (Marathi), hyan (Bengali), aamaa (Tamil), avunu (Telugu)
+- DISAGREEMENT/NO: nahi, nai, na, no, nope, bilkul nahi
+- POSITIVE: achha, bahut accha, very good, great, badhiya
+- NEGATIVE: bura, kharab, not good, theek nahi
+- UNCERTAINTY: pata nahi, maloom nahi, shayad, maybe
+- NUMBERS: A single number like "thirty" or "tees" is likely answering an age or quantity question.
+These ARE valid answers. NEVER ask for elaboration on a clear yes/no. Accept naturally and move on.
+
 SURVEY QUESTIONS (ask in this order):
 ${questionsBlock}
 
@@ -775,6 +785,16 @@ The user's speech is being transcribed by speech-to-text software, which often p
 - NEVER say you didn't understand. Just move naturally to the next single question.
 - NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted or the respondent asked you to repeat it, re-ask that SAME question — do NOT assume it was answered or refused and do NOT move to the next question.
 
+ONE-WORD AND SHORT RESPONSE INTERPRETATION:
+Phone survey respondents often give very short answers. Common responses and their meanings:
+- AGREEMENT/YES: haan, ha, han, ji, haanji, yes, yeah, bilkul, zaroor, sahi, theek hai, ok, ho (Marathi), hyan (Bengali), aamaa (Tamil), avunu (Telugu)
+- DISAGREEMENT/NO: nahi, nai, na, no, nope, bilkul nahi
+- POSITIVE: achha, bahut accha, very good, great, badhiya
+- NEGATIVE: bura, kharab, not good, theek nahi
+- UNCERTAINTY: pata nahi, maloom nahi, shayad, maybe
+- NUMBERS: A single number like "thirty" or "tees" is likely answering an age or quantity question.
+These ARE valid answers. NEVER ask for elaboration on a clear yes/no. Accept naturally and move on.
+
 SURVEY QUESTIONS (ask in this order):
 ${questionsBlock}
 ${optionsSection}
@@ -1011,6 +1031,16 @@ The user's speech is being transcribed by speech-to-text software, which may pro
 - NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted or the respondent asked you to repeat it, re-ask that SAME question — do NOT assume it was answered or refused and do NOT move to the next question.
 - CRITICAL: When the [spoken_language:xx] tag shows a non-English language but the text looks like garbled English, this means the respondent IS speaking in that language but the text transcription is poor. You MUST switch to the indicated language immediately and continue the survey in that language.
 
+ONE-WORD AND SHORT RESPONSE INTERPRETATION:
+Phone survey respondents often give very short answers. Common responses and their meanings:
+- AGREEMENT/YES: haan, ha, han, ji, haanji, yes, yeah, bilkul, zaroor, sahi, theek hai, ok, ho (Marathi), hyan (Bengali), aamaa (Tamil), avunu (Telugu)
+- DISAGREEMENT/NO: nahi, nai, na, no, nope, bilkul nahi
+- POSITIVE: achha, bahut accha, very good, great, badhiya
+- NEGATIVE: bura, kharab, not good, theek nahi
+- UNCERTAINTY: pata nahi, maloom nahi, shayad, maybe
+- NUMBERS: A single number like "thirty" or "tees" is likely answering an age or quantity question.
+These ARE valid answers. NEVER ask for elaboration on a clear yes/no. Accept naturally and move on.
+
 SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
 1. First, can you tell me your age?
 2. What is your religion?
@@ -1232,6 +1262,16 @@ The user's speech is being transcribed by speech-to-text software, which may pro
 - NEVER say you didn't understand. Just move naturally to the next single question.
 - NEVER skip questions. You must ask every question in the list, one at a time. If a question was interrupted or the respondent asked you to repeat it, re-ask that SAME question — do NOT assume it was answered or refused and do NOT move to the next question.
 - CRITICAL: When the [spoken_language:xx] tag shows a non-English language but the text looks like garbled English, this means the respondent IS speaking in that language but the text transcription is poor. You MUST switch to the indicated language immediately and continue the survey in that language.
+
+ONE-WORD AND SHORT RESPONSE INTERPRETATION:
+Phone survey respondents often give very short answers. Common responses and their meanings:
+- AGREEMENT/YES: haan, ha, han, ji, haanji, yes, yeah, bilkul, zaroor, sahi, theek hai, ok, ho (Marathi), hyan (Bengali), aamaa (Tamil), avunu (Telugu)
+- DISAGREEMENT/NO: nahi, nai, na, no, nope, bilkul nahi
+- POSITIVE: achha, bahut accha, very good, great, badhiya
+- NEGATIVE: bura, kharab, not good, theek nahi
+- UNCERTAINTY: pata nahi, maloom nahi, shayad, maybe
+- NUMBERS: A single number like "thirty" or "tees" is likely answering an age or quantity question.
+These ARE valid answers. NEVER ask for elaboration on a clear yes/no. Accept naturally and move on.
 
 SURVEY QUESTIONS (translate naturally into whatever language the respondent is speaking):
 ${questionsBlock}
