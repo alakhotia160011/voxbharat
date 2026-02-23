@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // ─── Brand Constants ─────────────────────────────────────
 const COLORS = {
@@ -190,6 +190,7 @@ function drawHorizontalBars(doc, y, data, color) {
 // ─── Individual Call PDF ─────────────────────────────────
 
 export function generateCallPDF(data) {
+  try {
   const doc = new jsPDF('p', 'mm', 'a4');
 
   // 1. Header
@@ -197,7 +198,7 @@ export function generateCallPDF(data) {
 
   // 2. Call metadata
   y = addSectionHeading(doc, y, 'Call Information');
-  doc.autoTable({
+  y = autoTable(doc, {
     startY: y,
     body: [
       ['Call ID', data.id || '-'],
@@ -216,8 +217,7 @@ export function generateCallPDF(data) {
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
     tableLineColor: COLORS.creamWarm,
     tableLineWidth: 0.2,
-  });
-  y = doc.lastAutoTable.finalY + 8;
+  }).finalY + 8;
 
   // 3. AI Summary
   const summary = data.summary || '';
@@ -243,7 +243,7 @@ export function generateCallPDF(data) {
   const qaPairs = buildQuestionAnswerPairs(data);
   if (qaPairs.length > 0) {
     y = addSectionHeading(doc, y, 'Survey Responses');
-    doc.autoTable({
+    y = autoTable(doc, {
       startY: y,
       head: [['#', 'Question', 'Answer']],
       body: qaPairs.map((pair, i) => [
@@ -261,8 +261,7 @@ export function generateCallPDF(data) {
       },
       alternateRowStyles: { fillColor: COLORS.cream },
       margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
-    });
-    y = doc.lastAutoTable.finalY + 8;
+    }).finalY + 8;
   }
 
   // 5. Demographics & Sentiment side by side
@@ -279,7 +278,7 @@ export function generateCallPDF(data) {
       doc.setFontSize(9);
       doc.setTextColor(...COLORS.earth);
       doc.text('Demographics', PAGE_MARGIN, y + 3);
-      doc.autoTable({
+      y = autoTable(doc, {
         startY: y + 5,
         body: Object.entries(demographics).map(([key, value]) => [
           key.replace(/([A-Z])/g, ' $1').trim(),
@@ -293,8 +292,7 @@ export function generateCallPDF(data) {
         },
         margin: { left: PAGE_MARGIN, right: PAGE_WIDTH / 2 },
         tableWidth: CONTENT_WIDTH / 2 - 4,
-      });
-      y = doc.lastAutoTable.finalY + 4;
+      }).finalY + 4;
     }
 
     if (hasSentiment) {
@@ -303,7 +301,7 @@ export function generateCallPDF(data) {
       doc.setFontSize(9);
       doc.setTextColor(...COLORS.earth);
       doc.text('Sentiment Analysis', PAGE_MARGIN, y + 3);
-      doc.autoTable({
+      y = autoTable(doc, {
         startY: y + 5,
         body: Object.entries(sentiment).map(([key, value]) => [
           key.charAt(0).toUpperCase() + key.slice(1),
@@ -317,8 +315,7 @@ export function generateCallPDF(data) {
         },
         margin: { left: PAGE_MARGIN, right: PAGE_WIDTH / 2 },
         tableWidth: CONTENT_WIDTH / 2 - 4,
-      });
-      y = doc.lastAutoTable.finalY + 8;
+      }).finalY + 8;
     }
   }
 
@@ -326,7 +323,7 @@ export function generateCallPDF(data) {
   const transcript = data.transcript || [];
   if (transcript.length > 0) {
     y = addSectionHeading(doc, y, 'Conversation Transcript');
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [['Speaker', 'Message']],
       body: transcript.map(msg => [
@@ -357,11 +354,16 @@ export function generateCallPDF(data) {
   // Save
   const callIdShort = (data.id || 'unknown').slice(0, 8);
   doc.save(`voxbharat-call-${callIdShort}.pdf`);
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    alert('Failed to generate PDF: ' + err.message);
+  }
 }
 
 // ─── Project Report PDF ──────────────────────────────────
 
 export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
+  try {
   const doc = new jsPDF('p', 'mm', 'a4');
 
   // 1. Header
@@ -374,7 +376,7 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
   const languages = (analytics?.byLanguage || []).map(r => r.language).filter(Boolean);
 
   y = addSectionHeading(doc, y, 'Overview');
-  doc.autoTable({
+  y = autoTable(doc, {
     startY: y,
     body: [
       ['Total Respondents', String(totalCalls)],
@@ -389,8 +391,7 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
       1: { textColor: COLORS.earth, fontStyle: 'bold', fontSize: 12 },
     },
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
-  });
-  y = doc.lastAutoTable.finalY + 8;
+  }).finalY + 8;
 
   // 3. Analytics charts
   const chartSections = [
@@ -449,7 +450,7 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
       y += 4;
 
       if (breakdown.length > 0) {
-        doc.autoTable({
+        y = autoTable(doc, {
           startY: y,
           head: [['Answer', 'Count', '%']],
           body: breakdown.map(b => [
@@ -467,8 +468,7 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
           },
           alternateRowStyles: { fillColor: COLORS.cream },
           margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
-        });
-        y = doc.lastAutoTable.finalY + 8;
+        }).finalY + 8;
       } else {
         y += 4;
       }
@@ -478,7 +478,7 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
   // 5. Call list
   if (calls.length > 0) {
     y = addSectionHeading(doc, y, 'Call List');
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [['Date', 'Phone', 'Language', 'Duration', 'Summary']],
       body: calls.map(c => [
@@ -508,4 +508,8 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
 
   // Save
   doc.save(`${projectName}-report.pdf`);
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    alert('Failed to generate PDF: ' + err.message);
+  }
 }
