@@ -770,6 +770,9 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
           </div>
         `,
       });
+      console.log(`Password reset email sent to ${email}`);
+    } else {
+      console.warn('Password reset email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not configured');
     }
     res.json({ message: 'If an account exists with that email, a reset link has been sent.' });
   } catch (e) {
