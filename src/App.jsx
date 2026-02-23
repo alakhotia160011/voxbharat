@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
 import PageShell from './components/layout/PageShell';
@@ -131,6 +132,7 @@ if (currentPage === 'dashboard') {
         onClose={() => setShowSampleCallLog(false)}
         data={sampleCallLog}
       />
+      <Analytics />
     </div>
   );
 }

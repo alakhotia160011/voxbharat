@@ -1,4 +1,5 @@
 import React from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import NavBar from './NavBar';
 import Footer from './Footer';
 
@@ -9,6 +10,7 @@ const PageShell = ({ children, currentPage, navigateTo, setShowBuilder }) => (
       {children}
     </div>
     <Footer navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
+    <Analytics />
   </div>
 );
 
