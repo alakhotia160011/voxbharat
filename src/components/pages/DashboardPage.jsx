@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarChart from '../shared/BarChart';
 import { fadeInUp, staggerContainer } from '../../styles/animations';
@@ -185,17 +185,66 @@ function BackButton({ onClick, label }) {
 // ═══════════════════════════════════════════════════════════
 
 function LoginScreen({ onLogin }) {
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'forgot'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const googleBtnRef = useRef(null);
 
   const switchMode = () => {
     setMode(m => m === 'login' ? 'signup' : 'login');
     setError('');
+    setForgotSent(false);
   };
+
+  // Google Sign-In
+  const handleGoogleResponse = useCallback(async (response) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${CALL_SERVER}/api/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Google sign-in failed');
+        setLoading(false);
+        return;
+      }
+      const { token } = await res.json();
+      setToken(token);
+      onLogin();
+    } catch {
+      setError('Unable to connect to server');
+    } finally {
+      setLoading(false);
+    }
+  }, [onLogin]);
+
+  useEffect(() => {
+    if (mode === 'forgot') return;
+    if (typeof window.google === 'undefined' || !window.google.accounts) return;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleResponse,
+    });
+    if (googleBtnRef.current) {
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'outline',
+        size: 'large',
+        width: googleBtnRef.current.offsetWidth || 320,
+        text: 'signin_with',
+      });
+    }
+  }, [mode, handleGoogleResponse]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -231,7 +280,31 @@ function LoginScreen({ onLogin }) {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${CALL_SERVER}/api/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Something went wrong');
+      } else {
+        setForgotSent(true);
+      }
+    } catch {
+      setError('Unable to connect to server');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isSignup = mode === 'signup';
+  const isForgot = mode === 'forgot';
 
   return (
     <div className="max-w-md mx-auto px-6 py-16">
@@ -244,84 +317,160 @@ function LoginScreen({ onLogin }) {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="font-display text-2xl font-bold text-earth">
-            {isSignup ? 'Create Account' : 'Dashboard Login'}
+            {isForgot ? 'Reset Password' : isSignup ? 'Create Account' : 'Dashboard Login'}
           </h2>
           <p className="text-earth-mid text-sm font-body mt-1">
-            {isSignup ? 'Sign up to access the dashboard' : 'Sign in to view survey data'}
+            {isForgot ? 'Enter your email to receive a reset link' : isSignup ? 'Sign up to access the dashboard' : 'Sign in to view survey data'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isSignup && (
-            <div>
-              <label className="block text-xs font-body text-earth-mid uppercase tracking-wider mb-1.5">Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-2.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
-                placeholder="Your name (optional)"
-              />
+        {/* Forgot password form */}
+        {isForgot ? (
+          forgotSent ? (
+            <div className="text-center space-y-4">
+              <div className="text-sm font-body text-earth bg-green-50 border border-green-100 rounded-lg px-4 py-3">
+                Check your email for a password reset link. It expires in 1 hour.
+              </div>
+              <button
+                onClick={() => { setMode('login'); setForgotSent(false); setError(''); }}
+                className="text-sm font-body text-earth-mid hover:text-saffron transition-colors cursor-pointer"
+              >
+                Back to sign in
+              </button>
             </div>
-          )}
-          <div>
-            <label className="block text-xs font-body text-earth-mid uppercase tracking-wider mb-1.5">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoFocus
-              className="w-full px-4 py-2.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
-              placeholder="your@email.com"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-body text-earth-mid uppercase tracking-wider mb-1.5">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={8}
-              className="w-full px-4 py-2.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
-              placeholder={isSignup ? 'Min 8 characters' : 'Enter password'}
-            />
-          </div>
+          ) : (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-body text-earth-mid uppercase tracking-wider mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  autoFocus
+                  className="w-full px-4 py-2.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
+                  placeholder="your@email.com"
+                />
+              </div>
+              {error && (
+                <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                  className="text-sm font-body text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5"
+                >{error}</motion.div>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 bg-saffron text-white rounded-lg font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-60"
+              >
+                {loading ? 'Sending\u2026' : 'Send Reset Link'}
+              </button>
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError(''); }}
+                  className="text-sm font-body text-earth-mid hover:text-saffron transition-colors cursor-pointer"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            </form>
+          )
+        ) : (
+          /* Login / Signup form */
+          <>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignup && (
+                <div>
+                  <label className="block text-xs font-body text-earth-mid uppercase tracking-wider mb-1.5">Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
+                    placeholder="Your name (optional)"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-body text-earth-mid uppercase tracking-wider mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  autoFocus
+                  className="w-full px-4 py-2.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
+                  placeholder="your@email.com"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-body text-earth-mid uppercase tracking-wider mb-1.5">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="w-full px-4 py-2.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
+                  placeholder={isSignup ? 'Min 8 characters' : 'Enter password'}
+                />
+              </div>
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-sm font-body text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5"
-            >
-              {error}
-            </motion.div>
-          )}
+              {!isSignup && (
+                <div className="text-right -mt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setMode('forgot'); setError(''); }}
+                    className="text-xs font-body text-earth-mid hover:text-saffron transition-colors cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-saffron text-white rounded-lg font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-60 mt-2"
-          >
-            {loading
-              ? (isSignup ? 'Creating account\u2026' : 'Signing in\u2026')
-              : (isSignup ? 'Create Account' : 'Sign In')
-            }
-          </button>
-        </form>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-sm font-body text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5"
+                >
+                  {error}
+                </motion.div>
+              )}
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={switchMode}
-            className="text-sm font-body text-earth-mid hover:text-saffron transition-colors cursor-pointer"
-          >
-            {isSignup
-              ? 'Already have an account? Sign in'
-              : "Don\u2019t have an account? Sign up"
-            }
-          </button>
-        </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 bg-saffron text-white rounded-lg font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-60 mt-2"
+              >
+                {loading
+                  ? (isSignup ? 'Creating account\u2026' : 'Signing in\u2026')
+                  : (isSignup ? 'Create Account' : 'Sign In')
+                }
+              </button>
+            </form>
+
+            {/* Google Sign-In */}
+            <div className="flex items-center gap-3 my-4">
+              <div className="flex-1 h-px bg-cream-warm" />
+              <span className="text-xs font-body text-earth-mid/60">or</span>
+              <div className="flex-1 h-px bg-cream-warm" />
+            </div>
+            <div ref={googleBtnRef} className="w-full" />
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={switchMode}
+                className="text-sm font-body text-earth-mid hover:text-saffron transition-colors cursor-pointer"
+              >
+                {isSignup
+                  ? 'Already have an account? Sign in'
+                  : "Don\u2019t have an account? Sign up"
+                }
+              </button>
+            </div>
+          </>
+        )}
       </motion.div>
     </div>
   );

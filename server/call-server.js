@@ -24,6 +24,7 @@ import {
   getProjects, getProjectCalls, getProjectAnalytics, getProjectResponseBreakdowns, getProjectSurveyConfig,
   exportProjectCallsJson, exportProjectCallsCsv,
   createUser, verifyUser, getUserByEmail,
+  findOrCreateGoogleUser, createPasswordResetToken, verifyPasswordResetToken, resetPassword,
   createCampaign, getCampaignById, getCampaignsByUser,
   updateCampaignStatus, updateCampaignProgress,
   addCampaignNumbers, getCampaignNumbersByCampaign, getProgressCounts,
@@ -37,6 +38,7 @@ import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateIn
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
+import { OAuth2Client } from 'google-auth-library';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,6 +57,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'ary.lakhoti@gmail.com';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
   ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } })
@@ -708,6 +712,89 @@ app.post('/api/login', authLimiter, requireDb, async (req, res) => {
 // Verify token endpoint
 app.get('/api/me', requireAuth, (req, res) => {
   res.json({ email: req.user.email });
+});
+
+// Google OAuth
+app.post('/api/auth/google', authLimiter, requireDb, async (req, res) => {
+  if (!googleClient) {
+    return res.status(501).json({ error: 'Google sign-in is not configured' });
+  }
+  const { credential } = req.body;
+  if (!credential) {
+    return res.status(400).json({ error: 'Missing Google credential' });
+  }
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload.email_verified) {
+      return res.status(400).json({ error: 'Google email not verified' });
+    }
+    const { user, isNew } = await findOrCreateGoogleUser(payload.email, payload.name);
+    const token = jwt.sign({ email: user.email, id: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, email: user.email, name: user.name });
+    if (isNew) notifySignup(user.email, user.name);
+  } catch (e) {
+    console.error('Google auth failed:', e.message);
+    res.status(401).json({ error: 'Invalid Google credential' });
+  }
+});
+
+// Forgot password
+app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+  try {
+    const user = await getUserByEmail(email);
+    // Always same response to prevent email enumeration
+    if (!user || (!user.has_password && user.auth_provider === 'google')) {
+      return res.json({ message: 'If an account exists with that email, a reset link has been sent.' });
+    }
+    const token = await createPasswordResetToken(user.id);
+    const frontendBase = FRONTEND_URL ? FRONTEND_URL.split(',')[0].trim() : 'https://voxbharat.ai';
+    const resetLink = `${frontendBase}/#reset-password?token=${token}`;
+    if (mailTransport) {
+      await mailTransport.sendMail({
+        from: `VoxBharat <${GMAIL_USER}>`,
+        to: email,
+        subject: 'Reset your VoxBharat password',
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+            <h2 style="color: #3d2314;">Reset Your Password</h2>
+            <p>You requested a password reset for your VoxBharat account.</p>
+            <p>Click the button below to set a new password. This link expires in 1 hour.</p>
+            <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background: #e8550f; color: white; text-decoration: none; border-radius: 8px; margin: 16px 0; font-weight: 600;">Reset Password</a>
+            <p style="color: #888; font-size: 13px;">If you did not request this, you can safely ignore this email.</p>
+          </div>
+        `,
+      });
+    }
+    res.json({ message: 'If an account exists with that email, a reset link has been sent.' });
+  } catch (e) {
+    console.error('Forgot password error:', e.message);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
+// Reset password
+app.post('/api/reset-password', authLimiter, requireDb, async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token and new password are required' });
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  try {
+    const tokenRecord = await verifyPasswordResetToken(token);
+    if (!tokenRecord) {
+      return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
+    }
+    await resetPassword(tokenRecord.id, tokenRecord.user_id, password);
+    const jwtToken = jwt.sign({ email: tokenRecord.email, id: tokenRecord.user_id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token: jwtToken, message: 'Password has been reset successfully.' });
+  } catch (e) {
+    console.error('Reset password error:', e.message);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
 });
 
 app.get('/api/surveys', requireAuth, requireDb, async (req, res) => {

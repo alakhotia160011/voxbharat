@@ -29,11 +29,29 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
+      password_hash TEXT,
+      auth_provider TEXT DEFAULT 'email',
       name TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+
+  // Migration for existing deployments: allow Google-only users (no password)
+  await pool.query(`ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT DEFAULT 'email'`);
+
+  // Password reset tokens
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token)`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS calls (
@@ -162,6 +180,7 @@ export async function verifyUser(email, password) {
   );
   if (rows.length === 0) return null;
   const user = rows[0];
+  if (!user.password_hash) return null; // Google-only user, no password to verify
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return null;
   return { id: user.id, email: user.email, name: user.name };
@@ -170,10 +189,68 @@ export async function verifyUser(email, password) {
 export async function getUserByEmail(email) {
   if (!pool) return null;
   const { rows } = await pool.query(
-    'SELECT id, email, name, created_at FROM users WHERE email = $1',
+    'SELECT id, email, name, auth_provider, password_hash IS NOT NULL as has_password, created_at FROM users WHERE email = $1',
     [email.toLowerCase()]
   );
   return rows[0] || null;
+}
+
+export async function findOrCreateGoogleUser(email, name) {
+  if (!pool) throw new Error('Database unavailable');
+  const normalizedEmail = email.toLowerCase();
+  const { rows: existing } = await pool.query(
+    'SELECT id, email, name, auth_provider FROM users WHERE email = $1',
+    [normalizedEmail]
+  );
+  if (existing.length > 0) {
+    return { user: existing[0], isNew: false };
+  }
+  const { rows } = await pool.query(
+    `INSERT INTO users (email, password_hash, name, auth_provider)
+     VALUES ($1, NULL, $2, 'google')
+     RETURNING id, email, name, auth_provider, created_at`,
+    [normalizedEmail, name || null]
+  );
+  return { user: rows[0], isNew: true };
+}
+
+export async function createPasswordResetToken(userId) {
+  if (!pool) throw new Error('Database unavailable');
+  const { randomBytes } = await import('crypto');
+  const token = randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  await pool.query(
+    'UPDATE password_reset_tokens SET used = TRUE WHERE user_id = $1 AND used = FALSE',
+    [userId]
+  );
+  await pool.query(
+    'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+    [userId, token, expiresAt]
+  );
+  return token;
+}
+
+export async function verifyPasswordResetToken(token) {
+  if (!pool) return null;
+  const { rows } = await pool.query(
+    `SELECT prt.id, prt.user_id, prt.expires_at, prt.used, u.email
+     FROM password_reset_tokens prt
+     JOIN users u ON u.id = prt.user_id
+     WHERE prt.token = $1`,
+    [token]
+  );
+  if (rows.length === 0) return null;
+  const row = rows[0];
+  if (row.used) return null;
+  if (new Date(row.expires_at) < new Date()) return null;
+  return row;
+}
+
+export async function resetPassword(tokenId, userId, newPassword) {
+  if (!pool) throw new Error('Database unavailable');
+  const hash = await bcrypt.hash(newPassword, 12);
+  await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, userId]);
+  await pool.query('UPDATE password_reset_tokens SET used = TRUE WHERE id = $1', [tokenId]);
 }
 
 /**
