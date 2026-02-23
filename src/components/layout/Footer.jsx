@@ -6,6 +6,7 @@ const Footer = ({ navigateTo, setShowBuilder }) => {
     { page: 'home', label: 'Home' },
     { page: 'how-it-works', label: 'How It Works' },
     { page: 'about', label: 'About' },
+    { page: 'memo', label: 'Memo' },
     { page: 'faqs', label: 'FAQs' },
     { page: 'data-policy', label: 'Data Policy' },
   ];

@@ -19,6 +19,7 @@ import HowItWorksPage from './components/pages/HowItWorksPage';
 import DataPolicyPage from './components/pages/DataPolicyPage';
 import AboutPage, { FaqsPage } from './components/pages/AboutPage';
 import DashboardPage from './components/pages/DashboardPage';
+import MemoPage from './components/pages/MemoPage';
 
 
 export default function VoxBharat() {
@@ -69,6 +70,14 @@ export default function VoxBharat() {
     return (
       <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
         <FaqsPage navigateTo={navigateTo} />
+      </PageShell>
+    );
+  }
+
+if (currentPage === 'memo') {
+    return (
+      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+        <MemoPage navigateTo={navigateTo} />
       </PageShell>
     );
   }
