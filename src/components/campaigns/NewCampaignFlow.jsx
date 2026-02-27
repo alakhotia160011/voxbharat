@@ -73,6 +73,8 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
   const [language, setLanguage] = useState('hi');
   const [gender, setGender] = useState('female');
   const [autoDetect, setAutoDetect] = useState(false);
+  const [maxRetries, setMaxRetries] = useState(3);
+  const [callTiming, setCallTiming] = useState(['morning', 'afternoon', 'evening']);
 
   // Step 4
   const [creating, setCreating] = useState(false);
@@ -106,7 +108,11 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
       if (calls.length > 0) {
         // Fetch first call detail to get custom_survey
         const detail = await authFetch(`${CALL_SERVER}/api/surveys/${calls[0].id}`).then(r => r.json());
-        setSurveyConfig(detail.custom_survey || null);
+        const cfg = detail.custom_survey || null;
+        setSurveyConfig(cfg);
+        // Initialize retry/timing from survey config
+        if (cfg?.retryPolicy) setMaxRetries(cfg.retryPolicy);
+        if (cfg?.callTiming?.length) setCallTiming(cfg.callTiming);
       }
     } catch { /* ignore */ }
     setLoadingSurvey(false);
@@ -140,6 +146,8 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
           gender,
           autoDetectLanguage: autoDetect,
           concurrency,
+          maxRetries,
+          callTiming,
         }),
       });
 
@@ -407,6 +415,57 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
                 </button>
               </div>
             </div>
+
+            {/* Call Timing */}
+            <div>
+              <label className={labelClass}>Call Timing (IST)</label>
+              <p className="text-xs text-earth-mid/60 font-body mb-2">When should calls be placed? At least one window required.</p>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { id: 'morning', label: 'Morning (8am–12pm)' },
+                  { id: 'afternoon', label: 'Afternoon (12pm–5pm)' },
+                  { id: 'evening', label: 'Evening (5pm–9pm)' },
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      const next = callTiming.includes(t.id)
+                        ? callTiming.filter(x => x !== t.id)
+                        : [...callTiming, t.id];
+                      if (next.length > 0) setCallTiming(next);
+                    }}
+                    className={`px-4 py-2.5 rounded-xl border text-sm font-body font-medium transition-all cursor-pointer ${
+                      callTiming.includes(t.id)
+                        ? 'border-saffron bg-saffron/5 text-saffron'
+                        : 'border-cream-warm bg-white text-earth-mid hover:border-saffron/30'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Retry Policy */}
+            <div>
+              <label className={labelClass}>Retry Policy</label>
+              <p className="text-xs text-earth-mid/60 font-body mb-2">How many times to retry if no answer, voicemail, or failure?</p>
+              <div className="flex gap-3">
+                {[1, 2, 3, 5].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setMaxRetries(n)}
+                    className={`w-14 py-3 rounded-xl border text-sm font-body font-medium transition-all cursor-pointer ${
+                      maxRetries === n
+                        ? 'border-saffron bg-saffron/5 text-saffron'
+                        : 'border-cream-warm bg-white text-earth-mid hover:border-saffron/30'
+                    }`}
+                  >
+                    {n}x
+                  </button>
+                ))}
+              </div>
+            </div>
           </motion.div>
         )}
 
@@ -442,9 +501,17 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
                     {autoDetect && ' (auto-detect)'}
                   </span>
                 </div>
-                <div className="flex justify-between py-2">
+                <div className="flex justify-between py-2 border-b border-cream-warm/60">
                   <span className="text-sm font-body text-earth-mid">Voice</span>
                   <span className="text-sm font-body font-medium text-earth capitalize">{gender}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-cream-warm/60">
+                  <span className="text-sm font-body text-earth-mid">Call Timing</span>
+                  <span className="text-sm font-body font-medium text-earth capitalize">{callTiming.join(', ')}</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-sm font-body text-earth-mid">Retries</span>
+                  <span className="text-sm font-body font-medium text-earth">{maxRetries}x per number</span>
                 </div>
               </div>
             </div>

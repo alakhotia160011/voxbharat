@@ -4,14 +4,63 @@
 import {
   getCampaignById, updateCampaignStatus, updateCampaignProgress,
   getNextPendingNumbers, updateCampaignNumberStatus, getProgressCounts,
-  resetCallingNumbers, getRunningCampaigns,
+  resetCallingNumbers, getRunningCampaigns, requeueNumberForRetry,
 } from './db.js';
+
+// Call timing windows in IST (UTC+5:30)
+const TIME_WINDOWS = {
+  morning:   { start: 8, end: 12 },   // 8am – 12pm
+  afternoon: { start: 12, end: 17 },  // 12pm – 5pm
+  evening:   { start: 17, end: 21 },  // 5pm – 9pm
+};
+
+function getISTHour() {
+  const now = new Date();
+  // IST = UTC + 5:30
+  const istMs = now.getTime() + (5.5 * 60 * 60 * 1000);
+  const ist = new Date(istMs);
+  return ist.getUTCHours() + ist.getUTCMinutes() / 60;
+}
+
+function isWithinCallWindow(callTiming) {
+  const windows = Array.isArray(callTiming) ? callTiming : ['morning', 'afternoon', 'evening'];
+  const hour = getISTHour();
+  return windows.some(w => {
+    const win = TIME_WINDOWS[w];
+    return win && hour >= win.start && hour < win.end;
+  });
+}
+
+function msUntilNextWindow(callTiming) {
+  const windows = Array.isArray(callTiming) ? callTiming : ['morning', 'afternoon', 'evening'];
+  const hour = getISTHour();
+
+  // Find the next window start that's after current time
+  const starts = windows
+    .map(w => TIME_WINDOWS[w]?.start)
+    .filter(s => s !== undefined)
+    .sort((a, b) => a - b);
+
+  for (const start of starts) {
+    if (hour < start) {
+      return (start - hour) * 60 * 60 * 1000;
+    }
+  }
+
+  // All windows are past today — next window is tomorrow's first window
+  const firstStart = starts[0] || 8;
+  return (24 - hour + firstStart) * 60 * 60 * 1000;
+}
+
+// Statuses that are eligible for retry
+const RETRYABLE_STATUSES = ['no_answer', 'failed', 'voicemail'];
 
 export class CampaignRunner {
   constructor({ initiateCallFn, getActiveCallsFn }) {
     this.initiateCall = initiateCallFn;
     this.getActiveCalls = getActiveCallsFn;
     this.activeCampaigns = new Map(); // campaignId -> { config, activeCallIds: Set, isPaused }
+    this._timers = new Map(); // campaignId -> timeout ID (for scheduling)
   }
 
   /**
@@ -44,7 +93,7 @@ export class CampaignRunner {
       isPaused: false,
     });
 
-    console.log(`[Campaign] ${campaignId} started (concurrency: ${campaign.concurrency})`);
+    console.log(`[Campaign] ${campaignId} started (concurrency: ${campaign.concurrency}, retries: ${campaign.max_retries}, timing: ${JSON.stringify(campaign.call_timing)})`);
     this._processQueue(campaignId);
   }
 
@@ -54,6 +103,7 @@ export class CampaignRunner {
   async pauseCampaign(campaignId) {
     const state = this.activeCampaigns.get(campaignId);
     if (state) state.isPaused = true;
+    this._clearTimer(campaignId);
 
     await updateCampaignStatus(campaignId, 'paused');
     console.log(`[Campaign] ${campaignId} paused`);
@@ -65,6 +115,7 @@ export class CampaignRunner {
   async cancelCampaign(campaignId) {
     const state = this.activeCampaigns.get(campaignId);
     if (state) state.isPaused = true;
+    this._clearTimer(campaignId);
 
     await updateCampaignStatus(campaignId, 'cancelled');
     this.activeCampaigns.delete(campaignId);
@@ -72,7 +123,7 @@ export class CampaignRunner {
   }
 
   /**
-   * Called when a campaign call completes — updates state and processes next in queue.
+   * Called when a campaign call completes — updates state, retries if needed, processes next.
    */
   async onCallCompleted(callId, campaignId, status) {
     const state = this.activeCampaigns.get(campaignId);
@@ -80,27 +131,36 @@ export class CampaignRunner {
       state.activeCallIds.delete(callId);
     }
 
-    // Find and update the campaign_numbers row for this call
     try {
-      // Update by call_id since we know which number this was
       const { getPool } = await import('./db.js');
       const pool = getPool();
-      if (pool) {
-        await pool.query(`
-          UPDATE campaign_numbers SET
-            status = $1,
-            completed_at = NOW()
-          WHERE call_id = $2
-        `, [status, callId]);
+      if (!pool) return;
+
+      // Get the campaign_numbers row for this call
+      const { rows } = await pool.query(
+        'SELECT id, attempts FROM campaign_numbers WHERE call_id = $1', [callId]
+      );
+      const numRow = rows[0];
+
+      // Update status
+      await pool.query(`
+        UPDATE campaign_numbers SET status = $1, completed_at = NOW()
+        WHERE call_id = $2
+      `, [status, callId]);
+
+      // Retry logic: if retryable and under max retries, requeue
+      if (numRow && RETRYABLE_STATUSES.includes(status)) {
+        const maxRetries = state?.config?.max_retries ?? 3;
+        if (numRow.attempts < maxRetries) {
+          await requeueNumberForRetry(numRow.id, 30);
+          console.log(`[Campaign] ${campaignId} — ${status} for call ${callId}, requeued for retry (attempt ${numRow.attempts}/${maxRetries}, next in 30min)`);
+        }
       }
 
-      // Update progress counts
       await this._updateProgress(campaignId);
 
-      // Check if campaign is done
       const done = await this._checkCompletion(campaignId);
       if (!done) {
-        // Process next call in queue
         this._processQueue(campaignId);
       }
     } catch (err) {
@@ -110,46 +170,56 @@ export class CampaignRunner {
 
   /**
    * Main queue processor — initiates calls up to concurrency limit.
+   * Respects call timing windows (IST).
    */
   async _processQueue(campaignId) {
     const state = this.activeCampaigns.get(campaignId);
     if (!state || state.isPaused) return;
 
+    // Check call timing window
+    const callTiming = state.config.call_timing;
+    if (!isWithinCallWindow(callTiming)) {
+      const waitMs = msUntilNextWindow(callTiming);
+      const waitMin = Math.round(waitMs / 60000);
+      console.log(`[Campaign] ${campaignId} — outside call window, waiting ${waitMin}min`);
+      this._clearTimer(campaignId);
+      this._timers.set(campaignId, setTimeout(() => this._processQueue(campaignId), Math.min(waitMs, 60 * 60 * 1000)));
+      return;
+    }
+
     // Enforce global Cartesia TTS limit of 2 concurrent calls
     const globalActive = this.getActiveCalls().length;
     const globalSlots = Math.max(0, 2 - globalActive);
     if (globalSlots === 0) {
-      // No global slots — retry after a delay
       setTimeout(() => this._processQueue(campaignId), 3000);
       return;
     }
 
-    // Calculate how many calls we can start
     const campaignSlots = state.config.concurrency - state.activeCallIds.size;
     const slotsToFill = Math.min(globalSlots, campaignSlots);
-
     if (slotsToFill <= 0) return;
 
-    // Get pending numbers
     const pendingNumbers = await getNextPendingNumbers(campaignId, slotsToFill);
     if (pendingNumbers.length === 0) {
-      // No more numbers to process — check completion
+      // No ready numbers — might have pending retries not yet due
+      const counts = await getProgressCounts(campaignId);
+      if (counts.pending > 0) {
+        // There are pending numbers but they're waiting on retry_after — check again in 60s
+        this._clearTimer(campaignId);
+        this._timers.set(campaignId, setTimeout(() => this._processQueue(campaignId), 60000));
+        return;
+      }
       await this._checkCompletion(campaignId);
       return;
     }
 
-    // Initiate calls with 1-second delay between each (Twilio CPS limit)
     for (let i = 0; i < pendingNumbers.length; i++) {
       const num = pendingNumbers[i];
-
-      // Re-check pause state before each call
       if (state.isPaused) break;
 
       try {
-        // Mark number as calling
         await updateCampaignNumberStatus(num.id, 'calling', null, null);
 
-        // Initiate the call
         const result = await this.initiateCall({
           phoneNumber: num.phone_number,
           language: state.config.language,
@@ -159,16 +229,14 @@ export class CampaignRunner {
           campaignId: campaignId,
         });
 
-        // Track the call and link it to the campaign number
         state.activeCallIds.add(result.callId);
         await updateCampaignNumberStatus(num.id, 'calling', result.callId, null);
 
-        console.log(`[Campaign] ${campaignId} — called ${num.phone_number} (call: ${result.callId})`);
+        const retryNote = num.attempts > 0 ? ` (retry #${num.attempts})` : '';
+        console.log(`[Campaign] ${campaignId} — called ${num.phone_number}${retryNote} (call: ${result.callId})`);
 
-        // Update progress
         await this._updateProgress(campaignId);
 
-        // Wait 1 second between calls (Twilio rate limit)
         if (i < pendingNumbers.length - 1) {
           await new Promise(r => setTimeout(r, 1000));
         }
@@ -199,19 +267,26 @@ export class CampaignRunner {
     const state = this.activeCampaigns.get(campaignId);
     const counts = await getProgressCounts(campaignId);
 
-    // Campaign is done when no pending or calling numbers remain
     if (counts.pending === 0 && counts.calling === 0) {
+      this._clearTimer(campaignId);
       await updateCampaignStatus(campaignId, 'completed');
       this.activeCampaigns.delete(campaignId);
       console.log(`[Campaign] ${campaignId} completed — ${counts.completed} completed, ${counts.failed} failed, ${counts.no_answer} no answer, ${counts.voicemail || 0} voicemail`);
       return true;
     }
 
-    // If there are active calls but no pending, just wait for them to finish
     if (counts.pending === 0 && state && state.activeCallIds.size > 0) {
       return false;
     }
 
     return false;
+  }
+
+  _clearTimer(campaignId) {
+    const timer = this._timers.get(campaignId);
+    if (timer) {
+      clearTimeout(timer);
+      this._timers.delete(campaignId);
+    }
   }
 }

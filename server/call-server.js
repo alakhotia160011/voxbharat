@@ -1980,16 +1980,20 @@ function cleanupSession(callId) {
 // Create a new campaign
 app.post('/api/campaigns', requireAuth, requireDb, async (req, res) => {
   try {
-    const { name, surveyConfig, phoneNumbers, language, gender, autoDetectLanguage, concurrency } = req.body;
+    const { name, surveyConfig, phoneNumbers, language, gender, autoDetectLanguage, concurrency, maxRetries, callTiming } = req.body;
 
     if (!name || !surveyConfig || !phoneNumbers || !Array.isArray(phoneNumbers) || phoneNumbers.length === 0) {
       return res.status(400).json({ error: 'name, surveyConfig, and phoneNumbers[] are required' });
     }
 
     const validConcurrency = Math.min(Math.max(concurrency || 2, 1), 2);
+    // Default from surveyConfig if not explicitly provided
+    const retries = maxRetries ?? surveyConfig?.retryPolicy ?? 3;
+    const timing = callTiming || surveyConfig?.callTiming || ['morning', 'afternoon', 'evening'];
 
     const campaign = await createCampaign(req.user.id, {
-      name, surveyConfig, language, gender, autoDetectLanguage, concurrency: validConcurrency,
+      name, surveyConfig, language, gender, autoDetectLanguage,
+      concurrency: validConcurrency, maxRetries: retries, callTiming: timing,
     });
 
     await addCampaignNumbers(campaign.id, phoneNumbers);
