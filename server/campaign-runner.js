@@ -203,7 +203,7 @@ export class CampaignRunner {
     if (counts.pending === 0 && counts.calling === 0) {
       await updateCampaignStatus(campaignId, 'completed');
       this.activeCampaigns.delete(campaignId);
-      console.log(`[Campaign] ${campaignId} completed — ${counts.completed} completed, ${counts.failed} failed, ${counts.no_answer} no answer`);
+      console.log(`[Campaign] ${campaignId} completed — ${counts.completed} completed, ${counts.failed} failed, ${counts.no_answer} no answer, ${counts.voicemail || 0} voicemail`);
       return true;
     }
 

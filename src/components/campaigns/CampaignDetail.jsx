@@ -17,6 +17,7 @@ const numberStatusConfig = {
   completed: { label: 'Completed',   color: 'text-green-700' },
   failed:    { label: 'Failed',      color: 'text-red-500' },
   no_answer: { label: 'No Answer',   color: 'text-earth-mid' },
+  voicemail: { label: 'Voicemail',   color: 'text-indigo' },
 };
 
 function StatCard({ label, value, accent }) {
@@ -97,8 +98,8 @@ export default function CampaignDetail({ campaignId, onBack }) {
   }
 
   const progress = campaign.progress || {};
-  const total = (progress.pending || 0) + (progress.calling || 0) + (progress.completed || 0) + (progress.failed || 0) + (progress.no_answer || 0);
-  const done = (progress.completed || 0) + (progress.failed || 0) + (progress.no_answer || 0);
+  const total = (progress.pending || 0) + (progress.calling || 0) + (progress.completed || 0) + (progress.failed || 0) + (progress.no_answer || 0) + (progress.voicemail || 0);
+  const done = (progress.completed || 0) + (progress.failed || 0) + (progress.no_answer || 0) + (progress.voicemail || 0);
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   const canStart = campaign.status === 'pending' || campaign.status === 'paused';
@@ -167,13 +168,14 @@ export default function CampaignDetail({ campaignId, onBack }) {
 
       {/* Stats */}
       <motion.div
-        className="grid grid-cols-2 md:grid-cols-5 gap-4"
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
       >
         <StatCard label="Total" value={total} accent="bg-earth" />
         <StatCard label="Completed" value={progress.completed || 0} accent="bg-green-500" />
+        <StatCard label="Voicemail" value={progress.voicemail || 0} accent="bg-indigo" />
         <StatCard label="Failed" value={progress.failed || 0} accent="bg-red-400" />
         <StatCard label="No Answer" value={progress.no_answer || 0} accent="bg-gray-400" />
         <StatCard label="In Progress" value={progress.calling || 0} accent="bg-yellow-400" />

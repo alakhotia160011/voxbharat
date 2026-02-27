@@ -34,8 +34,8 @@ export function ProgressBar({ done, total }) {
 
 function getCounts(progress) {
   const p = progress || {};
-  const total = (p.pending || 0) + (p.calling || 0) + (p.completed || 0) + (p.failed || 0) + (p.no_answer || 0);
-  const done = (p.completed || 0) + (p.failed || 0) + (p.no_answer || 0);
+  const total = (p.pending || 0) + (p.calling || 0) + (p.completed || 0) + (p.failed || 0) + (p.no_answer || 0) + (p.voicemail || 0);
+  const done = (p.completed || 0) + (p.failed || 0) + (p.no_answer || 0) + (p.voicemail || 0);
   return { total, done, ...p };
 }
 
@@ -126,6 +126,7 @@ export default function CampaignList({ campaigns, onSelect, onNewCampaign, onRef
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-body text-earth-mid">
                   <span>{c.completed || 0} completed</span>
+                  {(c.voicemail || 0) > 0 && <span className="text-indigo">{c.voicemail} voicemail</span>}
                   {(c.failed || 0) > 0 && <span className="text-red-500">{c.failed} failed</span>}
                   {(c.no_answer || 0) > 0 && <span>{c.no_answer} no answer</span>}
                   {(c.calling || 0) > 0 && <span className="text-yellow-600">{c.calling} in progress</span>}
