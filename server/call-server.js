@@ -1158,8 +1158,15 @@ async function initSession(callId, call, ws, streamSid) {
     recentTtsTexts: [],
     call,
     currentLanguage: call.autoDetectLanguage ? 'en' : call.language,
-    // Pin the original voice so it stays consistent across language switches
-    originalVoiceId: VOICES[`${call.autoDetectLanguage ? 'en' : call.language}_${call.gender}`],
+    // Pick a random voice of the same gender for this call (stays consistent across language switches)
+    originalVoiceId: (() => {
+      const gender = call.gender;
+      const candidates = Object.entries(VOICES).filter(([k]) => k.endsWith(`_${gender}`));
+      const [voiceKey, voiceId] = candidates[Math.floor(Math.random() * candidates.length)];
+      console.log(`[Call:${call.id}] Random voice: ${voiceKey} (${voiceId})`);
+      updateCall(call.id, { voiceKey });
+      return voiceId;
+    })(),
     // VAD-based STT flush for short utterances
     lastSpeechTime: null,
     flushTimer: null,
