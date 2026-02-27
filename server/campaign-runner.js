@@ -7,49 +7,80 @@ import {
   resetCallingNumbers, getRunningCampaigns, requeueNumberForRetry,
 } from './db.js';
 
-// Call timing windows in IST (UTC+5:30)
-const TIME_WINDOWS = {
-  morning:   { start: 8, end: 12 },   // 8am – 12pm
-  afternoon: { start: 12, end: 17 },  // 12pm – 5pm
-  evening:   { start: 17, end: 21 },  // 5pm – 9pm
+// Call timing — supports both formats:
+//   Range: { start: 8, end: 17 }  (8am–5pm IST)
+//   Legacy array: ['morning', 'afternoon', 'evening']
+const LEGACY_WINDOWS = {
+  morning:   { start: 8, end: 12 },
+  afternoon: { start: 12, end: 17 },
+  evening:   { start: 17, end: 21 },
 };
 
 function getISTHour() {
   const now = new Date();
-  // IST = UTC + 5:30
   const istMs = now.getTime() + (5.5 * 60 * 60 * 1000);
   const ist = new Date(istMs);
   return ist.getUTCHours() + ist.getUTCMinutes() / 60;
 }
 
+/** Normalize call_timing to an array of { start, end } ranges */
+function getTimeRanges(callTiming) {
+  if (!callTiming) return [{ start: 8, end: 21 }];
+  // New range format: { start, end }
+  if (typeof callTiming === 'object' && !Array.isArray(callTiming) && callTiming.start !== undefined) {
+    return [{ start: callTiming.start, end: callTiming.end }];
+  }
+  // Legacy array format
+  if (Array.isArray(callTiming)) {
+    return callTiming.map(w => LEGACY_WINDOWS[w]).filter(Boolean);
+  }
+  return [{ start: 8, end: 21 }];
+}
+
 function isWithinCallWindow(callTiming) {
-  const windows = Array.isArray(callTiming) ? callTiming : ['morning', 'afternoon', 'evening'];
+  const ranges = getTimeRanges(callTiming);
   const hour = getISTHour();
-  return windows.some(w => {
-    const win = TIME_WINDOWS[w];
-    return win && hour >= win.start && hour < win.end;
-  });
+  return ranges.some(r => hour >= r.start && hour < r.end);
 }
 
 function msUntilNextWindow(callTiming) {
-  const windows = Array.isArray(callTiming) ? callTiming : ['morning', 'afternoon', 'evening'];
+  const ranges = getTimeRanges(callTiming);
   const hour = getISTHour();
-
-  // Find the next window start that's after current time
-  const starts = windows
-    .map(w => TIME_WINDOWS[w]?.start)
-    .filter(s => s !== undefined)
-    .sort((a, b) => a - b);
+  const starts = ranges.map(r => r.start).sort((a, b) => a - b);
 
   for (const start of starts) {
-    if (hour < start) {
-      return (start - hour) * 60 * 60 * 1000;
+    if (hour < start) return (start - hour) * 60 * 60 * 1000;
+  }
+  // All windows past today — next is tomorrow's first
+  const firstStart = starts[0] || 8;
+  return (24 - hour + firstStart) * 60 * 60 * 1000;
+}
+
+/** Pick a random retry time (in minutes from now) within the call window */
+function randomRetryMinutes(callTiming) {
+  const ranges = getTimeRanges(callTiming);
+  const hour = getISTHour();
+
+  // Find ranges that still have time left today
+  const futureSlots = [];
+  for (const r of ranges) {
+    const from = Math.max(hour + 0.5, r.start); // at least 30min from now
+    if (from < r.end) {
+      futureSlots.push({ from, to: r.end });
     }
   }
 
-  // All windows are past today — next window is tomorrow's first window
-  const firstStart = starts[0] || 8;
-  return (24 - hour + firstStart) * 60 * 60 * 1000;
+  if (futureSlots.length > 0) {
+    // Pick a random slot and random time within it
+    const slot = futureSlots[Math.floor(Math.random() * futureSlots.length)];
+    const randomHour = slot.from + Math.random() * (slot.to - slot.from);
+    return Math.max(30, Math.round((randomHour - hour) * 60));
+  }
+
+  // No time left today — pick random time in tomorrow's first window
+  const tomorrowRange = ranges[0] || { start: 8, end: 17 };
+  const randomHour = tomorrowRange.start + Math.random() * (tomorrowRange.end - tomorrowRange.start);
+  return Math.round((24 - hour + randomHour) * 60);
 }
 
 // Statuses that are eligible for retry
@@ -148,12 +179,16 @@ export class CampaignRunner {
         WHERE call_id = $2
       `, [status, callId]);
 
-      // Retry logic: if retryable and under max retries, requeue
+      // Retry logic: if retryable and under max retries, requeue at a random time in the call window
       if (numRow && RETRYABLE_STATUSES.includes(status)) {
         const maxRetries = state?.config?.max_retries ?? 3;
         if (numRow.attempts < maxRetries) {
-          await requeueNumberForRetry(numRow.id, 30);
-          console.log(`[Campaign] ${campaignId} — ${status} for call ${callId}, requeued for retry (attempt ${numRow.attempts}/${maxRetries}, next in 30min)`);
+          const delayMin = randomRetryMinutes(state?.config?.call_timing);
+          await requeueNumberForRetry(numRow.id, delayMin);
+          const hrs = Math.floor(delayMin / 60);
+          const mins = delayMin % 60;
+          const delayStr = hrs > 0 ? `${hrs}h${mins}m` : `${mins}m`;
+          console.log(`[Campaign] ${campaignId} — ${status} for call ${callId}, requeued for retry (attempt ${numRow.attempts}/${maxRetries}, next in ${delayStr})`);
         }
       }
 

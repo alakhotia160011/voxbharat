@@ -74,7 +74,8 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
   const [gender, setGender] = useState('female');
   const [autoDetect, setAutoDetect] = useState(false);
   const [maxRetries, setMaxRetries] = useState(3);
-  const [callTiming, setCallTiming] = useState(['morning', 'afternoon', 'evening']);
+  const [callTimingStart, setCallTimingStart] = useState(8);
+  const [callTimingEnd, setCallTimingEnd] = useState(21);
 
   // Step 4
   const [creating, setCreating] = useState(false);
@@ -110,9 +111,8 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
         const detail = await authFetch(`${CALL_SERVER}/api/surveys/${calls[0].id}`).then(r => r.json());
         const cfg = detail.custom_survey || null;
         setSurveyConfig(cfg);
-        // Initialize retry/timing from survey config
+        // Initialize retry from survey config
         if (cfg?.retryPolicy) setMaxRetries(cfg.retryPolicy);
-        if (cfg?.callTiming?.length) setCallTiming(cfg.callTiming);
       }
     } catch { /* ignore */ }
     setLoadingSurvey(false);
@@ -147,7 +147,7 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
           autoDetectLanguage: autoDetect,
           concurrency,
           maxRetries,
-          callTiming,
+          callTiming: { start: callTimingStart, end: callTimingEnd },
         }),
       });
 
@@ -418,31 +418,32 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
 
             {/* Call Timing */}
             <div>
-              <label className={labelClass}>Call Timing (IST)</label>
-              <p className="text-xs text-earth-mid/60 font-body mb-2">When should calls be placed? At least one window required.</p>
-              <div className="flex flex-wrap gap-3">
-                {[
-                  { id: 'morning', label: 'Morning (8am–12pm)' },
-                  { id: 'afternoon', label: 'Afternoon (12pm–5pm)' },
-                  { id: 'evening', label: 'Evening (5pm–9pm)' },
-                ].map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      const next = callTiming.includes(t.id)
-                        ? callTiming.filter(x => x !== t.id)
-                        : [...callTiming, t.id];
-                      if (next.length > 0) setCallTiming(next);
-                    }}
-                    className={`px-4 py-2.5 rounded-xl border text-sm font-body font-medium transition-all cursor-pointer ${
-                      callTiming.includes(t.id)
-                        ? 'border-saffron bg-saffron/5 text-saffron'
-                        : 'border-cream-warm bg-white text-earth-mid hover:border-saffron/30'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+              <label className={labelClass}>Call Window (IST)</label>
+              <p className="text-xs text-earth-mid/60 font-body mb-2">Calls go out at random times within this window. Retries get a new random time.</p>
+              <div className="flex items-center gap-3">
+                <select
+                  value={callTimingStart}
+                  onChange={e => {
+                    const v = Number(e.target.value);
+                    setCallTimingStart(v);
+                    if (v >= callTimingEnd) setCallTimingEnd(Math.min(v + 1, 22));
+                  }}
+                  className={inputClass + ' cursor-pointer flex-1'}
+                >
+                  {Array.from({ length: 15 }, (_, i) => i + 7).map(h => (
+                    <option key={h} value={h}>{h <= 12 ? `${h}:00 AM` : `${h - 12}:00 PM`}</option>
+                  ))}
+                </select>
+                <span className="text-earth-mid font-body text-sm">to</span>
+                <select
+                  value={callTimingEnd}
+                  onChange={e => setCallTimingEnd(Number(e.target.value))}
+                  className={inputClass + ' cursor-pointer flex-1'}
+                >
+                  {Array.from({ length: 15 }, (_, i) => i + 8).filter(h => h > callTimingStart).map(h => (
+                    <option key={h} value={h}>{h <= 12 ? `${h}:00 AM` : `${h - 12}:00 PM`}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -506,8 +507,13 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
                   <span className="text-sm font-body font-medium text-earth capitalize">{gender}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-cream-warm/60">
-                  <span className="text-sm font-body text-earth-mid">Call Timing</span>
-                  <span className="text-sm font-body font-medium text-earth capitalize">{callTiming.join(', ')}</span>
+                  <span className="text-sm font-body text-earth-mid">Call Window</span>
+                  <span className="text-sm font-body font-medium text-earth">
+                    {callTimingStart <= 12 ? `${callTimingStart}:00 AM` : `${callTimingStart - 12}:00 PM`}
+                    {' – '}
+                    {callTimingEnd <= 12 ? `${callTimingEnd}:00 AM` : `${callTimingEnd - 12}:00 PM`}
+                    {' IST (randomized)'}
+                  </span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-sm font-body text-earth-mid">Retries</span>

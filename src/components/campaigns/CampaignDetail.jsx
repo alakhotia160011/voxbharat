@@ -133,7 +133,11 @@ export default function CampaignDetail({ campaignId, onBack }) {
             Created {new Date(campaign.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             {' \u00b7 '} Concurrency: {campaign.concurrency}
             {' \u00b7 '} Retries: {campaign.max_retries ?? 3}x
-            {campaign.call_timing && ` \u00b7 Timing: ${(Array.isArray(campaign.call_timing) ? campaign.call_timing : []).join(', ')}`}
+            {campaign.call_timing && ` \u00b7 Window: ${
+              campaign.call_timing.start !== undefined
+                ? `${campaign.call_timing.start <= 12 ? campaign.call_timing.start + ':00 AM' : (campaign.call_timing.start - 12) + ':00 PM'}–${campaign.call_timing.end <= 12 ? campaign.call_timing.end + ':00 AM' : (campaign.call_timing.end - 12) + ':00 PM'} IST`
+                : (Array.isArray(campaign.call_timing) ? campaign.call_timing.join(', ') : '')
+            }`}
           </p>
         </div>
 
