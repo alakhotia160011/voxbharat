@@ -109,7 +109,7 @@ export class CampaignRunner {
   /**
    * Start or resume a campaign.
    */
-  async startCampaign(campaignId) {
+  async startCampaign(campaignId, { force = false } = {}) {
     const campaign = await getCampaignById(campaignId);
     if (!campaign) throw new Error('Campaign not found');
     if (!['pending', 'paused'].includes(campaign.status)) {
@@ -122,9 +122,10 @@ export class CampaignRunner {
       config: campaign,
       activeCallIds: new Set(),
       isPaused: false,
+      force,
     });
 
-    console.log(`[Campaign] ${campaignId} started (concurrency: ${campaign.concurrency}, retries: ${campaign.max_retries}, timing: ${JSON.stringify(campaign.call_timing)})`);
+    console.log(`[Campaign] ${campaignId} started${force ? ' (force/call now)' : ''} (concurrency: ${campaign.concurrency}, retries: ${campaign.max_retries}, timing: ${JSON.stringify(campaign.call_timing)})`);
     this._processQueue(campaignId);
   }
 
@@ -211,9 +212,9 @@ export class CampaignRunner {
     const state = this.activeCampaigns.get(campaignId);
     if (!state || state.isPaused) return;
 
-    // Check call timing window
+    // Check call timing window (skip if force/call-now mode)
     const callTiming = state.config.call_timing;
-    if (!isWithinCallWindow(callTiming)) {
+    if (!state.force && !isWithinCallWindow(callTiming)) {
       const waitMs = msUntilNextWindow(callTiming);
       const waitMin = Math.round(waitMs / 60000);
       console.log(`[Campaign] ${campaignId} — outside call window, waiting ${waitMin}min`);

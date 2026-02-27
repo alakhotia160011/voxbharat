@@ -66,10 +66,13 @@ export default function CampaignDetail({ campaignId, onBack }) {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [campaign?.status, fetchData]);
 
-  const handleAction = async (action) => {
+  const handleAction = async (action, body) => {
     setActionLoading(true);
     try {
-      await authFetch(`${CALL_SERVER}/api/campaigns/${campaignId}/${action}`, { method: 'POST' });
+      await authFetch(`${CALL_SERVER}/api/campaigns/${campaignId}/${action}`, {
+        method: 'POST',
+        ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
+      });
       await fetchData();
     } catch { /* ignore */ }
     setActionLoading(false);
@@ -143,13 +146,22 @@ export default function CampaignDetail({ campaignId, onBack }) {
 
         <div className="flex items-center gap-2">
           {canStart && (
-            <button
-              onClick={() => handleAction('start')}
-              disabled={actionLoading}
-              className="px-4 py-2 bg-saffron text-white rounded-lg font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-60"
-            >
-              {campaign.status === 'paused' ? 'Resume' : 'Start'} Campaign
-            </button>
+            <>
+              <button
+                onClick={() => handleAction('start', { force: true })}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-saffron text-white rounded-lg font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-60"
+              >
+                Call Now
+              </button>
+              <button
+                onClick={() => handleAction('start')}
+                disabled={actionLoading}
+                className="px-4 py-2 border border-saffron/40 text-saffron rounded-lg font-body text-sm font-medium hover:bg-saffron/5 transition-colors cursor-pointer disabled:opacity-60"
+              >
+                {campaign.status === 'paused' ? 'Resume' : 'Schedule'}
+              </button>
+            </>
           )}
           {canPause && (
             <button

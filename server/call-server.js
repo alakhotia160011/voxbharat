@@ -2041,7 +2041,8 @@ app.post('/api/campaigns/:id/start', requireAuth, requireDb, async (req, res) =>
 
     if (!campaignRunner) return res.status(500).json({ error: 'Campaign runner not initialized' });
 
-    await campaignRunner.startCampaign(campaign.id);
+    const force = req.body?.force === true;
+    await campaignRunner.startCampaign(campaign.id, { force });
     const updated = await getCampaignById(campaign.id);
     res.json(updated);
   } catch (error) {
