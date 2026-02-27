@@ -1064,7 +1064,7 @@ export async function findCallerInCampaigns(phoneNumber) {
     JOIN campaigns c ON cn.campaign_id = c.id
     WHERE cn.phone_number = $1
       AND c.status IN ('running', 'paused', 'completed')
-      AND cn.status IN ('no_answer', 'failed', 'pending', 'voicemail')
+      AND cn.status IN ('no_answer', 'failed', 'pending', 'voicemail', 'calling')
       AND c.created_at > NOW() - INTERVAL '7 days'
     ORDER BY cn.completed_at DESC NULLS LAST
     LIMIT 1
@@ -1076,7 +1076,7 @@ export async function completeCampaignCallback(campaignId, phoneNumber, callId) 
   if (!pool) return;
   await pool.query(
     `UPDATE campaign_numbers SET status = 'completed', completed_at = NOW(), call_id = $3
-     WHERE campaign_id = $1 AND phone_number = $2 AND status IN ('no_answer','failed','pending','voicemail')`,
+     WHERE campaign_id = $1 AND phone_number = $2 AND status IN ('no_answer','failed','pending','voicemail','calling')`,
     [campaignId, phoneNumber, callId]
   );
 }
