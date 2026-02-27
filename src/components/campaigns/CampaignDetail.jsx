@@ -150,22 +150,13 @@ export default function CampaignDetail({ campaignId, onBack }) {
 
         <div className="flex items-center gap-2">
           {canStart && (
-            <>
-              <button
-                onClick={() => handleAction('start', { force: true })}
-                disabled={actionLoading}
-                className="px-4 py-2 bg-saffron text-white rounded-lg font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-60"
-              >
-                Call Now
-              </button>
-              <button
-                onClick={() => handleAction('start')}
-                disabled={actionLoading}
-                className="px-4 py-2 border border-saffron/40 text-saffron rounded-lg font-body text-sm font-medium hover:bg-saffron/5 transition-colors cursor-pointer disabled:opacity-60"
-              >
-                {campaign.status === 'paused' ? 'Resume' : 'Schedule'}
-              </button>
-            </>
+            <button
+              onClick={() => handleAction('start', { force: true })}
+              disabled={actionLoading}
+              className="px-4 py-2 bg-saffron text-white rounded-lg font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-60"
+            >
+              Call Now
+            </button>
           )}
           {canPause && (
             <button
