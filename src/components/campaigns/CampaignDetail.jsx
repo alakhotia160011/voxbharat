@@ -132,6 +132,8 @@ export default function CampaignDetail({ campaignId, onBack }) {
           <p className="text-earth-mid font-body text-sm">
             Created {new Date(campaign.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             {' \u00b7 '} Concurrency: {campaign.concurrency}
+            {' \u00b7 '} Retries: {campaign.max_retries ?? 3}x
+            {campaign.call_timing && ` \u00b7 Timing: ${(Array.isArray(campaign.call_timing) ? campaign.call_timing : []).join(', ')}`}
           </p>
         </div>
 
@@ -214,6 +216,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
                 <tr className="border-b border-cream-warm">
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Phone Number</th>
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Status</th>
+                  <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider hidden sm:table-cell">Attempts</th>
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider hidden md:table-cell">Started</th>
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider hidden md:table-cell">Completed</th>
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider hidden lg:table-cell">Error</th>
@@ -231,6 +234,9 @@ export default function CampaignDetail({ campaignId, onBack }) {
                       <td className="py-3 px-5">
                         <span className={`font-medium ${cfg.color}`}>{cfg.label}</span>
                       </td>
+                      <td className="py-3 px-5 text-earth-mid hidden sm:table-cell">
+                        {num.attempts || 0}
+                      </td>
                       <td className="py-3 px-5 text-earth-mid hidden md:table-cell">
                         {num.started_at ? new Date(num.started_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-'}
                       </td>
@@ -245,7 +251,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
                 })}
                 {numbers.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-earth-mid text-sm">No phone numbers</td>
+                    <td colSpan={6} className="py-8 text-center text-earth-mid text-sm">No phone numbers</td>
                   </tr>
                 )}
               </tbody>

@@ -125,6 +125,13 @@ export async function initDb() {
     END $$;
   `);
 
+  // Add retry/timing columns to campaigns
+  await pool.query(`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS max_retries INTEGER DEFAULT 3`);
+  await pool.query(`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS call_timing JSONB DEFAULT '["morning","afternoon","evening"]'::jsonb`);
+
+  // Add retry_after to campaign_numbers for scheduling retries
+  await pool.query(`ALTER TABLE campaign_numbers ADD COLUMN IF NOT EXISTS retry_after TIMESTAMPTZ`);
+
   // Add campaign_id to calls table if not present
   await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS campaign_id UUID`);
 
@@ -882,10 +889,15 @@ export async function deleteCall(id) {
 export async function createCampaign(userId, data) {
   if (!pool) throw new Error('Database unavailable');
   const { rows } = await pool.query(`
-    INSERT INTO campaigns (user_id, name, survey_config, language, gender, auto_detect_language, concurrency)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO campaigns (user_id, name, survey_config, language, gender, auto_detect_language, concurrency, max_retries, call_timing)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *
-  `, [userId, data.name, JSON.stringify(data.surveyConfig), data.language || 'hi', data.gender || 'female', data.autoDetectLanguage || false, data.concurrency || 2]);
+  `, [
+    userId, data.name, JSON.stringify(data.surveyConfig),
+    data.language || 'hi', data.gender || 'female', data.autoDetectLanguage || false,
+    data.concurrency || 2, data.maxRetries ?? 3,
+    JSON.stringify(data.callTiming || ['morning', 'afternoon', 'evening']),
+  ]);
   return rows[0];
 }
 
@@ -935,11 +947,24 @@ export async function addCampaignNumbers(campaignId, phoneNumbers) {
 export async function getNextPendingNumbers(campaignId, limit) {
   if (!pool) return [];
   const { rows } = await pool.query(`
-    SELECT id, phone_number FROM campaign_numbers
+    SELECT id, phone_number, attempts FROM campaign_numbers
     WHERE campaign_id = $1 AND status = 'pending'
+      AND (retry_after IS NULL OR retry_after <= NOW())
     ORDER BY id LIMIT $2
   `, [campaignId, limit]);
   return rows;
+}
+
+export async function requeueNumberForRetry(numberId, delayMinutes = 30) {
+  if (!pool) return;
+  await pool.query(`
+    UPDATE campaign_numbers SET
+      status = 'pending',
+      call_id = NULL,
+      error = NULL,
+      retry_after = NOW() + ($1 || ' minutes')::interval
+    WHERE id = $2
+  `, [delayMinutes, numberId]);
 }
 
 export async function updateCampaignNumberStatus(id, status, callId, error) {
