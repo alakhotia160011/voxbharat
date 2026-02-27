@@ -2015,7 +2015,7 @@ app.get('/api/campaigns/:id', requireAuth, requireDb, async (req, res) => {
     const numbers = await getCampaignNumbersByCampaign(campaign.id);
     const progress = await getProgressCounts(campaign.id);
 
-    res.json({ ...campaign, numbers, progress });
+    res.json({ campaign: { ...campaign, progress }, numbers });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
