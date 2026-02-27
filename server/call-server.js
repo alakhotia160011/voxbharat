@@ -1898,6 +1898,13 @@ async function handleCallEnd(callId, reason) {
       endedAt: new Date().toISOString(),
     });
     console.log(`[Call:${callId}] Voicemail call ended (left message: ${call.voicemailLeft})`);
+
+    // Notify campaign runner so queue continues
+    if (call.campaignId && campaignRunner && call.direction !== 'inbound') {
+      const numberStatus = reason === 'voicemail' ? 'voicemail' : 'failed';
+      campaignRunner.onCallCompleted(callId, call.campaignId, numberStatus);
+    }
+
     cleanupSession(callId);
     return;
   }

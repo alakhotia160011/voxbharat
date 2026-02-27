@@ -104,7 +104,7 @@ export async function initDb() {
       id SERIAL PRIMARY KEY,
       campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE NOT NULL,
       phone_number TEXT NOT NULL,
-      status TEXT DEFAULT 'pending' CHECK (status IN ('pending','calling','completed','failed','no_answer')),
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending','calling','completed','failed','no_answer','voicemail')),
       call_id UUID,
       attempts INTEGER DEFAULT 0,
       error TEXT,
@@ -115,6 +115,15 @@ export async function initDb() {
 
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_numbers_campaign ON campaign_numbers(campaign_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_numbers_status ON campaign_numbers(campaign_id, status)`);
+
+  // Add 'voicemail' to campaign_numbers status check constraint (migration for existing tables)
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE campaign_numbers DROP CONSTRAINT IF EXISTS campaign_numbers_status_check;
+      ALTER TABLE campaign_numbers ADD CONSTRAINT campaign_numbers_status_check
+        CHECK (status IN ('pending','calling','completed','failed','no_answer','voicemail'));
+    END $$;
+  `);
 
   // Add campaign_id to calls table if not present
   await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS campaign_id UUID`);
@@ -957,12 +966,12 @@ export async function getCampaignNumbersByCampaign(campaignId) {
 }
 
 export async function getProgressCounts(campaignId) {
-  if (!pool) return { pending: 0, calling: 0, completed: 0, failed: 0, no_answer: 0 };
+  if (!pool) return { pending: 0, calling: 0, completed: 0, failed: 0, no_answer: 0, voicemail: 0 };
   const { rows } = await pool.query(`
     SELECT status, COUNT(*)::int as count FROM campaign_numbers
     WHERE campaign_id = $1 GROUP BY status
   `, [campaignId]);
-  const counts = { pending: 0, calling: 0, completed: 0, failed: 0, no_answer: 0 };
+  const counts = { pending: 0, calling: 0, completed: 0, failed: 0, no_answer: 0, voicemail: 0 };
   for (const row of rows) counts[row.status] = row.count;
   return counts;
 }
