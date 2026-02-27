@@ -32,10 +32,10 @@ const VOICES = {
  * Generate TTS audio via HTTP POST (batch, used for greeting pre-cache)
  */
 export async function generateSpeech(text, language, gender, apiKey, options = {}) {
-  const voiceKey = `${language}_${gender}`;
-  const voiceId = VOICES[voiceKey];
+  // Allow caller to pin a specific voice ID (for multilingual continuity)
+  const voiceId = options.voiceId || VOICES[`${language}_${gender}`];
   if (!voiceId) {
-    throw new Error(`No voice found for ${voiceKey}`);
+    throw new Error(`No voice found for ${language}_${gender}`);
   }
 
   const speed = options.speed ?? 1.0;
@@ -175,10 +175,10 @@ export class CartesiaTTSStream {
       await this.connect();
     }
 
-    const voiceKey = `${language}_${gender}`;
-    const voiceId = VOICES[voiceKey];
+    // Allow caller to pin a specific voice ID (for multilingual continuity)
+    const voiceId = options.voiceId || VOICES[`${language}_${gender}`];
     if (!voiceId) {
-      throw new Error(`No voice found for ${voiceKey}`);
+      throw new Error(`No voice found for ${language}_${gender}`);
     }
 
     // Double-check WebSocket is still open after potential reconnect

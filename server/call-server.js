@@ -10,7 +10,7 @@ import twilio from 'twilio';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mulawToPcm16k, pcm16kToMulaw } from './audio-convert.js';
-import { generateSpeech, chunkAudio, CartesiaTTSStream } from './cartesia-tts.js';
+import { generateSpeech, chunkAudio, CartesiaTTSStream, VOICES } from './cartesia-tts.js';
 import { CartesiaSTT } from './cartesia-stt.js';
 import { ClaudeConversation } from './claude-conversation.js';
 import {
@@ -1158,6 +1158,8 @@ async function initSession(callId, call, ws, streamSid) {
     recentTtsTexts: [],
     call,
     currentLanguage: call.autoDetectLanguage ? 'en' : call.language,
+    // Pin the original voice so it stays consistent across language switches
+    originalVoiceId: VOICES[`${call.autoDetectLanguage ? 'en' : call.language}_${call.gender}`],
     // VAD-based STT flush for short utterances
     lastSpeechTime: null,
     flushTimer: null,
@@ -1799,7 +1801,7 @@ async function speakSentence(session, text, language, emotion = null) {
   if (session.ttsStream?.connected) {
     try {
       let chunkCount = 0;
-      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed })) {
+      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed, voiceId: session.originalVoiceId })) {
         if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
         session.ws.send(JSON.stringify({
           event: 'media',
@@ -1821,7 +1823,7 @@ async function speakSentence(session, text, language, emotion = null) {
 
   // Fallback: HTTP POST (used if WebSocket not connected or streaming failed)
   try {
-    const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed });
+    const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
     const chunks = chunkAudio(mulawBase64);
 
     for (let i = 0; i < chunks.length; i++) {
@@ -1839,7 +1841,7 @@ async function speakSentence(session, text, language, emotion = null) {
     console.error(`[TTS] HTTP error (${language}/${gender}): ${error.message}`);
     if (language !== 'en') {
       try {
-        const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85 });
+        const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
         const chunks = chunkAudio(fallbackBase64);
         for (let i = 0; i < chunks.length; i++) {
           if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
