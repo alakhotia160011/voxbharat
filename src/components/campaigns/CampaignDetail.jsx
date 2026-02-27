@@ -100,8 +100,12 @@ export default function CampaignDetail({ campaignId, onBack }) {
     );
   }
 
-  const progress = campaign.progress || {};
-  const total = (progress.pending || 0) + (progress.calling || 0) + (progress.completed || 0) + (progress.failed || 0) + (progress.no_answer || 0) + (progress.voicemail || 0);
+  // Compute stats from actual numbers array (more reliable than cached progress JSON)
+  const progress = numbers.reduce((acc, n) => {
+    acc[n.status] = (acc[n.status] || 0) + 1;
+    return acc;
+  }, { pending: 0, calling: 0, completed: 0, failed: 0, no_answer: 0, voicemail: 0 });
+  const total = numbers.length;
   const done = (progress.completed || 0) + (progress.failed || 0) + (progress.no_answer || 0) + (progress.voicemail || 0);
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
