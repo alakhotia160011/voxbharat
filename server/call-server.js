@@ -308,7 +308,27 @@ function textIteratorFromStream(stream) {
 
 // Health check
 app.get('/call/health', (req, res) => {
-  res.json({ status: 'ok', activeCalls: getActiveCalls().length });
+  const calls = getActiveCalls();
+  res.json({
+    status: 'ok',
+    activeCalls: calls.length,
+    calls: calls.map(c => ({ id: c.id, status: c.status, phone: c.phoneNumber, started: c.createdAt })),
+  });
+});
+
+// Clear stale calls (for debugging)
+app.post('/call/clear-stale', requireAuth, (req, res) => {
+  const calls = getActiveCalls();
+  let cleared = 0;
+  for (const call of calls) {
+    const session = callSessions.get(call.id);
+    if (!session || session.isEnding || (session.ws && session.ws.readyState !== 1)) {
+      removeCall(call.id);
+      callSessions.delete(call.id);
+      cleared++;
+    }
+  }
+  res.json({ cleared, remaining: getActiveCalls().length });
 });
 
 // Core call initiation logic — used by both HTTP endpoint and campaign runner
