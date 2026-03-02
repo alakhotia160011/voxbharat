@@ -24,6 +24,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
   const [testCallError, setTestCallError] = useState(null);
   const [testCallResult, setTestCallResult] = useState(null);
   const [draftSaved, setDraftSaved] = useState(false);
+  const [scanningWebsite, setScanningWebsite] = useState(false);
   const testCallPollRef = useRef(null);
   const audioPreviewRef = useRef(null);
 
@@ -189,6 +190,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       budget: '',
       previousSurveyLink: '',
       brandNames: '',
+      companyUrl: '',
+      companyContext: '',
       callTiming: ['morning', 'afternoon', 'evening'],
       retryPolicy: 3,
       incentive: '',
@@ -217,6 +220,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       base.budget = initialSurvey.budget || '';
       base.previousSurveyLink = initialSurvey.previousSurveyLink || '';
       base.brandNames = initialSurvey.brandNames || '';
+      base.companyUrl = initialSurvey.companyUrl || '';
+      base.companyContext = initialSurvey.companyContext || '';
       base.callTiming = initialSurvey.callTiming || ['morning', 'afternoon', 'evening'];
       base.retryPolicy = initialSurvey.retryPolicy ?? 3;
       base.incentive = initialSurvey.incentive || '';
@@ -365,6 +370,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
             budget: config.budget || '',
             previousSurveyLink: config.previousSurveyLink || '',
             brandNames: config.brandNames || '',
+            companyUrl: config.companyUrl || '',
+            companyContext: config.companyContext || '',
             callTiming: config.callTiming || [],
             retryPolicy: config.retryPolicy ?? 3,
             incentive: config.incentive || '',
@@ -602,6 +609,64 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   />
                 </div>
               )}
+
+              {/* Company Website Context */}
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-1">Company Website</label>
+                <p className="text-xs text-earth-mid/60 font-body mb-3">Share a website so the AI agent can answer questions about your company during calls.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={config.companyUrl}
+                    onChange={(e) => setConfig({ ...config, companyUrl: e.target.value })}
+                    placeholder="e.g., https://yourcompany.com"
+                    className="flex-1 px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!config.companyUrl) return;
+                      setScanningWebsite(true);
+                      try {
+                        const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || 'http://localhost:3002';
+                        const token = localStorage.getItem('voxbharat_token');
+                        const res = await fetch(`${CALL_SERVER}/api/scrape-website`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                          },
+                          body: JSON.stringify({ url: config.companyUrl }),
+                        });
+                        const data = await res.json();
+                        if (data.error) throw new Error(data.error);
+                        setConfig(prev => ({ ...prev, companyContext: data.content, companyUrl: data.url }));
+                      } catch (err) {
+                        setConfig(prev => ({ ...prev, companyContext: `Error: ${err.message}` }));
+                      }
+                      setScanningWebsite(false);
+                    }}
+                    disabled={!config.companyUrl || scanningWebsite}
+                    className="px-5 py-3 bg-saffron text-white rounded-xl font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {scanningWebsite ? 'Scanning...' : 'Scan Website'}
+                  </button>
+                </div>
+                {config.companyContext && (
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-earth-mid mb-1">
+                      Extracted Context {config.companyContext.startsWith('Error:') ? '(failed)' : `(${config.companyContext.length} chars)`}
+                    </label>
+                    <textarea
+                      value={config.companyContext}
+                      onChange={(e) => setConfig({ ...config, companyContext: e.target.value })}
+                      rows={5}
+                      className={`w-full px-4 py-3 border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-saffron/20 ${
+                        config.companyContext.startsWith('Error:') ? 'border-red-200 text-red-600' : 'border-cream-warm text-earth'
+                      }`}
+                    />
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={() => setStep(2)}

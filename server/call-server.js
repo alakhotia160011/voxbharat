@@ -34,6 +34,7 @@ import {
   getBucketMappings, saveBucketMappingsBatch, deleteBucketMapping,
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
+import { scrapeWebsite } from './website-scraper.js';
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
@@ -948,6 +949,18 @@ app.get('/api/calls/:id/recording', requireAuth, requireDb, async (req, res) => 
     };
     await pump();
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Scrape a website for company context
+app.post('/api/scrape-website', requireAuth, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'URL is required' });
+    const result = await scrapeWebsite(url);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 // ============================================
