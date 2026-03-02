@@ -407,6 +407,8 @@ app.post('/call/twilio-webhook', validateTwilioSignature, (req, res) => {
   const callId = req.query.callId;
   const wsUrl = PUBLIC_URL.replace('http', 'ws');
 
+  console.log(`[Webhook] callId=${callId}, PUBLIC_URL=${PUBLIC_URL}, wsUrl=${wsUrl}`);
+
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
@@ -416,6 +418,7 @@ app.post('/call/twilio-webhook', validateTwilioSignature, (req, res) => {
   </Connect>
 </Response>`;
 
+  console.log(`[Webhook] TwiML: ${twiml}`);
   res.type('text/xml').send(twiml);
 });
 
