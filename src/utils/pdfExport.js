@@ -198,7 +198,7 @@ export function generateCallPDF(data) {
 
   // 2. Call metadata
   y = addSectionHeading(doc, y, 'Call Information');
-  y = autoTable(doc, {
+  autoTable(doc, {
     startY: y,
     body: [
       ['Call ID', data.id || '-'],
@@ -217,7 +217,8 @@ export function generateCallPDF(data) {
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
     tableLineColor: COLORS.creamWarm,
     tableLineWidth: 0.2,
-  }).finalY + 8;
+  });
+  y = doc.lastAutoTable.finalY + 8;
 
   // 3. AI Summary
   const summary = data.summary || '';
@@ -243,7 +244,7 @@ export function generateCallPDF(data) {
   const qaPairs = buildQuestionAnswerPairs(data);
   if (qaPairs.length > 0) {
     y = addSectionHeading(doc, y, 'Survey Responses');
-    y = autoTable(doc, {
+    autoTable(doc, {
       startY: y,
       head: [['#', 'Question', 'Answer']],
       body: qaPairs.map((pair, i) => [
@@ -261,7 +262,8 @@ export function generateCallPDF(data) {
       },
       alternateRowStyles: { fillColor: COLORS.cream },
       margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
-    }).finalY + 8;
+    });
+    y = doc.lastAutoTable.finalY + 8;
   }
 
   // 5. Demographics & Sentiment side by side
@@ -278,7 +280,7 @@ export function generateCallPDF(data) {
       doc.setFontSize(9);
       doc.setTextColor(...COLORS.earth);
       doc.text('Demographics', PAGE_MARGIN, y + 3);
-      y = autoTable(doc, {
+      autoTable(doc, {
         startY: y + 5,
         body: Object.entries(demographics).map(([key, value]) => [
           key.replace(/([A-Z])/g, ' $1').trim(),
@@ -292,7 +294,8 @@ export function generateCallPDF(data) {
         },
         margin: { left: PAGE_MARGIN, right: PAGE_WIDTH / 2 },
         tableWidth: CONTENT_WIDTH / 2 - 4,
-      }).finalY + 4;
+      });
+      y = doc.lastAutoTable.finalY + 4;
     }
 
     if (hasSentiment) {
@@ -301,7 +304,7 @@ export function generateCallPDF(data) {
       doc.setFontSize(9);
       doc.setTextColor(...COLORS.earth);
       doc.text('Sentiment Analysis', PAGE_MARGIN, y + 3);
-      y = autoTable(doc, {
+      autoTable(doc, {
         startY: y + 5,
         body: Object.entries(sentiment).map(([key, value]) => [
           key.charAt(0).toUpperCase() + key.slice(1),
@@ -315,7 +318,8 @@ export function generateCallPDF(data) {
         },
         margin: { left: PAGE_MARGIN, right: PAGE_WIDTH / 2 },
         tableWidth: CONTENT_WIDTH / 2 - 4,
-      }).finalY + 8;
+      });
+      y = doc.lastAutoTable.finalY + 8;
     }
   }
 
@@ -376,7 +380,7 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
   const languages = (analytics?.byLanguage || []).map(r => r.language).filter(Boolean);
 
   y = addSectionHeading(doc, y, 'Overview');
-  y = autoTable(doc, {
+  autoTable(doc, {
     startY: y,
     body: [
       ['Total Respondents', String(totalCalls)],
@@ -391,7 +395,8 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
       1: { textColor: COLORS.earth, fontStyle: 'bold', fontSize: 12 },
     },
     margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
-  }).finalY + 8;
+  });
+  y = doc.lastAutoTable.finalY + 8;
 
   // 3. Analytics charts
   const chartSections = [
@@ -450,7 +455,7 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
       y += 4;
 
       if (breakdown.length > 0) {
-        y = autoTable(doc, {
+        autoTable(doc, {
           startY: y,
           head: [['Answer', 'Count', '%']],
           body: breakdown.map(b => [
@@ -468,7 +473,8 @@ export function generateProjectPDF(projectName, analytics, breakdowns, calls) {
           },
           alternateRowStyles: { fillColor: COLORS.cream },
           margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
-        }).finalY + 8;
+        });
+        y = doc.lastAutoTable.finalY + 8;
       } else {
         y += 4;
       }
