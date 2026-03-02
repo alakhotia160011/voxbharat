@@ -197,6 +197,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       incentive: '',
       qualityChecks: true,
       recordAudio: true,
+      sttProvider: 'cartesia',
     };
     if (initialSurvey) {
       base.name = initialSurvey.name || '';
@@ -226,6 +227,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       base.retryPolicy = initialSurvey.retryPolicy ?? 3;
       base.incentive = initialSurvey.incentive || '';
       base.qualityChecks = initialSurvey.qualityChecks ?? true;
+      base.sttProvider = initialSurvey.sttProvider || 'cartesia';
       base.recordAudio = initialSurvey.recordAudio ?? true;
     }
     return base;
@@ -377,6 +379,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
             incentive: config.incentive || '',
             qualityChecks: config.qualityChecks ?? true,
             recordAudio: config.recordAudio ?? true,
+            sttProvider: config.sttProvider || 'cartesia',
             questions: questions.map(q => ({
               id: q.id,
               text: q.text,
@@ -593,6 +596,36 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   <div className="mt-3 p-3 bg-saffron/5 border border-saffron/20 rounded-lg text-xs text-earth/70">
                     The AI will greet in English and detect the respondent's language from their first reply.
                     Supports: Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, English.
+                  </div>
+                )}
+              </div>
+
+              {/* Speech Recognition Provider */}
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-1">Speech Recognition</label>
+                <p className="text-xs text-earth-mid/60 font-body mb-3">Choose the STT provider for transcribing respondent speech.</p>
+                <div className="flex gap-2">
+                  {[
+                    { id: 'cartesia', label: 'Cartesia' },
+                    { id: 'deepgram', label: 'Deepgram' },
+                  ].map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => setConfig({ ...config, sttProvider: p.id })}
+                      className={`px-5 py-2.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer ${
+                        config.sttProvider === p.id
+                          ? 'border-saffron bg-saffron text-white'
+                          : 'border-cream-warm text-earth-mid hover:border-saffron/40'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                {config.sttProvider === 'deepgram' && (
+                  <div className="mt-3 p-3 bg-saffron/5 border border-saffron/20 rounded-lg text-xs text-earth/70">
+                    Deepgram Nova-3 supports Hindi, Bengali, Telugu, Marathi, Tamil, and Kannada.
+                    Gujarati, Malayalam, and Punjabi will automatically fall back to Cartesia.
                   </div>
                 )}
               </div>
