@@ -315,6 +315,15 @@ app.get('/call/health', (req, res) => {
 async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', customSurvey = null, autoDetectLanguage = false, campaignId = null }) {
   const call = createCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage, campaignId });
 
+  // Select random voice upfront so greeting + session use the same voice
+  const candidates = Object.entries(VOICES).filter(([k]) => k.endsWith(`_${gender}`));
+  const [voiceKey, selectedVoiceId] = candidates.length > 0
+    ? candidates[Math.floor(Math.random() * candidates.length)]
+    : [`${language}_${gender}`, VOICES[`${language}_${gender}`]];
+  console.log(`[Call:${call.id}] Random voice: ${voiceKey} (${selectedVoiceId})`);
+  updateCall(call.id, { voiceKey });
+  call.selectedVoiceId = selectedVoiceId;
+
   const twilioCall = await twilioClient.calls.create({
     to: phoneNumber,
     from: TWILIO_PHONE,
@@ -347,7 +356,7 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
     greetingText = generateCustomGreeting(language, gender, 'VoxBharat Survey');
   }
 
-  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85 })
+  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85, voiceId: selectedVoiceId })
     .then(mulawBase64 => {
       greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
       console.log(`[Call:${call.id}] Greeting audio pre-cached`);
@@ -467,11 +476,20 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
     direction: 'inbound',
   });
 
+  // Select random voice upfront so greeting + session use the same voice
+  const inboundCandidates = Object.entries(VOICES).filter(([k]) => k.endsWith(`_${gender}`));
+  const [inboundVoiceKey, inboundVoiceId] = inboundCandidates.length > 0
+    ? inboundCandidates[Math.floor(Math.random() * inboundCandidates.length)]
+    : [`${language}_${gender}`, VOICES[`${language}_${gender}`]];
+  console.log(`[Inbound:${call.id}] Random voice: ${inboundVoiceKey} (${inboundVoiceId})`);
+  call.selectedVoiceId = inboundVoiceId;
+
   updateCall(call.id, {
     twilioCallSid,
     status: 'ringing',
     customGreeting,
     inboundConfigId,
+    voiceKey: inboundVoiceKey,
   });
 
   // Pre-generate greeting TTS
@@ -484,7 +502,7 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
     greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName);
   }
 
-  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85 })
+  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85, voiceId: inboundVoiceId })
     .then(mulawBase64 => {
       greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
       console.log(`[Inbound:${call.id}] Greeting audio pre-cached`);
@@ -1171,15 +1189,8 @@ async function initSession(callId, call, ws, streamSid) {
     recentTtsTexts: [],
     call,
     currentLanguage: call.autoDetectLanguage ? 'en' : call.language,
-    // Pick a random voice of the same gender for this call (stays consistent across language switches)
-    originalVoiceId: (() => {
-      const gender = call.gender;
-      const candidates = Object.entries(VOICES).filter(([k]) => k.endsWith(`_${gender}`));
-      const [voiceKey, voiceId] = candidates[Math.floor(Math.random() * candidates.length)];
-      console.log(`[Call:${call.id}] Random voice: ${voiceKey} (${voiceId})`);
-      updateCall(call.id, { voiceKey });
-      return voiceId;
-    })(),
+    // Use the voice selected at call initiation (same voice used for greeting pre-cache)
+    originalVoiceId: call.selectedVoiceId || VOICES[`${call.language}_${call.gender}`],
     // VAD-based STT flush for short utterances
     lastSpeechTime: null,
     flushTimer: null,
