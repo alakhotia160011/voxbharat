@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
@@ -26,16 +26,27 @@ import ResetPasswordPage from './components/pages/ResetPasswordPage';
 export default function VoxBharat() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => {
-    const hash = window.location.hash.replace('#', '');
-    return hash || 'home';
+    const path = window.location.pathname.replace(/^\//, '') || 'home';
+    return path;
   });
   const [showSampleReport, setShowSampleReport] = useState(false);
   const [showSampleCallLog, setShowSampleCallLog] = useState(false);
 
   const navigateTo = (page) => {
     setCurrentPage(page);
+    window.history.pushState(null, '', page === 'home' ? '/' : `/${page}`);
     window.scrollTo(0, 0);
   };
+
+  // Listen for browser back/forward
+  useEffect(() => {
+    const onPopState = () => {
+      const path = window.location.pathname.replace(/^\//, '') || 'home';
+      setCurrentPage(path);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const handleLaunch = (config, questions) => {
     console.log('Launching survey:', config, questions);
