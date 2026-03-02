@@ -644,8 +644,14 @@ These categories help you understand what kind of answer to expect. Accept whate
     ? '1. Speak ONLY in English.'
     : `1. Speak ONLY in ${langName}. Never switch to English or any other language.`;
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  const companyContextBlock = customSurvey.companyContext
+    ? `\nCOMPANY CONTEXT (use this to answer any questions about the company/organization conducting the survey):
+${customSurvey.companyContext}
+If someone asks about the company, its products, services, or credibility, answer naturally based on this context. Stay brief and relevant — don't volunteer company info unprompted.\n`
+    : '';
 
+  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+${companyContextBlock}
 CRITICAL RULES:
 ${languageRule}
 2. Ask ONE survey question at a time. Wait for the response before moving on.
@@ -1098,8 +1104,14 @@ ${optionsGuide}
 These categories help you understand what kind of answer to expect. Accept whatever the respondent says naturally and move on.`
     : '';
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  const companyContextBlock = customSurvey.companyContext
+    ? `\nCOMPANY CONTEXT (use this to answer any questions about the company/organization conducting the survey):
+${customSurvey.companyContext}
+If someone asks about the company, its products, services, or credibility, answer naturally based on this context. Stay brief and relevant — don't volunteer company info unprompted.\n`
+    : '';
 
+  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+${companyContextBlock}
 LANGUAGE RULES:
 1. The greeting only asked the respondent which language they prefer. Your FIRST response MUST switch to their chosen language and ask for consent (see CONVERSATION FLOW below).
 2. The user's messages may include a [spoken_language:xx] tag at the start — this is the language detected from their audio by our speech recognition system. This detection is AUTHORITATIVE — it comes from audio analysis, not text.
