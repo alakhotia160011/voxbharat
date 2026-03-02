@@ -12,6 +12,7 @@ import { dirname, join } from 'path';
 import { mulawToPcm16k, pcm16kToMulaw } from './audio-convert.js';
 import { generateSpeech, chunkAudio, CartesiaTTSStream, VOICES } from './cartesia-tts.js';
 import { CartesiaSTT } from './cartesia-stt.js';
+import { DeepgramSTT, DEEPGRAM_SUPPORTED_LANGUAGES } from './deepgram-stt.js';
 import { ClaudeConversation } from './claude-conversation.js';
 import {
   createCall, getCall, getCallByStreamSid, updateCall,
@@ -52,6 +53,7 @@ const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE = process.env.TWILIO_PHONE_NUMBER;
 const CARTESIA_KEY = process.env.CARTESIA_API_KEY;
+const DEEPGRAM_KEY = process.env.DEEPGRAM_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -367,7 +369,7 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
     greetingText = generateCustomGreeting(language, gender, 'VoxBharat Survey');
   }
 
-  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85 })
+  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
     .then(mulawBase64 => {
       greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
       console.log(`[Call:${call.id}] Greeting audio pre-cached`);
@@ -507,7 +509,7 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
     greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName);
   }
 
-  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.85 })
+  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
     .then(mulawBase64 => {
       greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
       console.log(`[Inbound:${call.id}] Greeting audio pre-cached`);
@@ -1205,9 +1207,23 @@ async function initSession(callId, call, ws, streamSid) {
     partialFallbackTimer: null,
   };
 
-  // Create Cartesia STT - uses sessionObj directly (no separate closure vars)
-  const stt = new CartesiaSTT(CARTESIA_KEY, {
-    language: call.autoDetectLanguage ? 'auto' : call.language,
+  // Select STT provider — default to cartesia, fallback for unsupported Deepgram languages
+  const requestedSttProvider = call.customSurvey?.sttProvider || 'cartesia';
+  const sttLanguage = call.autoDetectLanguage ? 'auto' : call.language;
+  const effectiveSttProvider = (requestedSttProvider === 'deepgram' && DEEPGRAM_KEY &&
+    (sttLanguage === 'auto' || DEEPGRAM_SUPPORTED_LANGUAGES.has(sttLanguage)))
+    ? 'deepgram' : 'cartesia';
+  if (requestedSttProvider !== effectiveSttProvider) {
+    console.log(`[Call:${callId}] STT fallback: ${requestedSttProvider} → ${effectiveSttProvider} (language ${sttLanguage} unsupported or key missing)`);
+  }
+  sessionObj.sttProvider = effectiveSttProvider;
+  console.log(`[Call:${callId}] STT provider: ${effectiveSttProvider}`);
+
+  // Create STT client - uses sessionObj directly (no separate closure vars)
+  const SttClass = effectiveSttProvider === 'deepgram' ? DeepgramSTT : CartesiaSTT;
+  const sttApiKey = effectiveSttProvider === 'deepgram' ? DEEPGRAM_KEY : CARTESIA_KEY;
+  const stt = new SttClass(sttApiKey, {
+    language: sttLanguage,
     onFlushDone: () => {
       console.log(`[STT:${callId}] Flush done acknowledged`);
     },
@@ -1217,10 +1233,10 @@ async function initSession(callId, call, ws, streamSid) {
       // Track STT-detected language for auto-detect mode
       if (detectedLang && sessionObj.call.autoDetectLanguage) {
         sessionObj.sttDetectedLanguage = detectedLang;
-        console.log(`[STT:${callId}] Language field from Cartesia: "${detectedLang}"`);
+        console.log(`[STT:${callId}] Detected language: "${detectedLang}"`);
 
         // On first non-English detection, reconnect STT with that specific language
-        // Auto-detect mode gives us the language but garbles the transcription —
+        // Auto-detect mode gives us the language but may garble the transcription —
         // reconnecting with the correct language gives clean text for subsequent utterances
         if (detectedLang !== 'en' && !sessionObj.sttLanguageLocked) {
           sessionObj.sttLanguageLocked = true;
@@ -1688,11 +1704,13 @@ async function processUserSpeech(callId, text) {
 
       // Split text at natural sentence boundaries — avoid tiny fragments that cause voice resets.
       // Each split = separate TTS call with ~200-500ms gap, so split sparingly.
+      // Indic languages: split more aggressively to reduce perceived latency.
       if (langTagParsed && emotionTagParsed && pendingText.trim().length > 2) {
         const trimLen = pendingText.trim().length;
+        const isIndic = INDIC_LANGUAGES.has(ttsLanguage);
         const sentenceEnd = /[.!?।]\s*$/.test(pendingText);
-        const clauseBreak = trimLen > 180 && /[,;:—]\s*$/.test(pendingText);
-        const longChunk = trimLen > 250;
+        const clauseBreak = trimLen > (isIndic ? 80 : 180) && /[,;:—।]\s*$/.test(pendingText);
+        const longChunk = trimLen > (isIndic ? 120 : 250);
 
         if (sentenceEnd || clauseBreak || longChunk) {
           const sentence = pendingText.trim();
@@ -1802,20 +1820,21 @@ const VALID_EMOTIONS = new Set(['neutral', 'angry', 'excited', 'content', 'sad',
 // Speed varies by emotion to sound more natural:
 // Base speed is 0.85 (phone-call pacing), adjusted per emotion
 const EMOTION_SPEED = {
-  sympathetic: 0.8,
-  sad: 0.8,
-  curious: 0.85,
-  neutral: 0.85,
-  confident: 0.85,
-  content: 0.85,
-  enthusiastic: 0.9,
-  excited: 0.9,
-  triumphant: 0.9,
-  angry: 0.85,
-  scared: 0.85,
-  surprised: 0.85,
+  sympathetic: 0.9,
+  sad: 0.85,
+  curious: 0.95,
+  neutral: 0.95,
+  confident: 0.95,
+  content: 0.95,
+  enthusiastic: 1.0,
+  excited: 1.0,
+  triumphant: 1.0,
+  angry: 0.95,
+  scared: 0.9,
+  surprised: 0.95,
 };
-const DEFAULT_TTS_SPEED = 0.85;
+const DEFAULT_TTS_SPEED = 0.95;
+const INDIC_LANGUAGES = new Set(['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa']);
 
 async function speakSentence(session, text, language, emotion = null) {
   if (!session || session.isEnding || session.interrupted) return;
