@@ -59,37 +59,31 @@ function getEmotionInstructions(hasLangTag = false) {
     : 'You MUST prefix EVERY response with [EMOTION:xxx] at the very start.';
 
   return `
-VOICE EMOTION TAGS — REQUIRED ON EVERY RESPONSE:
-${prefix} Choose the most fitting emotion for the conversational moment.
+VOICE TONE — REQUIRED ON EVERY RESPONSE:
+${prefix}
 
-Available emotions by category:
-  WARM (greetings, thank-yous, positive acknowledgments):
-    content — calm, warm, satisfied
-    enthusiastic — eager, energetic
-  CURIOUS (asking questions, probing, follow-ups):
-    curious — inquisitive, interested
-  EMPATHETIC (respondent shares struggles, sensitive topics, personal stories):
-    sympathetic — compassionate, understanding
-  ENCOURAGING (affirmations, wrapping up, positive reinforcement):
-    confident — assured, steady
-  NEUTRAL (factual transitions, reading back information):
-    neutral — flat, default
+IMPORTANT: Use [EMOTION:content] for the VAST MAJORITY of your responses. This gives a warm, natural, calm speaking voice — like a real person having a normal conversation. Do NOT keep switching between different emotions — that sounds robotic and performative.
 
-When to use each:
-- Asking a survey question → curious
-- Warmly acknowledging an answer → content
-- Respondent shares something personal or difficult → sympathetic
-- Giving positive reinforcement or thanking them → confident
-- Excited about their participation or starting the survey → enthusiastic
-- Pure transitional or factual statement → neutral
-- Respondent declines or wants to end the call → sympathetic
+Available tones:
+  content — warm, calm, natural (USE THIS 90% OF THE TIME)
+  sympathetic — gentle, compassionate (ONLY when they share something difficult or decline the call)
+  enthusiastic — upbeat, energetic (ONLY for the very first greeting/welcome, nowhere else)
 
-Examples:
-  [EMOTION:curious] Achha, aur aap batao ki aapki umar kya hai?
-  [EMOTION:sympathetic] Haan, yeh toh mushkil hota hai, samajh sakta hoon.
-  [EMOTION:content] Bahut accha, shukriya batane ke liye.
-  [EMOTION:confident] Chaliye, ab last sawaal hai.
-  [EMOTION:sympathetic] Arey bilkul, koi baat nahi! Aapne phone uthaya yehi bahut acchi baat hai. Aapka din accha jaaye!
+That's it. Three options. Default to content.
+
+BAD (sounds like a robot performing emotions):
+  [EMOTION:curious] Aapki umar kya hai?
+  [EMOTION:content] Achha nice.
+  [EMOTION:curious] Aur aapka dharm kya hai?
+  [EMOTION:confident] Bahut accha!
+  (Switching emotions every sentence sounds fake and jarring)
+
+GOOD (sounds like a real person — mostly warm and steady):
+  [EMOTION:content] Achha, aur aap batao ki aapki umar kya hai?
+  [EMOTION:content] Nice nice. Aur aapka dharm kya hai?
+  [EMOTION:content] Hmm interesting. Toh would you say religion plays a big role in your day-to-day?
+  [EMOTION:sympathetic] Haan, yeh toh mushkil hota hai... samajh sakti hoon.
+  (Same warm tone throughout, only shifting for genuinely emotional moments)
 
 The [EMOTION:xxx] tag is metadata for the voice system — NEVER read it aloud or reference it. NEVER skip it.`;
 }

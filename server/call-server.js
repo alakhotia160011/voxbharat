@@ -1834,23 +1834,13 @@ async function processUserSpeech(callId, text) {
  */
 const VALID_EMOTIONS = new Set(['neutral', 'angry', 'excited', 'content', 'sad', 'scared', 'enthusiastic', 'triumphant', 'sympathetic', 'confident', 'curious', 'surprised']);
 
-// Speed varies by emotion to sound more natural:
-// Base speed is 0.85 (phone-call pacing), adjusted per emotion
+// Consistent speed for natural-sounding speech — avoid jarring pace changes between emotions
 const EMOTION_SPEED = {
-  sympathetic: 0.9,
-  sad: 0.85,
-  curious: 0.95,
-  neutral: 0.95,
-  confident: 0.95,
   content: 0.95,
+  sympathetic: 0.9,
   enthusiastic: 1.0,
-  excited: 1.0,
-  triumphant: 1.0,
-  angry: 0.95,
-  scared: 0.9,
-  surprised: 0.95,
 };
-const DEFAULT_TTS_SPEED = 0.9;
+const DEFAULT_TTS_SPEED = 0.95;
 const INDIC_LANGUAGES = new Set(['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa']);
 
 async function speakSentence(session, text, language, emotion = null) {
