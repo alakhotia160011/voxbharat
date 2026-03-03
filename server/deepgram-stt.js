@@ -52,11 +52,11 @@ export class DeepgramSTT {
       url.searchParams.set('vad_events', 'true');
       // utterance_end_ms removed — causes 400 on free tier / Nova-3
 
-      // Language: 'auto' → start with 'en' (greeting is English).
+      // Language: 'auto' → start with 'hi' (greeting is Hindi).
       // Deepgram's 'multi' code-switching mode returns 400 on some plans.
-      // Language switch happens via switchLanguage() when non-English is detected.
+      // Language switch happens via switchLanguage() when non-English/non-Hindi is detected.
       if (this.language === 'auto') {
-        url.searchParams.set('language', 'en');
+        url.searchParams.set('language', 'hi');
       } else {
         url.searchParams.set('language', this.language);
       }
