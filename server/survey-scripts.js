@@ -496,17 +496,17 @@ export function generateCustomGreeting(language, gender, surveyName, companyName
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `Namaste! Mein ${name}, ${brand} se bol ${verb} hoon. "${surveyName}" ke baare mein aapki raaye bahut important hai humein — bas ek minute lagega. Kya aap baat kar sakte hain?`;
+      return `Namaste! Mein ${name}, ${brand} se bol ${verb} hoon. Hum ${surveyName} ke baare mein aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?`;
     },
-    bn: () => `নমস্কার! আমি ${name}, ${brand} থেকে বলছি। "${surveyName}" সম্পর্কে আপনার মতামত আমাদের কাছে খুব গুরুত্বপূর্ণ — মাত্র এক মিনিট লাগবে। কথা বলতে পারবেন?`,
-    te: () => `నమస్కారం! నేను ${name}, ${brand} నుండి మాట్లాడుతున్నాను. "${surveyName}" గురించి మీ అభిప్రాయం మాకు చాలా ముఖ్యం — ఒక్క నిమిషం పడుతుంది. మాట్లాడగలరా?`,
-    mr: () => `नमस्कार! मी ${name}, ${brand} कडून बोलत आहे. "${surveyName}" बद्दल तुमचे मत आम्हाला खूप महत्त्वाचे आहे — फक्त एक मिनिट लागेल. बोलू शकता का?`,
-    ta: () => `வணக்கம்! நான் ${name}, ${brand} இருந்து பேசுகிறேன். "${surveyName}" பற்றி உங்கள் கருத்து எங்களுக்கு மிக முக்கியம் — ஒரு நிமிடம் தான். பேச முடியுமா?`,
-    gu: () => `નમસ્તે! હું ${name}, ${brand} તરફથી બોલી રહ્યો છું. "${surveyName}" વિશે તમારો અભિપ્રાય અમારા માટે ખૂબ મહત્વપૂર્ણ છે — બસ એક મિનિટ લાગશે. વાત કરી શકશો?`,
-    kn: () => `ನಮಸ್ಕಾರ! ನಾನು ${name}, ${brand} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ನಮಗೆ ತುಂಬಾ ಮುಖ್ಯ — ಒಂದೇ ನಿಮಿಷ ಸಾಕು. ಮಾತನಾಡಬಹುದಾ?`,
-    ml: () => `നമസ്കാരം! ഞാൻ ${name}, ${brand} ൽ നിന്ന് വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച് നിങ്ങളുടെ അഭിപ്രായം ഞങ്ങൾക്ക് വളരെ പ്രധാനമാണ് — ഒരു മിനിറ്റ് മാത്രം. സംസാരിക്കാമോ?`,
-    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}, ${brand} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਤੁਹਾਡੀ ਰਾਏ ਸਾਡੇ ਲਈ ਬਹੁਤ ਜ਼ਰੂਰੀ ਹੈ — ਬੱਸ ਇੱਕ ਮਿੰਟ ਲੱਗੇਗਾ। ਗੱਲ ਕਰ ਸਕਦੇ ਹੋ?`,
-    en: () => `Hi there! This is ${name} from ${brandEn}. Your opinion on "${surveyName}" really matters to us — it'll just take a minute. Can you chat?`,
+    bn: () => `নমস্কার! আমি ${name}, ${brand} থেকে বলছি। আমরা ${surveyName} সম্পর্কে আপনার মতামত জানতে চাই — মাত্র এক মিনিট লাগবে। কথা বলতে পারবেন?`,
+    te: () => `నమస్కారం! నేను ${name}, ${brand} నుండి మాట్లాడుతున్నాను. ${surveyName} గురించి మీ అభిప్రాయం తెలుసుకోవాలనుకుంటున్నాము — ఒక్క నిమిషం పడుతుంది. మాట్లాడగలరా?`,
+    mr: () => `नमस्कार! मी ${name}, ${brand} कडून बोलत आहे. आम्हाला ${surveyName} बद्दल तुमचे मत जाणून घ्यायचे आहे — फक्त एक मिनिट लागेल. बोलू शकता का?`,
+    ta: () => `வணக்கம்! நான் ${name}, ${brand} இருந்து பேசுகிறேன். ${surveyName} பற்றி உங்கள் கருத்தை தெரிந்துகொள்ள விரும்புகிறோம் — ஒரு நிமிடம் தான். பேச முடியுமா?`,
+    gu: () => `નમસ્તે! હું ${name}, ${brand} તરફથી બોલી રહ્યો છું. અમે ${surveyName} વિશે તમારો અભિપ્રાય જાણવા માંગીએ છીએ — બસ એક મિનિટ લાગશે. વાત કરી શકશો?`,
+    kn: () => `ನಮಸ್ಕಾರ! ನಾನು ${name}, ${brand} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. ${surveyName} ಬಗ್ಗೆ ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ತಿಳಿಯಲು ಬಯಸುತ್ತೇವೆ — ಒಂದೇ ನಿಮಿಷ ಸಾಕು. ಮಾತನಾಡಬಹುದಾ?`,
+    ml: () => `നമസ്കാരം! ഞാൻ ${name}, ${brand} ൽ നിന്ന് വിളിക്കുന്നു. ${surveyName} സംബന്ധിച്ച് നിങ്ങളുടെ അഭിപ്രായം അറിയാൻ ആഗ്രഹിക്കുന്നു — ഒരു മിനിറ്റ് മാത്രം. സംസാരിക്കാമോ?`,
+    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}, ${brand} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। ਅਸੀਂ ${surveyName} ਬਾਰੇ ਤੁਹਾਡੀ ਰਾਏ ਜਾਣਨਾ ਚਾਹੁੰਦੇ ਹਾਂ — ਬੱਸ ਇੱਕ ਮਿੰਟ ਲੱਗੇਗਾ। ਗੱਲ ਕਰ ਸਕਦੇ ਹੋ?`,
+    en: () => `Hi there! This is ${name} from ${brandEn}. We'd love to know your thoughts on ${surveyName} — it'll just take a minute. Can you chat?`,
   };
 
   const greetingFn = greetings[language] || greetings.hi;
