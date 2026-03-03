@@ -52,9 +52,11 @@ export class DeepgramSTT {
       url.searchParams.set('vad_events', 'true');
       url.searchParams.set('utterance_end_ms', '700');
 
-      // Language: 'auto' → 'multi' for Deepgram's code-switching mode
+      // Language: 'auto' → start with 'en' (greeting is English).
+      // Deepgram's 'multi' code-switching mode returns 400 on some plans.
+      // Language switch happens via switchLanguage() when non-English is detected.
       if (this.language === 'auto') {
-        url.searchParams.set('language', 'multi');
+        url.searchParams.set('language', 'en');
       } else {
         url.searchParams.set('language', this.language);
       }
