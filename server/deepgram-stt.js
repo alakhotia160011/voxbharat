@@ -20,7 +20,7 @@ const DEEPGRAM_MULTI_LANGUAGES = new Set([
  */
 export class DeepgramSTT {
   constructor(apiKey, options = {}) {
-    this.apiKey = apiKey;
+    this.apiKey = (apiKey || '').trim();
     this.language = options.language || 'hi';
     this.encoding = options.encoding || 'linear16';
     this.sampleRate = options.sampleRate || '16000';
@@ -59,14 +59,20 @@ export class DeepgramSTT {
         url.searchParams.set('language', this.language);
       }
 
-      this.ws = new WebSocket(url.toString(), {
+      const fullUrl = url.toString();
+      console.log(`[DG-STT] Connecting to: ${fullUrl.replace(/Token\s+\S+/, 'Token ***')}`);
+      console.log(`[DG-STT] API key present: ${!!this.apiKey}, length: ${(this.apiKey || '').length}`);
+
+      this.ws = new WebSocket(fullUrl, {
         headers: { Authorization: `Token ${this.apiKey}` },
       });
+      this.audioFramesSent = 0;
+      this.messagesReceived = 0;
 
       this.ws.on('open', () => {
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        console.log(`[DG-STT] Connected, language=${this.language === 'auto' ? 'multi (auto-detect)' : this.language}`);
+        console.log(`[DG-STT] Connected OK, language=${this.language === 'auto' ? 'multi (auto-detect)' : this.language}, encoding=${this.encoding}, rate=${this.sampleRate}`);
 
         // Deepgram disconnects after 10s of no audio — send keepalive every 5s
         this._startKeepAlive();
@@ -75,7 +81,11 @@ export class DeepgramSTT {
 
       this.ws.on('message', (data) => {
         try {
+          this.messagesReceived++;
           const msg = JSON.parse(data.toString());
+          if (this.messagesReceived <= 3) {
+            console.log(`[DG-STT] Message #${this.messagesReceived}: type=${msg.type}, keys=${Object.keys(msg).join(',')}`);
+          }
           this._handleMessage(msg);
         } catch (err) {
           this.onError('[DG-STT] Parse error:', err);
@@ -97,6 +107,16 @@ export class DeepgramSTT {
       this.ws.on('error', (err) => {
         this.onError('[DG-STT] WebSocket error:', err.message);
         if (!this.isConnected) reject(err);
+      });
+
+      // Capture HTTP response body on connection rejection (e.g. 400/401)
+      this.ws.on('unexpected-response', (req, res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => {
+          console.error(`[DG-STT] Connection rejected: HTTP ${res.statusCode} — ${body}`);
+          reject(new Error(`Deepgram rejected connection: ${res.statusCode} — ${body}`));
+        });
       });
     });
   }
