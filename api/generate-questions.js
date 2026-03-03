@@ -51,7 +51,7 @@ SURVEY CONFIGURATION:
 - Brand Names (if market research): ${config.brandNames || 'None'}
 
 INSTRUCTIONS:
-1. Generate 5-8 survey questions tailored to this specific survey's purpose, audience, and goals.
+1. Generate the right number of questions based on the target duration above. A voice conversation covers roughly 2-3 questions per minute. So: 1 min → 2-3 questions, 2 min → 3-5 questions, 4 min → 6-8 questions, 5 min → 8-10 questions, 10 min → 12-15 questions. Tailor to the survey's purpose, audience, and goals.
 2. Each question MUST be written in ${langName} script as the primary text, with an English translation.
 3. Questions should feel natural for a voice conversation — conversational, not formal or bureaucratic.
 4. Include a mix of question types: single choice, multiple choice, likert scale, rating, open-ended, yes/no as appropriate.

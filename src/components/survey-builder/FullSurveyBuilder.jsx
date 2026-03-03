@@ -180,7 +180,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       analysisGoals: '',
 
       // Settings
-      duration: 10,
+      duration: 2,
       tone: 'conversational',
       sensitivity: 'low',
 
@@ -1000,7 +1000,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   <div>
                     <label className="block text-sm text-gray-600 mb-2">Target Duration</label>
                     <div className="flex gap-2">
-                      {[5, 10, 15, 20].map(d => (
+                      {[1, 2, 4, 5, 10].map(d => (
                         <button
                           key={d}
                           onClick={() => setConfig({ ...config, duration: d })}
@@ -1013,7 +1013,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                       ))}
                     </div>
                     <p className="text-xs text-gray-400 mt-2">
-                      {config.duration <= 10 ? '\u2713 Optimal for voice' : '! May reduce completion'}
+                      {config.duration <= 5 ? '\u2713 Optimal for voice' : '! May reduce completion'}
                     </p>
                   </div>
 
