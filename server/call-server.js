@@ -1096,7 +1096,7 @@ wss.on('connection', (ws) => {
               }
             } else if (session.lastSpeechTime && !session.hasFlushedSinceLastFinal) {
               const silenceMs = Date.now() - session.lastSpeechTime;
-              if (silenceMs > 300 && !session.flushTimer) {
+              if (silenceMs > 150 && !session.flushTimer) {
                 session.flushTimer = setTimeout(() => {
                   session.flushTimer = null;
                   if (!session.hasFlushedSinceLastFinal && session.stt?.isConnected) {
