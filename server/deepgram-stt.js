@@ -66,7 +66,7 @@ export class DeepgramSTT {
       const k = this.apiKey || '';
       console.log(`[DG-STT] API key present: ${!!this.apiKey}, length: ${k.length}, preview: ${k.slice(0,4)}...${k.slice(-4)}`);
 
-      this.ws = new WebSocket(fullUrl, {
+      this.ws = new WebSocket(fullUrl, ['token', this.apiKey], {
         headers: { Authorization: `Token ${this.apiKey}` },
       });
       this.audioFramesSent = 0;
