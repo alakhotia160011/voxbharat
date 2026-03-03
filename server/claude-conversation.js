@@ -52,16 +52,17 @@ export class ClaudeConversation {
       const surveyName = this.customSurvey?.name || 'our survey';
       const lang = this.autoDetectLanguage ? 'en' : this.language;
       if (this.inboundType === 'callback') {
-        greeting = generateCallbackGreeting(lang, this.gender, surveyName);
+        greeting = generateCallbackGreeting(lang, this.gender, surveyName, this.customSurvey?.companyName);
       } else {
-        greeting = this.customGreeting || generateInboundGreeting(lang, this.gender, surveyName);
+        greeting = this.customGreeting || generateInboundGreeting(lang, this.gender, surveyName, this.customSurvey?.companyName);
       }
     } else if (this.autoDetectLanguage) {
       const hiName = getVoiceName('hi', this.gender);
       const verb = this.gender === 'female' ? 'rahi' : 'raha';
-      greeting = `Namaste! Main ${hiName}, VoxBharat se bol ${verb} hoon. Aapke paas bas do minute hain? Hum ek chhota sa survey kar rahe hain, aapki raaye sunna chahte hain.`;
+      const autoOrgName = this.customSurvey?.companyName || 'VoxBharat';
+      greeting = `Namaste! Main ${hiName}, ${autoOrgName} se bol ${verb} hoon. Aapke paas bas do minute hain? Hum ek chhota sa survey kar rahe hain, aapki raaye sunna chahte hain.`;
     } else if (this.customSurvey) {
-      greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name);
+      greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name, this.customSurvey.companyName);
     } else if (SURVEY_SCRIPTS[this.language]) {
       greeting = generateCustomGreeting(this.language, this.gender, SURVEY_SCRIPTS[this.language].name);
     } else {

@@ -190,6 +190,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       budget: '',
       previousSurveyLink: '',
       brandNames: '',
+      companyName: '',
       companyUrl: '',
       companyContext: '',
       callTiming: ['morning', 'afternoon', 'evening'],
@@ -221,6 +222,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       base.budget = initialSurvey.budget || '';
       base.previousSurveyLink = initialSurvey.previousSurveyLink || '';
       base.brandNames = initialSurvey.brandNames || '';
+      base.companyName = initialSurvey.companyName || '';
       base.companyUrl = initialSurvey.companyUrl || '';
       base.companyContext = initialSurvey.companyContext || '';
       base.callTiming = initialSurvey.callTiming || ['morning', 'afternoon', 'evening'];
@@ -372,6 +374,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
             budget: config.budget || '',
             previousSurveyLink: config.previousSurveyLink || '',
             brandNames: config.brandNames || '',
+            companyName: config.companyName || '',
             companyUrl: config.companyUrl || '',
             companyContext: config.companyContext || '',
             callTiming: config.callTiming || [],
@@ -642,6 +645,19 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   />
                 </div>
               )}
+
+              {/* Company / Organization Name */}
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-1">Company / Organization Name</label>
+                <p className="text-xs text-earth-mid/60 font-body mb-3">The AI agent will introduce itself as calling from this organization instead of VoxBharat.</p>
+                <input
+                  type="text"
+                  value={config.companyName}
+                  onChange={(e) => setConfig({ ...config, companyName: e.target.value })}
+                  placeholder="e.g., FullTrack, ICICI Bank, Tata Research"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                />
+              </div>
 
               {/* Company Website Context */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">

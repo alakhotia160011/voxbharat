@@ -473,9 +473,10 @@ Be precise. Map the respondent's answers to the closest option value. If an answ
 /**
  * Generate a greeting for a custom survey
  */
-export function generateCustomGreeting(language, gender, surveyName) {
+export function generateCustomGreeting(language, gender, surveyName, companyName) {
   const name = getVoiceName(language, gender);
-  const brand = VOXBHARAT_NATIVE[language] || 'VoxBharat';
+  const brand = companyName || VOXBHARAT_NATIVE[language] || 'VoxBharat';
+  const brandEn = companyName || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
@@ -489,7 +490,7 @@ export function generateCustomGreeting(language, gender, surveyName) {
     kn: () => `ನಮಸ್ಕಾರ! ನಾನು ${name}, ${brand} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಒಂದು ಸಣ್ಣ ಸಮೀಕ್ಷೆಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
     ml: () => `നമസ്കാരം! ഞാൻ ${name}, ${brand} ൽ നിന്ന് വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ഒരു ചെറിയ സർവേയ്ക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
     pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}, ${brand} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਇੱਕ ਛੋਟੇ ਸਰਵੇ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
-    en: () => `Hi there! This is ${name} from VoxBharat. Hey, I was wondering if you had just a couple of minutes? We're doing a quick survey on "${surveyName}" and I'd love to hear your thoughts.`,
+    en: () => `Hi there! This is ${name} from ${brandEn}. Hey, I was wondering if you had just a couple of minutes? We're doing a quick survey on "${surveyName}" and I'd love to hear your thoughts.`,
   };
 
   const greetingFn = greetings[language] || greetings.hi;
@@ -499,9 +500,10 @@ export function generateCustomGreeting(language, gender, surveyName) {
 /**
  * Generate greeting for standalone inbound calls (caller dialed in).
  */
-export function generateInboundGreeting(language, gender, surveyName) {
+export function generateInboundGreeting(language, gender, surveyName, companyName) {
   const name = getVoiceName(language, gender);
-  const brand = VOXBHARAT_NATIVE[language] || 'VoxBharat';
+  const brand = companyName || VOXBHARAT_NATIVE[language] || 'VoxBharat';
+  const brandEn = companyName || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
@@ -515,7 +517,7 @@ export function generateInboundGreeting(language, gender, surveyName) {
     kn: () => `ನಮಸ್ಕಾರ! ${brand}‌ಗೆ ಸ್ವಾಗತ. ನಾನು ${name} ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಕೆಲವು ಪ್ರಶ್ನೆಗಳಿಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
     ml: () => `നമസ്കാരം! ${brand}-ലേക്ക് സ്വാഗതം. ഞാൻ ${name} വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ചില ചോദ്യങ്ങൾക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
     pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ${brand} ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ। ਮੈਂ ${name} ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਕੁਝ ਸਵਾਲਾਂ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
-    en: () => `Thank you for calling! I'm ${name} at VoxBharat, ready to help with our "${surveyName}" survey. Do you have a few minutes to share your thoughts?`,
+    en: () => `Thank you for calling! I'm ${name} at ${brandEn}, ready to help with our "${surveyName}" survey. Do you have a few minutes to share your thoughts?`,
   };
   return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
 }
@@ -523,9 +525,10 @@ export function generateInboundGreeting(language, gender, surveyName) {
 /**
  * Generate greeting for campaign callbacks (caller returning a missed call).
  */
-export function generateCallbackGreeting(language, gender, surveyName) {
+export function generateCallbackGreeting(language, gender, surveyName, companyName) {
   const name = getVoiceName(language, gender);
-  const brand = VOXBHARAT_NATIVE[language] || 'VoxBharat';
+  const brand = companyName || VOXBHARAT_NATIVE[language] || 'VoxBharat';
+  const brandEn = companyName || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
@@ -539,7 +542,7 @@ export function generateCallbackGreeting(language, gender, surveyName) {
     kn: () => `ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ. ನಾನು ${name}, ${brand} ನಿಂದ. "${surveyName}" ಬಗ್ಗೆ ನಿಮಗೆ ಮೊದಲು ಕರೆ ಮಾಡಿದ್ದೆವು. ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
     ml: () => `നമസ്കാരം! തിരിച്ചു വിളിച്ചതിന് നന്ദി. ഞാൻ ${name}, ${brand} ൽ നിന്ന്. "${surveyName}" സംബന്ധിച്ച് മുമ്പ് നിങ്ങളെ വിളിച്ചിരുന്നു. കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
     pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਲਈ ਧੰਨਵਾਦ। ਮੈਂ ${name}, ${brand} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। ਅਸੀਂ ਤੁਹਾਨੂੰ "${surveyName}" ਬਾਰੇ ਪਹਿਲਾਂ ਕਾਲ ਕੀਤਾ ਸੀ। ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
-    en: () => `Hello! Thank you for calling back. I'm ${name} from VoxBharat. We tried reaching you earlier about "${surveyName}". Do you have a few minutes to share your thoughts?`,
+    en: () => `Hello! Thank you for calling back. I'm ${name} from ${brandEn}. We tried reaching you earlier about "${surveyName}". Do you have a few minutes to share your thoughts?`,
   };
   return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
 }
