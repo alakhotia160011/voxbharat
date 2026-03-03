@@ -22,6 +22,8 @@ export class DeepgramSTT {
   constructor(apiKey, options = {}) {
     this.apiKey = apiKey;
     this.language = options.language || 'hi';
+    this.encoding = options.encoding || 'linear16';
+    this.sampleRate = options.sampleRate || '16000';
     this.ws = null;
     this.isConnected = false;
     this.onTranscript = options.onTranscript || (() => {});
@@ -41,14 +43,14 @@ export class DeepgramSTT {
     return new Promise((resolve, reject) => {
       const url = new URL('wss://api.deepgram.com/v1/listen');
       url.searchParams.set('model', 'nova-3');
-      url.searchParams.set('encoding', 'linear16');
-      url.searchParams.set('sample_rate', '16000');
+      url.searchParams.set('encoding', this.encoding);
+      url.searchParams.set('sample_rate', this.sampleRate);
       url.searchParams.set('punctuate', 'true');
       url.searchParams.set('interim_results', 'true');
-      url.searchParams.set('smart_format', 'true');
-      url.searchParams.set('endpointing', '300');
+      // smart_format deliberately disabled — it adds up to 3s delay waiting for entity completion
+      url.searchParams.set('endpointing', '150');
       url.searchParams.set('vad_events', 'true');
-      url.searchParams.set('utterance_end_ms', '1000');
+      url.searchParams.set('utterance_end_ms', '700');
 
       // Language: 'auto' → 'multi' for Deepgram's code-switching mode
       if (this.language === 'auto') {
@@ -113,8 +115,9 @@ export class DeepgramSTT {
         // Extract detected language from word-level or alternatives-level
         const language = alt.languages?.[0] || null;
 
-        console.log(`[DG-STT] ${isFinal ? 'FINAL' : 'partial'}: "${text}"${msg.speech_final ? ' [utterance end]' : ''}`);
-        this.onTranscript({ text, isFinal, language });
+        const speechFinal = msg.speech_final || false;
+        console.log(`[DG-STT] ${isFinal ? 'FINAL' : 'partial'}: "${text}"${speechFinal ? ' [speech_final]' : ''}`);
+        this.onTranscript({ text, isFinal, language, speechFinal });
 
         // Deepgram's Finalize response has from_finalize: true — treat as flush acknowledgment
         if (msg.from_finalize) {

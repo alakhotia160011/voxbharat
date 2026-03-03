@@ -1069,38 +1069,44 @@ wss.on('connection', (ws) => {
           // After greeting, keep STT active during AI speech for barge-in detection
           if (session.isAiSpeaking && !session.greetingDone) break;
 
-          // Convert mulaw 8kHz -> PCM s16le 16kHz and send to STT
-          const pcmAudio = mulawToPcm16k(msg.media.payload);
-          session.stt.sendAudio(pcmAudio);
+          // Send audio to STT provider in its preferred encoding
+          if (session.sttProvider === 'deepgram') {
+            // Deepgram: send raw mulaw 8kHz (skip expensive PCM conversion)
+            const rawMulaw = Buffer.from(msg.media.payload, 'base64');
+            session.stt.sendAudio(rawMulaw);
+            // Deepgram has native endpointing — no local VAD needed
+          } else {
+            // Cartesia: needs PCM s16le 16kHz
+            const pcmAudio = mulawToPcm16k(msg.media.payload);
+            session.stt.sendAudio(pcmAudio);
 
-          // VAD-based flush: detect silence after speech and flush STT
-          // to force Cartesia to finalize short utterances like "haan"/"nahi"
-          if (session.greetingDone && !session.isAiSpeaking) {
-            const samples = new Int16Array(pcmAudio.buffer, pcmAudio.byteOffset, pcmAudio.length / 2);
-            let sumSq = 0;
-            for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
-            const rms = Math.sqrt(sumSq / samples.length);
+            // VAD-based flush: detect silence after speech and flush STT
+            // to force Cartesia to finalize short utterances like "haan"/"nahi"
+            if (session.greetingDone && !session.isAiSpeaking) {
+              const samples = new Int16Array(pcmAudio.buffer, pcmAudio.byteOffset, pcmAudio.length / 2);
+              let sumSq = 0;
+              for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
+              const rms = Math.sqrt(sumSq / samples.length);
 
-            if (rms > 300) {
-              // Speech detected — mark active, cancel any pending flush
-              session.lastSpeechTime = Date.now();
-              session.hasFlushedSinceLastFinal = false;
-              if (session.flushTimer) {
-                clearTimeout(session.flushTimer);
-                session.flushTimer = null;
-              }
-            } else if (session.lastSpeechTime && !session.hasFlushedSinceLastFinal) {
-              // Silence after speech — schedule flush if not already pending
-              const silenceMs = Date.now() - session.lastSpeechTime;
-              if (silenceMs > 300 && !session.flushTimer) {
-                session.flushTimer = setTimeout(() => {
+              if (rms > 300) {
+                session.lastSpeechTime = Date.now();
+                session.hasFlushedSinceLastFinal = false;
+                if (session.flushTimer) {
+                  clearTimeout(session.flushTimer);
                   session.flushTimer = null;
-                  if (!session.hasFlushedSinceLastFinal && session.stt?.isConnected) {
-                    console.log(`[STT:${callId}] VAD flush after ${Date.now() - session.lastSpeechTime}ms silence`);
-                    session.stt.flush();
-                    session.hasFlushedSinceLastFinal = true;
-                  }
-                }, 200);
+                }
+              } else if (session.lastSpeechTime && !session.hasFlushedSinceLastFinal) {
+                const silenceMs = Date.now() - session.lastSpeechTime;
+                if (silenceMs > 300 && !session.flushTimer) {
+                  session.flushTimer = setTimeout(() => {
+                    session.flushTimer = null;
+                    if (!session.hasFlushedSinceLastFinal && session.stt?.isConnected) {
+                      console.log(`[STT:${callId}] VAD flush after ${Date.now() - session.lastSpeechTime}ms silence`);
+                      session.stt.flush();
+                      session.hasFlushedSinceLastFinal = true;
+                    }
+                  }, 100);
+                }
               }
             }
           }
@@ -1224,10 +1230,12 @@ async function initSession(callId, call, ws, streamSid) {
   const sttApiKey = effectiveSttProvider === 'deepgram' ? DEEPGRAM_KEY : CARTESIA_KEY;
   const stt = new SttClass(sttApiKey, {
     language: sttLanguage,
+    // Deepgram: accept mulaw 8kHz directly from Twilio (skip PCM conversion)
+    ...(effectiveSttProvider === 'deepgram' && { encoding: 'mulaw', sampleRate: '8000' }),
     onFlushDone: () => {
       console.log(`[STT:${callId}] Flush done acknowledged`);
     },
-    onTranscript: ({ text, isFinal, language: detectedLang }) => {
+    onTranscript: ({ text, isFinal, language: detectedLang, speechFinal }) => {
       if (sessionObj.isEnding || sessionObj.isVoicemail) return;
 
       // Track STT-detected language for auto-detect mode
@@ -1326,7 +1334,7 @@ async function initSession(callId, call, ws, streamSid) {
                 sessionObj.accumulatedText = [];
                 processUserSpeech(callId, fullText);
               }
-            }, 400); // Short post-barge-in window
+            }, 250); // Short post-barge-in window
           }
         }
         return;
@@ -1354,7 +1362,7 @@ async function initSession(callId, call, ws, streamSid) {
                 processUserSpeech(callId, fullText);
               }
             }
-          }, 1500);
+          }, 800);
         }
       }
 
@@ -1399,19 +1407,17 @@ async function initSession(callId, call, ws, streamSid) {
               sessionObj.accumulatedText = [];
               processUserSpeech(callId, fullText);
             }
-          }, 1200); // 1.2s after a filler — they need time to continue
-          // Re-set maxWaitTimer so hesitation can't cause infinite accumulation.
-          // 5s ceiling gives generous thinking time but guarantees eventual processing.
+          }, 900); // 0.9s after a filler — give time to continue but stay responsive
           sessionObj.maxWaitTimer = setTimeout(() => {
             sessionObj.maxWaitTimer = null;
             if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
-              console.log(`[STT:${callId}] Max wait (5s post-hesitation) reached — processing accumulated text`);
+              console.log(`[STT:${callId}] Max wait (3.5s post-hesitation) reached — processing accumulated text`);
               if (sessionObj.silenceTimer) { clearTimeout(sessionObj.silenceTimer); sessionObj.silenceTimer = null; }
               const fullText = sessionObj.accumulatedText.join(' ');
               sessionObj.accumulatedText = [];
               processUserSpeech(callId, fullText);
             }
-          }, 5000);
+          }, 3500);
           return;
         }
 
@@ -1423,21 +1429,22 @@ async function initSession(callId, call, ws, streamSid) {
         if (sessionObj.isProcessing) return;
 
         // Wait for brief silence after last transcript, then send to Claude
-        // Adaptive silence timer:
-        //  - First response (consent "haan"/"yes"): 200ms — stay fast
-        //  - Short single-word answers (<10 chars): 500ms — wait for elaboration
-        //  - Medium responses (<30 chars): 650ms — covers mid-sentence thinking pauses
-        //  - Long responses (30+ chars): 550ms — they've said a lot, likely done
+        // Adaptive silence timer based on response length
         const currentText = sessionObj.accumulatedText.join(' ');
         let silenceMs;
         if (!sessionObj.firstResponseDone) {
-          silenceMs = 200;
+          silenceMs = 150;
         } else if (currentText.length < 10) {
-          silenceMs = 500;
+          silenceMs = 300;
         } else if (currentText.length < 30) {
-          silenceMs = 650;
+          silenceMs = 400;
         } else {
-          silenceMs = 550;
+          silenceMs = 350;
+        }
+        // Deepgram speech_final = endpointing confirmed user stopped speaking
+        // Use minimal timer since Deepgram already waited 150ms of silence
+        if (speechFinal) {
+          silenceMs = Math.min(silenceMs, 100);
         }
         sessionObj.silenceTimer = setTimeout(() => {
           if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {
@@ -1826,7 +1833,7 @@ async function processUserSpeech(callId, text) {
   if (session.accumulatedText && session.accumulatedText.length > 0) {
     const queuedText = session.accumulatedText.join(' ');
     session.accumulatedText = [];
-    setTimeout(() => processUserSpeech(callId, queuedText), 500);
+    setTimeout(() => processUserSpeech(callId, queuedText), 200);
   }
 }
 
