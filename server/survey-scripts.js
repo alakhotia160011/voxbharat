@@ -490,22 +490,48 @@ Be precise. Map the respondent's answers to the closest option value. If an answ
  */
 export function generateCustomGreeting(language, gender, surveyName, companyName) {
   const name = getVoiceName(language, gender);
-  const brand = companyName || VOXBHARAT_NATIVE[language] || 'VoxBharat';
-  const brandEn = companyName || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `Namaste! Mein ${name}, ${brand} se bol ${verb} hoon. Hum ${surveyName} ke baare mein aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?`;
+      const from = companyName ? `, ${companyName} se bol ${verb} hoon` : ` bol ${verb} hoon`;
+      return `Namaste! Mein ${name}${from}. Aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?`;
     },
-    bn: () => `নমস্কার! আমি ${name}, ${brand} থেকে বলছি। আমরা ${surveyName} সম্পর্কে আপনার মতামত জানতে চাই — মাত্র এক মিনিট লাগবে। কথা বলতে পারবেন?`,
-    te: () => `నమస్కారం! నేను ${name}, ${brand} నుండి మాట్లాడుతున్నాను. ${surveyName} గురించి మీ అభిప్రాయం తెలుసుకోవాలనుకుంటున్నాము — ఒక్క నిమిషం పడుతుంది. మాట్లాడగలరా?`,
-    mr: () => `नमस्कार! मी ${name}, ${brand} कडून बोलत आहे. आम्हाला ${surveyName} बद्दल तुमचे मत जाणून घ्यायचे आहे — फक्त एक मिनिट लागेल. बोलू शकता का?`,
-    ta: () => `வணக்கம்! நான் ${name}, ${brand} இருந்து பேசுகிறேன். ${surveyName} பற்றி உங்கள் கருத்தை தெரிந்துகொள்ள விரும்புகிறோம் — ஒரு நிமிடம் தான். பேச முடியுமா?`,
-    gu: () => `નમસ્તે! હું ${name}, ${brand} તરફથી બોલી રહ્યો છું. અમે ${surveyName} વિશે તમારો અભિપ્રાય જાણવા માંગીએ છીએ — બસ એક મિનિટ લાગશે. વાત કરી શકશો?`,
-    kn: () => `ನಮಸ್ಕಾರ! ನಾನು ${name}, ${brand} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. ${surveyName} ಬಗ್ಗೆ ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ತಿಳಿಯಲು ಬಯಸುತ್ತೇವೆ — ಒಂದೇ ನಿಮಿಷ ಸಾಕು. ಮಾತನಾಡಬಹುದಾ?`,
-    ml: () => `നമസ്കാരം! ഞാൻ ${name}, ${brand} ൽ നിന്ന് വിളിക്കുന്നു. ${surveyName} സംബന്ധിച്ച് നിങ്ങളുടെ അഭിപ്രായം അറിയാൻ ആഗ്രഹിക്കുന്നു — ഒരു മിനിറ്റ് മാത്രം. സംസാരിക്കാമോ?`,
-    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}, ${brand} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। ਅਸੀਂ ${surveyName} ਬਾਰੇ ਤੁਹਾਡੀ ਰਾਏ ਜਾਣਨਾ ਚਾਹੁੰਦੇ ਹਾਂ — ਬੱਸ ਇੱਕ ਮਿੰਟ ਲੱਗੇਗਾ। ਗੱਲ ਕਰ ਸਕਦੇ ਹੋ?`,
-    en: () => `Hi there! This is ${name} from ${brandEn}. We'd love to know your thoughts on ${surveyName} — it'll just take a minute. Can you chat?`,
+    bn: () => {
+      const from = companyName ? `, ${companyName} থেকে বলছি` : ` বলছি`;
+      return `নমস্কার! আমি ${name}${from}। আপনার মতামত জানতে চাই — মাত্র এক মিনিট লাগবে। কথা বলতে পারবেন?`;
+    },
+    te: () => {
+      const from = companyName ? `, ${companyName} నుండి మాట్లాడుతున్నాను` : ` మాట్లాడుతున్నాను`;
+      return `నమస్కారం! నేను ${name}${from}. మీ అభిప్రాయం తెలుసుకోవాలనుకుంటున్నాము — ఒక్క నిమిషం పడుతుంది. మాట్లాడగలరా?`;
+    },
+    mr: () => {
+      const from = companyName ? `, ${companyName} कडून बोलत आहे` : ` बोलत आहे`;
+      return `नमस्कार! मी ${name}${from}. तुमचे मत जाणून घ्यायचे आहे — फक्त एक मिनिट लागेल. बोलू शकता का?`;
+    },
+    ta: () => {
+      const from = companyName ? `, ${companyName} இருந்து பேசுகிறேன்` : ` பேசுகிறேன்`;
+      return `வணக்கம்! நான் ${name}${from}. உங்கள் கருத்தை தெரிந்துகொள்ள விரும்புகிறோம் — ஒரு நிமிடம் தான். பேச முடியுமா?`;
+    },
+    gu: () => {
+      const from = companyName ? `, ${companyName} તરફથી બોલી રહ્યો છું` : ` બોલી રહ્યો છું`;
+      return `નમસ્તે! હું ${name}${from}. તમારો અભિપ્રાય જાણવા માંગીએ છીએ — બસ એક મિનિટ લાગશે. વાત કરી શકશો?`;
+    },
+    kn: () => {
+      const from = companyName ? `, ${companyName} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ` : ` ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ`;
+      return `ನಮಸ್ಕಾರ! ನಾನು ${name}${from}. ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ತಿಳಿಯಲು ಬಯಸುತ್ತೇವೆ — ಒಂದೇ ನಿಮಿಷ ಸಾಕು. ಮಾತನಾಡಬಹುದಾ?`;
+    },
+    ml: () => {
+      const from = companyName ? `, ${companyName} ൽ നിന്ന് വിളിക്കുന്നു` : ` വിളിക്കുന്നു`;
+      return `നമസ്കാരം! ഞാൻ ${name}${from}. നിങ്ങളുടെ അഭിപ്രായം അറിയാൻ ആഗ്രഹിക്കുന്നു — ഒരു മിനിറ്റ് മാത്രം. സംസാരിക്കാമോ?`;
+    },
+    pa: () => {
+      const from = companyName ? `, ${companyName} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ` : ` ਬੋਲ ਰਿਹਾ ਹਾਂ`;
+      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}${from}। ਤੁਹਾਡੀ ਰਾਏ ਜਾਣਨਾ ਚਾਹੁੰਦੇ ਹਾਂ — ਬੱਸ ਇੱਕ ਮਿੰਟ ਲੱਗੇਗਾ। ਗੱਲ ਕਰ ਸਕਦੇ ਹੋ?`;
+    },
+    en: () => {
+      const from = companyName ? ` from ${companyName}` : '';
+      return `Hi there! This is ${name}${from}. We'd love to get your thoughts — it'll just take a minute. Can you chat?`;
+    },
   };
 
   const greetingFn = greetings[language] || greetings.hi;
@@ -517,22 +543,48 @@ export function generateCustomGreeting(language, gender, surveyName, companyName
  */
 export function generateInboundGreeting(language, gender, surveyName, companyName) {
   const name = getVoiceName(language, gender);
-  const brand = companyName || VOXBHARAT_NATIVE[language] || 'VoxBharat';
-  const brandEn = companyName || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `नमस्ते! ${brand} में आपका स्वागत है। मैं ${name} बोल ${verb} हूँ। "${surveyName}" के बारे में आपकी राय सुनना चाहते हैं — बस एक मिनट लगेगा। बताइए?`;
+      const welcome = companyName ? `${companyName} में आपका स्वागत है। ` : '';
+      return `नमस्ते! ${welcome}मैं ${name} बोल ${verb} हूँ। आपकी राय सुनना चाहते हैं — बस एक मिनट लगेगा। बताइए?`;
     },
-    bn: () => `নমস্কার! ${brand}-এ স্বাগত। আমি ${name} বলছি। "${surveyName}" সম্পর্কে আপনার মতামত শুনতে চাই — মাত্র এক মিনিট। বলবেন?`,
-    te: () => `నమస్కారం! ${brand}‌కి స్వాగతం. నేను ${name}. "${surveyName}" గురించి మీ అభిప్రాయం వినాలనుకుంటున్నాము — ఒక్క నిమిషం. చెప్తారా?`,
-    mr: () => `नमस्कार! ${brand} मध्ये स्वागत. मी ${name}. "${surveyName}" बद्दल तुमचे मत ऐकायला आवडेल — फक्त एक मिनिट. सांगाल का?`,
-    ta: () => `வணக்கம்! ${brand}-க்கு வரவேற்கிறோம். நான் ${name}. "${surveyName}" பற்றி உங்கள் கருத்து கேட்க விரும்புகிறோம் — ஒரு நிமிடம் தான். சொல்வீர்களா?`,
-    gu: () => `નમસ્તે! ${brand}માં સ્વાગત. હું ${name}. "${surveyName}" વિશે તમારો અભિપ્રાય સાંભળવો છે — બસ એક મિનિટ. કહેશો?`,
-    kn: () => `ನಮಸ್ಕಾರ! ${brand}‌ಗೆ ಸ್ವಾಗತ. ನಾನು ${name}. "${surveyName}" ಬಗ್ಗೆ ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಕೇಳಬೇಕು — ಒಂದೇ ನಿಮಿಷ. ಹೇಳ್ತೀರಾ?`,
-    ml: () => `നമസ്കാരം! ${brand}-ലേക്ക് സ്വാഗതം. ഞാൻ ${name}. "${surveyName}" സംബന്ധിച്ച് നിങ്ങളുടെ അഭിപ്രായം കേൾക്കാൻ ആഗ്രഹിക്കുന്നു — ഒരു മിനിറ്റ് മാത്രം. പറയാമോ?`,
-    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ${brand} ਵਿੱਚ ਸੁਆਗਤ ਹੈ। ਮੈਂ ${name}। "${surveyName}" ਬਾਰੇ ਤੁਹਾਡੀ ਰਾਏ ਸੁਣਨਾ ਚਾਹੁੰਦੇ ਹਾਂ — ਬੱਸ ਇੱਕ ਮਿੰਟ। ਦੱਸੋਗੇ?`,
-    en: () => `Thank you for calling! I'm ${name} at ${brandEn}. We'd love to hear your thoughts on "${surveyName}" — it'll just take a minute. Want to share?`,
+    bn: () => {
+      const welcome = companyName ? `${companyName}-এ স্বাগত। ` : '';
+      return `নমস্কার! ${welcome}আমি ${name} বলছি। আপনার মতামত শুনতে চাই — মাত্র এক মিনিট। বলবেন?`;
+    },
+    te: () => {
+      const welcome = companyName ? `${companyName}‌కి స్వాగతం. ` : '';
+      return `నమస్కారం! ${welcome}నేను ${name}. మీ అభిప్రాయం వినాలనుకుంటున్నాము — ఒక్క నిమిషం. చెప్తారా?`;
+    },
+    mr: () => {
+      const welcome = companyName ? `${companyName} मध्ये स्वागत. ` : '';
+      return `नमस्कार! ${welcome}मी ${name}. तुमचे मत ऐकायला आवडेल — फक्त एक मिनिट. सांगाल का?`;
+    },
+    ta: () => {
+      const welcome = companyName ? `${companyName}-க்கு வரவேற்கிறோம். ` : '';
+      return `வணக்கம்! ${welcome}நான் ${name}. உங்கள் கருத்து கேட்க விரும்புகிறோம் — ஒரு நிமிடம் தான். சொல்வீர்களா?`;
+    },
+    gu: () => {
+      const welcome = companyName ? `${companyName}માં સ્વાગત. ` : '';
+      return `નમસ્તે! ${welcome}હું ${name}. તમારો અભિપ્રાય સાંભળવો છે — બસ એક મિનિટ. કહેશો?`;
+    },
+    kn: () => {
+      const welcome = companyName ? `${companyName}‌ಗೆ ಸ್ವಾಗತ. ` : '';
+      return `ನಮಸ್ಕಾರ! ${welcome}ನಾನು ${name}. ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಕೇಳಬೇಕು — ಒಂದೇ ನಿಮಿಷ. ಹೇಳ್ತೀರಾ?`;
+    },
+    ml: () => {
+      const welcome = companyName ? `${companyName}-ലേക്ക് സ്വാഗതം. ` : '';
+      return `നമസ്കാരം! ${welcome}ഞാൻ ${name}. നിങ്ങളുടെ അഭിപ്രായം കേൾക്കാൻ ആഗ്രഹിക്കുന്നു — ഒരു മിനിറ്റ് മാത്രം. പറയാമോ?`;
+    },
+    pa: () => {
+      const welcome = companyName ? `${companyName} ਵਿੱਚ ਸੁਆਗਤ ਹੈ। ` : '';
+      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ${welcome}ਮੈਂ ${name}। ਤੁਹਾਡੀ ਰਾਏ ਸੁਣਨਾ ਚਾਹੁੰਦੇ ਹਾਂ — ਬੱਸ ਇੱਕ ਮਿੰਟ। ਦੱਸੋਗੇ?`;
+    },
+    en: () => {
+      const from = companyName ? ` at ${companyName}` : '';
+      return `Thank you for calling! I'm ${name}${from}. We'd love to hear your thoughts — it'll just take a minute. Want to share?`;
+    },
   };
   return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
 }
@@ -542,22 +594,48 @@ export function generateInboundGreeting(language, gender, surveyName, companyNam
  */
 export function generateCallbackGreeting(language, gender, surveyName, companyName) {
   const name = getVoiceName(language, gender);
-  const brand = companyName || VOXBHARAT_NATIVE[language] || 'VoxBharat';
-  const brandEn = companyName || 'VoxBharat';
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `नमस्ते! कॉल बैक करने का शुक्रिया! मैं ${name}, ${brand} से बोल ${verb} हूँ। "${surveyName}" के बारे में आपकी राय सुनना चाहते थे — बस एक मिनट लगेगा।`;
+      const from = companyName ? `, ${companyName} से बोल ${verb} हूँ` : ` बोल ${verb} हूँ`;
+      return `नमस्ते! कॉल बैक करने का शुक्रिया! मैं ${name}${from}। आपकी राय सुनना चाहते थे — बस एक मिनट लगेगा।`;
     },
-    bn: () => `নমস্কার! কল ব্যাক করার জন্য ধন্যবাদ! আমি ${name}, ${brand} থেকে। "${surveyName}" সম্পর্কে আপনার মতামত শুনতে চেয়েছিলাম — মাত্র এক মিনিট।`,
-    te: () => `నమస్కారం! తిరిగి కాల్ చేసినందుకు ధన్యవాదాలు! నేను ${name}, ${brand} నుండి. "${surveyName}" గురించి మీ అభిప్రాయం వినాలనుకున్నాము — ఒక్క నిమిషం.`,
-    mr: () => `नमस्कार! परत कॉल केल्याबद्दल धन्यवाद! मी ${name}, ${brand} कडून. "${surveyName}" बद्दल तुमचे मत ऐकायला आवडेल — फक्त एक मिनिट.`,
-    ta: () => `வணக்கம்! திரும்ப அழைத்ததற்கு நன்றி! நான் ${name}, ${brand} இருந்து. "${surveyName}" பற்றி உங்கள் கருத்து கேட்க விரும்பினோம் — ஒரு நிமிடம் தான்.`,
-    gu: () => `નમસ્તે! પાછા કૉલ કરવા બદલ આભાર! હું ${name}, ${brand} તરફથી. "${surveyName}" વિશે તમારો અભિપ્રાય સાંભળવો હતો — બસ એક મિનિટ.`,
-    kn: () => `ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ! ನಾನು ${name}, ${brand} ನಿಂದ. "${surveyName}" ಬಗ್ಗೆ ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಕೇಳಬೇಕಿತ್ತು — ಒಂದೇ ನಿಮಿಷ.`,
-    ml: () => `നമസ്കാരം! തിരിച്ചു വിളിച്ചതിന് നന്ദി! ഞാൻ ${name}, ${brand} ൽ നിന്ന്. "${surveyName}" സംബന്ധിച്ച് നിങ്ങളുടെ അഭിപ്രായം കേൾക്കാൻ ആഗ്രഹിച്ചു — ഒരു മിനിറ്റ് മാത്രം.`,
-    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਦਾ ਸ਼ੁਕਰੀਆ! ਮੈਂ ${name}, ${brand} ਤੋਂ। "${surveyName}" ਬਾਰੇ ਤੁਹਾਡੀ ਰਾਏ ਸੁਣਨਾ ਚਾਹੁੰਦੇ ਸੀ — ਬੱਸ ਇੱਕ ਮਿੰਟ।`,
-    en: () => `Hey, thanks for calling back! I'm ${name} from ${brandEn}. We wanted to hear your thoughts on "${surveyName}" — just takes a minute. Can you chat?`,
+    bn: () => {
+      const from = companyName ? `, ${companyName} থেকে` : '';
+      return `নমস্কার! কল ব্যাক করার জন্য ধন্যবাদ! আমি ${name}${from}। আপনার মতামত শুনতে চেয়েছিলাম — মাত্র এক মিনিট।`;
+    },
+    te: () => {
+      const from = companyName ? `, ${companyName} నుండి` : '';
+      return `నమస్కారం! తిరిగి కాల్ చేసినందుకు ధన్యవాదాలు! నేను ${name}${from}. మీ అభిప్రాయం వినాలనుకున్నాము — ఒక్క నిమిషం.`;
+    },
+    mr: () => {
+      const from = companyName ? `, ${companyName} कडून` : '';
+      return `नमस्कार! परत कॉल केल्याबद्दल धन्यवाद! मी ${name}${from}. तुमचे मत ऐकायला आवडेल — फक्त एक मिनिट.`;
+    },
+    ta: () => {
+      const from = companyName ? `, ${companyName} இருந்து` : '';
+      return `வணக்கம்! திரும்ப அழைத்ததற்கு நன்றி! நான் ${name}${from}. உங்கள் கருத்து கேட்க விரும்பினோம் — ஒரு நிமிடம் தான்.`;
+    },
+    gu: () => {
+      const from = companyName ? `, ${companyName} તરફથી` : '';
+      return `નમસ્તે! પાછા કૉલ કરવા બદલ આભાર! હું ${name}${from}. તમારો અભિપ્રાય સાંભળવો હતો — બસ એક મિનિટ.`;
+    },
+    kn: () => {
+      const from = companyName ? `, ${companyName} ನಿಂದ` : '';
+      return `ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ! ನಾನು ${name}${from}. ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಕೇಳಬೇಕಿತ್ತು — ಒಂದೇ ನಿಮಿಷ.`;
+    },
+    ml: () => {
+      const from = companyName ? `, ${companyName} ൽ നിന്ന്` : '';
+      return `നമസ്കാരം! തിരിച്ചു വിളിച്ചതിന് നന്ദി! ഞാൻ ${name}${from}. നിങ്ങളുടെ അഭിപ്രായം കേൾക്കാൻ ആഗ്രഹിച്ചു — ഒരു മിനിറ്റ് മാത്രം.`;
+    },
+    pa: () => {
+      const from = companyName ? `, ${companyName} ਤੋਂ` : '';
+      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਦਾ ਸ਼ੁਕਰੀਆ! ਮੈਂ ${name}${from}। ਤੁਹਾਡੀ ਰਾਏ ਸੁਣਨਾ ਚਾਹੁੰਦੇ ਸੀ — ਬੱਸ ਇੱਕ ਮਿੰਟ।`;
+    },
+    en: () => {
+      const from = companyName ? ` from ${companyName}` : '';
+      return `Hey, thanks for calling back! I'm ${name}${from}. We wanted to hear your thoughts — just takes a minute. Can you chat?`;
+    },
   };
   return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
 }

@@ -361,9 +361,9 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   if (autoDetectLanguage) {
     const hiName = getVoiceName('hi', gender);
     const verb = gender === 'female' ? 'rahi' : 'raha';
-    const orgName = customSurvey?.companyName || 'VoxBharat';
-    const surveyTopic = customSurvey?.name || 'ek important topic';
-    greetingText = `Namaste! Main ${hiName}, ${orgName} se bol ${verb} hoon. Hum ${surveyTopic} ke baare mein aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?`;
+    const orgName = customSurvey?.companyName;
+    const fromPart = orgName ? `, ${orgName} se bol ${verb} hoon` : ` bol ${verb} hoon`;
+    greetingText = `Namaste! Main ${hiName}${fromPart}. Aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name, customSurvey.companyName);
   } else if (SURVEY_SCRIPTS[language]) {
