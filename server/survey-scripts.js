@@ -494,7 +494,7 @@ export function generateCustomGreeting(language, gender, surveyName) {
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `नमस्ते! मैं ${name}, ${brand} से बोल ${verb} हूँ। क्या आपके पास कुछ मिनट हैं? हम "${surveyName}" पर एक छोटा सर्वेक्षण कर रहे हैं।`;
+      return `Hello, namaste! Mein ${name}, ${brand} se bol ${verb} hoon. Aapke paas bas do minute hain? Hum "${surveyName}" pe ek chhota sa survey kar rahe hain, aapki raaye sunna chahte hain.`;
     },
     bn: () => `নমস্কার! আমি ${name}, ${brand} থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে? আমরা "${surveyName}" নিয়ে একটি ছোট সমীক্ষা করছি।`,
     te: () => `నమస్కారం! నేను ${name}, ${brand} నుండి మాట్లాడుతున్నాను. "${surveyName}" గురించి ఒక చిన్న సర్వే కోసం మీకు కొన్ని నిమిషాలు ఉన్నాయా?`,
@@ -504,11 +504,11 @@ export function generateCustomGreeting(language, gender, surveyName) {
     kn: () => `ನಮಸ್ಕಾರ! ನಾನು ${name}, ${brand} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName}" ಬಗ್ಗೆ ಒಂದು ಸಣ್ಣ ಸಮೀಕ್ಷೆಗೆ ನಿಮಗೆ ಕೆಲವು ನಿಮಿಷಗಳಿವೆಯೇ?`,
     ml: () => `നമസ്കാരം! ഞാൻ ${name}, ${brand} ൽ നിന്ന് വിളിക്കുന്നു. "${surveyName}" സംബന്ധിച്ച ഒരു ചെറിയ സർവേയ്ക്ക് കുറച്ച് മിനിറ്റ് സമയം ഉണ്ടോ?`,
     pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}, ${brand} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName}" ਬਾਰੇ ਇੱਕ ਛੋਟੇ ਸਰਵੇ ਲਈ ਤੁਹਾਡੇ ਕੋਲ ਕੁਝ ਮਿੰਟ ਹਨ?`,
-    en: () => `Hello! I'm ${name} calling from VoxBharat. Do you have a few minutes for a short survey about "${surveyName}"?`,
+    en: () => `Hi there! This is ${name} from VoxBharat. Hey, I was wondering if you had just a couple of minutes? We're doing a quick survey on "${surveyName}" and I'd love to hear your thoughts.`,
   };
 
   const greetingFn = greetings[language] || greetings.hi;
-  return `<emotion value="enthusiastic"/> ${greetingFn()}`;
+  return greetingFn();
 }
 
 /**

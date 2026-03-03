@@ -360,7 +360,7 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   let greetingText;
   if (autoDetectLanguage) {
     const enName = getVoiceName('en', gender);
-    greetingText = `<emotion value="enthusiastic"/> Hello! I'm ${enName} from VoxBharat. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`;
+    greetingText = `Hi! This is ${enName} from VoxBharat. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you like?`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name);
   } else if (SURVEY_SCRIPTS[language]) {
@@ -1602,9 +1602,31 @@ async function processUserSpeech(callId, text) {
     console.log(`[Call:${callId}] Injecting move-on hint (${session.repeatCount} repeats)`);
   }
 
+  // --- Play a filler word to fill the gap while Claude thinks ---
+  const fillerLang = session.currentLanguage || session.call.language;
+  const fillers = {
+    hi: ['Hmm', 'Achha', 'Haan', 'Theek hai'],
+    bn: ['Hmm', 'Achha', 'Haan'],
+    en: ['Hmm', 'Right', 'Okay', 'I see'],
+    ta: ['Hmm', 'Sari', 'Aama'],
+    te: ['Hmm', 'Sare', 'Avunu'],
+    mr: ['Hmm', 'Barobar', 'Haan'],
+    gu: ['Hmm', 'Saru', 'Haa'],
+    kn: ['Hmm', 'Sari', 'Howdu'],
+    ml: ['Hmm', 'Sheri', 'Athe'],
+    pa: ['Hmm', 'Achha', 'Haanji'],
+  };
+  const fillerPool = fillers[fillerLang] || fillers.en;
+  const fillerText = fillerPool[Math.floor(Math.random() * fillerPool.length)];
+
+  // Start Claude stream in parallel with filler TTS
+  session.isAiSpeaking = true;
+  const fillerDone = speakSentence(session, fillerText, fillerLang, null);
+
   // --- Streaming pipeline: Claude → sentence TTS → Twilio ---
   const stream = session.conversation.startResponseStream(textForClaude);
   if (!stream) {
+    await fillerDone;
     // Survey already complete — speak a closing message before hanging up
     console.log(`[Call:${callId}] Survey already complete, speaking closing before hangup`);
     const closingLang = session.currentLanguage || session.call.language;
@@ -1622,8 +1644,6 @@ async function processUserSpeech(callId, text) {
     return;
   }
 
-  session.isAiSpeaking = true;
-
   let fullResponse = '';
   let pendingText = '';
   let ttsLanguage = session.currentLanguage || session.call.language;
@@ -1633,8 +1653,8 @@ async function processUserSpeech(callId, text) {
   const spokenSentences = [];
 
   // Pipeline: queue TTS calls so Claude keeps streaming while TTS generates/plays.
-  // Each call runs in sequence (audio order preserved) but Claude isn't blocked.
-  let ttsQueue = Promise.resolve();
+  // Seed with filler promise so Claude's first sentence plays after the filler finishes.
+  let ttsQueue = fillerDone;
   let isFirstChunk = true;
   const enqueueTTS = (text, lang, emotion) => {
     const useEmotion = isFirstChunk;
@@ -1833,7 +1853,7 @@ const EMOTION_SPEED = {
   scared: 0.9,
   surprised: 0.95,
 };
-const DEFAULT_TTS_SPEED = 0.95;
+const DEFAULT_TTS_SPEED = 0.9;
 const INDIC_LANGUAGES = new Set(['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa']);
 
 async function speakSentence(session, text, language, emotion = null) {
