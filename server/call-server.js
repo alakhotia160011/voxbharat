@@ -356,11 +356,12 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   console.log(`[Call] Initiated: ${call.id} -> ${phoneNumber} (${language}/${gender})${campaignId ? ` [campaign:${campaignId}]` : ''}`);
 
   // Pre-generate greeting TTS while phone is ringing
-  const greetingLang = autoDetectLanguage ? 'en' : language;
+  const greetingLang = autoDetectLanguage ? 'hi' : language;
   let greetingText;
   if (autoDetectLanguage) {
-    const enName = getVoiceName('en', gender);
-    greetingText = `Hi! This is ${enName} from VoxBharat. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other Indian languages. Aapko kis bhasha mein baat karni hai? Which language would you like?`;
+    const hiName = getVoiceName('hi', gender);
+    const verb = gender === 'female' ? 'rahi' : 'raha';
+    greetingText = `Namaste! Main ${hiName}, VoxBharat se bol ${verb} hoon. Aapke paas bas do minute hain? Hum ek chhota sa survey kar rahe hain, aapki raaye sunna chahte hain.`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name);
   } else if (SURVEY_SCRIPTS[language]) {
@@ -500,7 +501,7 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
   });
 
   // Pre-generate greeting TTS
-  const greetingLang = autoDetectLanguage ? 'en' : language;
+  const greetingLang = autoDetectLanguage ? 'hi' : language;
   const surveyName = surveyConfig?.name || 'our survey';
   let greetingText;
   if (campaignId) {
@@ -1233,10 +1234,9 @@ async function initSession(callId, call, ws, streamSid) {
         sessionObj.sttDetectedLanguage = detectedLang;
         console.log(`[STT:${callId}] Detected language: "${detectedLang}"`);
 
-        // On first non-English detection, reconnect STT with that specific language
-        // Auto-detect mode gives us the language but may garble the transcription —
-        // reconnecting with the correct language gives clean text for subsequent utterances
-        if (detectedLang !== 'en' && !sessionObj.sttLanguageLocked) {
+        // On first detection of a language different from our starting language (hi),
+        // reconnect STT with that specific language for better transcription
+        if (detectedLang !== 'hi' && !sessionObj.sttLanguageLocked) {
           sessionObj.sttLanguageLocked = true;
           console.log(`[STT:${callId}] Detected ${detectedLang} from audio — reconnecting STT for better transcription...`);
           sessionObj.stt.switchLanguage(detectedLang).catch(err => {

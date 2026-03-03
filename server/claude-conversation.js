@@ -57,8 +57,9 @@ export class ClaudeConversation {
         greeting = this.customGreeting || generateInboundGreeting(lang, this.gender, surveyName);
       }
     } else if (this.autoDetectLanguage) {
-      const enName = getVoiceName('en', this.gender);
-      greeting = `Hello! I'm ${enName} from VoxBharat. I can speak Hindi, English, Bengali, Tamil, Telugu, and many other languages. Aapko kis bhasha mein baat karni hai? Which language would you prefer?`;
+      const hiName = getVoiceName('hi', this.gender);
+      const verb = this.gender === 'female' ? 'rahi' : 'raha';
+      greeting = `Namaste! Main ${hiName}, VoxBharat se bol ${verb} hoon. Aapke paas bas do minute hain? Hum ek chhota sa survey kar rahe hain, aapki raaye sunna chahte hain.`;
     } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name);
     } else if (SURVEY_SCRIPTS[this.language]) {
