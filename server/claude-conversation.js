@@ -60,7 +60,7 @@ export class ClaudeConversation {
       const hiName = getVoiceName('hi', this.gender);
       const verb = this.gender === 'female' ? 'rahi' : 'raha';
       const autoOrgName = this.customSurvey?.companyName || 'VoxBharat';
-      greeting = `Namaste! Main ${hiName}, ${autoOrgName} se bol ${verb} hoon. Aapke paas bas do minute hain? Hum ek chhota sa survey kar rahe hain, aapki raaye sunna chahte hain.`;
+      greeting = `Namaste! Main ${hiName}, ${autoOrgName} se bol ${verb} hoon. Aapki raaye bahut important hai humein — bas ek minute lagega. Kya aap baat kar sakte hain?`;
     } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name, this.customSurvey.companyName);
     } else if (SURVEY_SCRIPTS[this.language]) {
