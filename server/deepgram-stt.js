@@ -50,7 +50,7 @@ export class DeepgramSTT {
       // smart_format deliberately disabled — it adds up to 3s delay waiting for entity completion
       url.searchParams.set('endpointing', '150');
       url.searchParams.set('vad_events', 'true');
-      url.searchParams.set('utterance_end_ms', '700');
+      // utterance_end_ms removed — causes 400 on free tier / Nova-3
 
       // Language: 'auto' → start with 'en' (greeting is English).
       // Deepgram's 'multi' code-switching mode returns 400 on some plans.
