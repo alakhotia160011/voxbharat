@@ -1069,44 +1069,36 @@ wss.on('connection', (ws) => {
           // After greeting, keep STT active during AI speech for barge-in detection
           if (session.isAiSpeaking && !session.greetingDone) break;
 
-          // Send audio to STT provider in its preferred encoding
-          if (session.sttProvider === 'deepgram') {
-            // Deepgram: send raw mulaw 8kHz (skip expensive PCM conversion)
-            const rawMulaw = Buffer.from(msg.media.payload, 'base64');
-            session.stt.sendAudio(rawMulaw);
-            // Deepgram has native endpointing — no local VAD needed
-          } else {
-            // Cartesia: needs PCM s16le 16kHz
-            const pcmAudio = mulawToPcm16k(msg.media.payload);
-            session.stt.sendAudio(pcmAudio);
+          // Convert mulaw 8kHz -> PCM s16le 16kHz and send to STT
+          const pcmAudio = mulawToPcm16k(msg.media.payload);
+          session.stt.sendAudio(pcmAudio);
 
-            // VAD-based flush: detect silence after speech and flush STT
-            // to force Cartesia to finalize short utterances like "haan"/"nahi"
-            if (session.greetingDone && !session.isAiSpeaking) {
-              const samples = new Int16Array(pcmAudio.buffer, pcmAudio.byteOffset, pcmAudio.length / 2);
-              let sumSq = 0;
-              for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
-              const rms = Math.sqrt(sumSq / samples.length);
+          // VAD-based flush: detect silence after speech and flush STT
+          // Deepgram has native endpointing so skip local VAD for it
+          if (session.greetingDone && !session.isAiSpeaking && session.sttProvider !== 'deepgram') {
+            const samples = new Int16Array(pcmAudio.buffer, pcmAudio.byteOffset, pcmAudio.length / 2);
+            let sumSq = 0;
+            for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
+            const rms = Math.sqrt(sumSq / samples.length);
 
-              if (rms > 300) {
-                session.lastSpeechTime = Date.now();
-                session.hasFlushedSinceLastFinal = false;
-                if (session.flushTimer) {
-                  clearTimeout(session.flushTimer);
+            if (rms > 300) {
+              session.lastSpeechTime = Date.now();
+              session.hasFlushedSinceLastFinal = false;
+              if (session.flushTimer) {
+                clearTimeout(session.flushTimer);
+                session.flushTimer = null;
+              }
+            } else if (session.lastSpeechTime && !session.hasFlushedSinceLastFinal) {
+              const silenceMs = Date.now() - session.lastSpeechTime;
+              if (silenceMs > 300 && !session.flushTimer) {
+                session.flushTimer = setTimeout(() => {
                   session.flushTimer = null;
-                }
-              } else if (session.lastSpeechTime && !session.hasFlushedSinceLastFinal) {
-                const silenceMs = Date.now() - session.lastSpeechTime;
-                if (silenceMs > 300 && !session.flushTimer) {
-                  session.flushTimer = setTimeout(() => {
-                    session.flushTimer = null;
-                    if (!session.hasFlushedSinceLastFinal && session.stt?.isConnected) {
-                      console.log(`[STT:${callId}] VAD flush after ${Date.now() - session.lastSpeechTime}ms silence`);
-                      session.stt.flush();
-                      session.hasFlushedSinceLastFinal = true;
-                    }
-                  }, 100);
-                }
+                  if (!session.hasFlushedSinceLastFinal && session.stt?.isConnected) {
+                    console.log(`[STT:${callId}] VAD flush after ${Date.now() - session.lastSpeechTime}ms silence`);
+                    session.stt.flush();
+                    session.hasFlushedSinceLastFinal = true;
+                  }
+                }, 100);
               }
             }
           }
@@ -1230,8 +1222,6 @@ async function initSession(callId, call, ws, streamSid) {
   const sttApiKey = effectiveSttProvider === 'deepgram' ? DEEPGRAM_KEY : CARTESIA_KEY;
   const stt = new SttClass(sttApiKey, {
     language: sttLanguage,
-    // Deepgram: accept mulaw 8kHz directly from Twilio (skip PCM conversion)
-    ...(effectiveSttProvider === 'deepgram' && { encoding: 'mulaw', sampleRate: '8000' }),
     onFlushDone: () => {
       console.log(`[STT:${callId}] Flush done acknowledged`);
     },
