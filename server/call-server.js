@@ -361,9 +361,10 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   if (autoDetectLanguage) {
     const hiName = getVoiceName('hi', gender);
     const verb = gender === 'female' ? 'rahi' : 'raha';
-    greetingText = `Namaste! Main ${hiName}, VoxBharat se bol ${verb} hoon. Aapke paas bas do minute hain? Hum ek chhota sa survey kar rahe hain, aapki raaye sunna chahte hain.`;
+    const orgName = customSurvey?.companyName || 'VoxBharat';
+    greetingText = `Namaste! Main ${hiName}, ${orgName} se bol ${verb} hoon. Aapke paas bas do minute hain? Hum ek chhota sa survey kar rahe hain, aapki raaye sunna chahte hain.`;
   } else if (customSurvey) {
-    greetingText = generateCustomGreeting(language, gender, customSurvey.name);
+    greetingText = generateCustomGreeting(language, gender, customSurvey.name, customSurvey.companyName);
   } else if (SURVEY_SCRIPTS[language]) {
     greetingText = generateCustomGreeting(language, gender, SURVEY_SCRIPTS[language].name);
   } else {
@@ -505,9 +506,9 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
   const surveyName = surveyConfig?.name || 'our survey';
   let greetingText;
   if (campaignId) {
-    greetingText = generateCallbackGreeting(greetingLang, gender, surveyName);
+    greetingText = generateCallbackGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName);
   } else {
-    greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName);
+    greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName);
   }
 
   generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
