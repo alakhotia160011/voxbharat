@@ -356,14 +356,17 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   console.log(`[Call] Initiated: ${call.id} -> ${phoneNumber} (${language}/${gender})${campaignId ? ` [campaign:${campaignId}]` : ''}`);
 
   // Pre-generate greeting TTS while phone is ringing
-  const greetingLang = autoDetectLanguage ? 'hi' : language;
+  const sttProvider = customSurvey?.sttProvider || 'cartesia';
+  const greetingLang = autoDetectLanguage ? 'en' : language;
   let greetingText;
   if (autoDetectLanguage) {
-    const hiName = getVoiceName('hi', gender);
-    const verb = gender === 'female' ? 'rahi' : 'raha';
+    const enName = getVoiceName('en', gender);
     const orgName = customSurvey?.companyName;
-    const fromPart = orgName ? `, ${orgName} se bol ${verb} hoon` : ` bol ${verb} hoon`;
-    greetingText = `Namaste! Main ${hiName}${fromPart}. Aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?`;
+    const fromPart = orgName ? ` from ${orgName}` : '';
+    const langQuestion = sttProvider === 'cartesia'
+      ? ' Which language would you prefer to speak in? Aap kis bhasha mein baat karna chahte hain?'
+      : '';
+    greetingText = `Hi! I'm ${enName}${fromPart}. We'd love to get your thoughts — it'll just take a minute. Can you chat?${langQuestion}`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name, customSurvey.companyName);
   } else if (SURVEY_SCRIPTS[language]) {
@@ -1166,6 +1169,7 @@ async function initSession(callId, call, ws, streamSid) {
     gender: call.gender,
     customSurvey: call.customSurvey || null,
     autoDetectLanguage: call.autoDetectLanguage || false,
+    sttProvider: call.customSurvey?.sttProvider || 'cartesia',
     direction: call.direction || 'outbound',
     inboundType: call.direction === 'inbound' ? (call.campaignId ? 'callback' : 'standalone') : null,
     customGreeting: call.customGreeting || null,

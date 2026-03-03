@@ -18,14 +18,15 @@ export class ClaudeConversation {
     this.direction = options.direction || 'outbound';
     this.inboundType = options.inboundType || null; // 'callback' | 'standalone'
     this.customGreeting = options.customGreeting || null;
+    this.sttProvider = options.sttProvider || 'cartesia';
     this.messages = [];
     this.isComplete = false;
     this.lastEmotion = 'content'; // default TTS emotion
 
     if (this.autoDetectLanguage) {
       this.systemPrompt = this.customSurvey
-        ? getAutoDetectCustomSystemPrompt(this.gender, this.customSurvey)
-        : getAutoDetectSystemPrompt(this.gender);
+        ? getAutoDetectCustomSystemPrompt(this.gender, this.customSurvey, this.sttProvider)
+        : getAutoDetectSystemPrompt(this.gender, this.sttProvider);
     } else {
       this.systemPrompt = this.customSurvey
         ? getCustomSystemPrompt(this.language, this.gender, this.customSurvey)
@@ -57,11 +58,13 @@ export class ClaudeConversation {
         greeting = this.customGreeting || generateInboundGreeting(lang, this.gender, surveyName, this.customSurvey?.companyName);
       }
     } else if (this.autoDetectLanguage) {
-      const hiName = getVoiceName('hi', this.gender);
-      const verb = this.gender === 'female' ? 'rahi' : 'raha';
+      const enName = getVoiceName('en', this.gender);
       const autoOrgName = this.customSurvey?.companyName;
-      const fromPart = autoOrgName ? `, ${autoOrgName} se bol ${verb} hoon` : ` bol ${verb} hoon`;
-      greeting = `Namaste! Main ${hiName}${fromPart}. Aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?`;
+      const fromPart = autoOrgName ? ` from ${autoOrgName}` : '';
+      const langQuestion = this.sttProvider === 'cartesia'
+        ? ' Which language would you prefer to speak in? Aap kis bhasha mein baat karna chahte hain?'
+        : '';
+      greeting = `Hi! I'm ${enName}${fromPart}. We'd love to get your thoughts — it'll just take a minute. Can you chat?${langQuestion}`;
     } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name, this.customSurvey.companyName);
     } else if (SURVEY_SCRIPTS[this.language]) {
