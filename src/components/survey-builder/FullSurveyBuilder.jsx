@@ -107,7 +107,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       const voice = PREVIEW_VOICES.find(v => v.id === selectedPreviewVoice);
       const resp = await fetch('/api/tts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_SECRET || '' },
         body: JSON.stringify({
           text,
           voiceId: selectedPreviewVoice,
@@ -257,7 +257,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
     try {
       const response = await fetch('/api/generate-questions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_SECRET || '' },
         body: JSON.stringify({ config }),
         signal: AbortSignal.timeout(90000),
       });
