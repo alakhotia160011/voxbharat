@@ -1560,7 +1560,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                                 <select
                                   value={q.skipLogic.condition}
                                   onChange={(e) => updateQuestion(q.id, { skipLogic: { ...q.skipLogic, condition: e.target.value, value: '' } })}
-                                  className="px-2 py-1 border rounded text-sm bg-white"
+                                  className="px-2 py-1 border border-cream-warm rounded-lg text-sm font-body text-earth bg-white cursor-pointer focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
                                 >
                                   <option value="negative">Negative (No / Nahi / Refuses)</option>
                                   <option value="positive">Positive (Yes / Haan / Agrees)</option>
@@ -1572,7 +1572,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                                   <select
                                     value={q.skipLogic.value}
                                     onChange={(e) => updateQuestion(q.id, { skipLogic: { ...q.skipLogic, value: e.target.value } })}
-                                    className="px-2 py-1 border rounded text-sm bg-white"
+                                    className="px-2 py-1 border border-cream-warm rounded-lg text-sm font-body text-earth bg-white cursor-pointer focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
                                   >
                                     <option value="">Select option...</option>
                                     {q.options.map((opt, oi) => (
@@ -1595,7 +1595,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                                 <select
                                   value={q.skipLogic.skipTo}
                                   onChange={(e) => updateQuestion(q.id, { skipLogic: { ...q.skipLogic, skipTo: e.target.value } })}
-                                  className="px-2 py-1 border rounded text-sm bg-white"
+                                  className="px-2 py-1 border border-cream-warm rounded-lg text-sm font-body text-earth bg-white cursor-pointer focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
                                 >
                                   <option value="">Select question...</option>
                                   {questions.filter((oq, oi) => oi > questions.findIndex(x => x.id === q.id)).map((oq, oi) => (
@@ -1986,7 +1986,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <select
                   value={selectedPreviewVoice}
                   onChange={(e) => setSelectedPreviewVoice(e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-saffron focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-cream-warm rounded-lg text-sm font-body text-earth bg-white cursor-pointer focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors"
                 >
                   {PREVIEW_VOICES.map(v => (
                     <option key={v.id} value={v.id}>{v.name}</option>
