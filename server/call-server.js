@@ -1841,13 +1841,15 @@ async function processUserSpeech(callId, text) {
  * Uses WebSocket streaming for low latency — audio plays as it generates.
  * Falls back to HTTP POST if streaming fails.
  */
-const VALID_EMOTIONS = new Set(['neutral', 'angry', 'excited', 'content', 'sad', 'scared', 'enthusiastic', 'triumphant', 'sympathetic', 'confident', 'curious', 'surprised']);
+const VALID_EMOTIONS = new Set(['neutral', 'angry', 'excited', 'content', 'sad', 'scared', 'enthusiastic', 'triumphant', 'sympathetic', 'confident', 'curious', 'surprised', 'grateful']);
 
 // Consistent speed for natural-sounding speech — avoid jarring pace changes between emotions
 const EMOTION_SPEED = {
   content: 0.95,
   sympathetic: 0.9,
   enthusiastic: 1.0,
+  curious: 0.95,
+  grateful: 0.9,
 };
 const DEFAULT_TTS_SPEED = 0.95;
 const INDIC_LANGUAGES = new Set(['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa']);
