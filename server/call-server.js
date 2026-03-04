@@ -1606,6 +1606,8 @@ async function processUserSpeech(callId, text) {
   }
 
   // --- Play a filler word to fill the gap while Claude thinks ---
+  // In auto-detect mode, use language-neutral "Hmm" until language is confirmed
+  // to avoid a jarring filler-language switch when the user's language is detected.
   const fillerLang = session.currentLanguage || session.call.language;
   const fillers = {
     hi: ['Hmm', 'Achha', 'Haan', 'Theek hai'],
@@ -1619,7 +1621,9 @@ async function processUserSpeech(callId, text) {
     ml: ['Hmm', 'Sheri', 'Athe'],
     pa: ['Hmm', 'Achha', 'Haanji'],
   };
-  const fillerPool = fillers[fillerLang] || fillers.en;
+  const assistantTurns = session.conversation.messages.filter(m => m.role === 'assistant').length;
+  const useNeutralFiller = session.call.autoDetectLanguage && assistantTurns <= 2;
+  const fillerPool = useNeutralFiller ? ['Hmm'] : (fillers[fillerLang] || fillers.en);
   const fillerText = fillerPool[Math.floor(Math.random() * fillerPool.length)];
 
   // Start Claude stream in parallel with filler TTS
