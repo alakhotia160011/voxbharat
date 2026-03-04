@@ -67,7 +67,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
   }, [testCallStatus]);
 
   const PREVIEW_VOICES = [
-    { id: '86d3b948-5a63-49e4-98c5-b67da63aba50', name: 'Dhwani (Hindi)', lang: 'hi' },
+    { id: '86d3b948-5a63-49e4-98c5-b67da63aba50', name: 'Hindi Female', lang: 'hi' },
     { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', lang: 'hi' },
     { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', lang: 'bn' },
     { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', lang: 'bn' },
