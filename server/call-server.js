@@ -1605,30 +1605,35 @@ async function processUserSpeech(callId, text) {
     console.log(`[Call:${callId}] Injecting move-on hint (${session.repeatCount} repeats)`);
   }
 
-  // --- Play a filler word to fill the gap while Claude thinks ---
-  // In auto-detect mode, use language-neutral "Hmm" until language is confirmed
-  // to avoid a jarring filler-language switch when the user's language is detected.
+  // --- Optionally play a filler word to fill the gap while Claude thinks ---
+  // Skip fillers ~50% of the time so it doesn't sound robotic/predictable.
+  // Always skip on the very first response (consent turn — greeting just played).
   const fillerLang = session.currentLanguage || session.call.language;
   const fillers = {
-    hi: ['Hmm', 'Achha', 'Haan', 'Theek hai'],
-    bn: ['Hmm', 'Achha', 'Haan'],
-    en: ['Hmm', 'Right', 'Okay', 'I see'],
-    ta: ['Hmm', 'Sari', 'Aama'],
-    te: ['Hmm', 'Sare', 'Avunu'],
-    mr: ['Hmm', 'Barobar', 'Haan'],
-    gu: ['Hmm', 'Saru', 'Haa'],
-    kn: ['Hmm', 'Sari', 'Howdu'],
-    ml: ['Hmm', 'Sheri', 'Athe'],
-    pa: ['Hmm', 'Achha', 'Haanji'],
+    hi: ['Achha', 'Haan', 'Theek hai'],
+    bn: ['Achha', 'Haan'],
+    en: ['Right', 'Okay', 'I see'],
+    ta: ['Sari', 'Aama'],
+    te: ['Sare', 'Avunu'],
+    mr: ['Barobar', 'Haan'],
+    gu: ['Saru', 'Haa'],
+    kn: ['Sari', 'Howdu'],
+    ml: ['Sheri', 'Athe'],
+    pa: ['Achha', 'Haanji'],
   };
   const assistantTurns = session.conversation.messages.filter(m => m.role === 'assistant').length;
-  const useNeutralFiller = session.call.autoDetectLanguage && assistantTurns <= 2;
-  const fillerPool = useNeutralFiller ? ['Hmm'] : (fillers[fillerLang] || fillers.en);
-  const fillerText = fillerPool[Math.floor(Math.random() * fillerPool.length)];
+  const isFirstResponse = assistantTurns <= 1;
+  const shouldPlayFiller = !isFirstResponse && Math.random() > 0.5;
 
-  // Start Claude stream in parallel with filler TTS
   session.isAiSpeaking = true;
-  const fillerDone = speakSentence(session, fillerText, fillerLang, null);
+  let fillerDone;
+  if (shouldPlayFiller) {
+    const fillerPool = fillers[fillerLang] || fillers.en;
+    const fillerText = fillerPool[Math.floor(Math.random() * fillerPool.length)];
+    fillerDone = speakSentence(session, fillerText, fillerLang, null);
+  } else {
+    fillerDone = Promise.resolve();
+  }
 
   // --- Streaming pipeline: Claude → sentence TTS → Twilio ---
   const stream = session.conversation.startResponseStream(textForClaude);
