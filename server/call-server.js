@@ -363,13 +363,10 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
     const enName = getVoiceName('en', gender);
     const orgName = customSurvey?.companyName;
     const fromPart = orgName ? ` from ${orgName}` : '';
-    const topicPart = customSurvey?.greetingTopic
-      ? ` We're chatting with people about ${customSurvey.greetingTopic} today —`
-      : ` We'd love to get your thoughts —`;
     const langQuestion = sttProvider === 'cartesia'
       ? ' Which language would you prefer to speak in? Aap kis bhasha mein baat karna chahte hain?'
       : '';
-    greetingText = `Hi! I'm ${enName}${fromPart}.${topicPart} just takes a minute. Got a minute?${langQuestion}`;
+    greetingText = `Hi! I'm ${enName}${fromPart}. Would you have a couple minutes to chat?${langQuestion}`;
   } else if (customSurvey) {
     greetingText = generateCustomGreeting(language, gender, customSurvey.name, customSurvey.companyName, customSurvey.greetingTopic);
   } else if (SURVEY_SCRIPTS[language]) {

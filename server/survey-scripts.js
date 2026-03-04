@@ -34,7 +34,7 @@ const VOICE_NAMES = {
   pa_female: 'ਜਸਪ੍ਰੀਤ', pa_male: 'ਗੁਰਪ੍ਰੀਤ',
   kn_female: 'ದಿವ್ಯ', kn_male: 'ಪ್ರಕಾಶ',
   ml_female: 'ലതാ', ml_male: 'വിജയ്',
-  en_female: 'Kiara', en_male: 'Devansh',
+  en_female: 'Dhwani', en_male: 'Devansh',
 };
 
 export function getVoiceName(language, gender) {
@@ -288,7 +288,7 @@ CRITICAL RULES:
 ${languageRule}
 2. Ask ONE survey question at a time. Wait for the response before moving on.
 3. STRICTLY 1-2 sentences per response. No exceptions. This is a phone call — be warm but get to the point immediately. Never ramble.
-4. Sound like a REAL PERSON having a genuine conversation. Use filler words, casual phrasing, trailing thoughts, and natural reactions. You are not reading a script.
+4. Sound like a REAL PERSON having a genuine conversation. Use casual phrasing and natural language. Do NOT pad every response with filler words or reactions.
 5. NEVER use markdown formatting, asterisks, bold, quotes, or special characters in your text. Your words are spoken aloud via text-to-speech.
 6. Use simple, everyday words and contractions ("it's", "don't", "you're"). Sentence fragments are natural and fine.
 ${genderNote ? `7. ${genderNote}` : ''}
@@ -307,12 +307,12 @@ A) If they gave a CLEAR YES (haan, haan bolo, yes, sure, ok, theek hai, bolo):
 
 B) If they just said a GREETING (hello, namaste, hi, hey, haan ji):
    → They're acknowledging you, NOT consenting. Greet them back warmly and ask for consent again naturally.
-   Example: "Haan namaste! Basically hum dharmik sadbhav ke baare mein logon ki raaye sun rahe hain — sirf ek minute lagega. Kya aap do minute de sakte hain?"
+   Example: "Haan namaste! Basically hum dharmik sadbhav ke baare mein logon ki raaye sun rahe hain — do minute lagenge. Baat kar sakte hain?"
    DO NOT start asking survey questions yet.
 
 C) If they said NO or clearly declined → warm goodbye and [SURVEY_COMPLETE].
 
-D) If unclear/garbled → greet warmly and re-ask consent: "Kya aap abhi baat kar sakte hain? Bas ek minute lagega."
+D) If unclear/garbled → greet warmly and re-ask consent: "Kya aap do minute baat kar sakte hain?"
 
 NEVER say "Let's dive in" or "Let's get started with the questions" — it sounds transactional.
 
@@ -499,58 +499,48 @@ Be precise. Map the respondent's answers to the closest option value. If an answ
  */
 export function generateCustomGreeting(language, gender, surveyName, companyName, greetingTopic) {
   const name = getVoiceName(language, gender);
-  const topic = greetingTopic || '';
+
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
       const from = companyName ? `, ${companyName} se bol ${verb} hoon` : ` bol ${verb} hoon`;
-      const about = topic ? ` Aaj hum logon se ${topic} ke baare mein baat kar rahe hain —` : ` Aapki raaye jaanna chahte hain —`;
-      return `Namaste! Mein ${name}${from}.${about} bas ek minute lagega. Baat kar sakte hain?`;
+      return `Namaste! Mein ${name}${from}. Kya aap do minute baat kar sakte hain?`;
     },
     bn: () => {
       const from = companyName ? `, ${companyName} থেকে বলছি` : ` বলছি`;
-      const about = topic ? ` আজ আমরা ${topic} নিয়ে কথা বলছি —` : ` আপনার মতামত জানতে চাই —`;
-      return `নমস্কার! আমি ${name}${from}।${about} মাত্র এক মিনিট লাগবে। কথা বলতে পারবেন?`;
+      return `নমস্কার! আমি ${name}${from}। দু'মিনিট কথা বলতে পারবেন?`;
     },
     te: () => {
       const from = companyName ? `, ${companyName} నుండి మాట్లాడుతున్నాను` : ` మాట్లాడుతున్నాను`;
-      const about = topic ? ` ఈ రోజు ${topic} గురించి మాట్లాడుతున్నాము —` : ` మీ అభిప్రాయం తెలుసుకోవాలనుకుంటున్నాము —`;
-      return `నమస్కారం! నేను ${name}${from}.${about} ఒక్క నిమిషం పడుతుంది. మాట్లాడగలరా?`;
+      return `నమస్కారం! నేను ${name}${from}. రెండు నిమిషాలు మాట్లాడగలరా?`;
     },
     mr: () => {
       const from = companyName ? `, ${companyName} कडून बोलत आहे` : ` बोलत आहे`;
-      const about = topic ? ` आज आम्ही ${topic} बद्दल बोलतोय —` : ` तुमचे मत जाणून घ्यायचे आहे —`;
-      return `नमस्कार! मी ${name}${from}.${about} फक्त एक मिनिट लागेल. बोलू शकता का?`;
+      return `नमस्कार! मी ${name}${from}. दोन मिनिटं बोलू शकता का?`;
     },
     ta: () => {
       const from = companyName ? `, ${companyName} இருந்து பேசுகிறேன்` : ` பேசுகிறேன்`;
-      const about = topic ? ` இன்று நாங்கள் ${topic} பற்றி பேசுகிறோம் —` : ` உங்கள் கருத்தை தெரிந்துகொள்ள விரும்புகிறோம் —`;
-      return `வணக்கம்! நான் ${name}${from}.${about} ஒரு நிமிடம் தான். பேச முடியுமா?`;
+      return `வணக்கம்! நான் ${name}${from}. இரண்டு நிமிடம் பேச முடியுமா?`;
     },
     gu: () => {
       const from = companyName ? `, ${companyName} તરફથી બોલી રહ્યો છું` : ` બોલી રહ્યો છું`;
-      const about = topic ? ` આજે અમે ${topic} વિશે વાત કરી રહ્યા છીએ —` : ` તમારો અભિપ્રાય જાણવા માંગીએ છીએ —`;
-      return `નમસ્તે! હું ${name}${from}.${about} બસ એક મિનિટ લાગશે. વાત કરી શકશો?`;
+      return `નમસ્તે! હું ${name}${from}. બે મિનિટ વાત કરી શકશો?`;
     },
     kn: () => {
       const from = companyName ? `, ${companyName} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ` : ` ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ`;
-      const about = topic ? ` ಇಂದು ನಾವು ${topic} ಬಗ್ಗೆ ಮಾತನಾಡುತ್ತಿದ್ದೇವೆ —` : ` ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ತಿಳಿಯಲು ಬಯಸುತ್ತೇವೆ —`;
-      return `ನಮಸ್ಕಾರ! ನಾನು ${name}${from}.${about} ಒಂದೇ ನಿಮಿಷ ಸಾಕು. ಮಾತನಾಡಬಹುದಾ?`;
+      return `ನಮಸ್ಕಾರ! ನಾನು ${name}${from}. ಎರಡು ನಿಮಿಷ ಮಾತನಾಡಬಹುದಾ?`;
     },
     ml: () => {
       const from = companyName ? `, ${companyName} ൽ നിന്ന് വിളിക്കുന്നു` : ` വിളിക്കുന്നു`;
-      const about = topic ? ` ഇന്ന് ഞങ്ങൾ ${topic} കുറിച്ച് സംസാരിക്കുന്നു —` : ` നിങ്ങളുടെ അഭിപ്രായം അറിയാൻ ആഗ്രഹിക്കുന്നു —`;
-      return `നമസ്കാരം! ഞാൻ ${name}${from}.${about} ഒരു മിനിറ്റ് മാത്രം. സംസാരിക്കാമോ?`;
+      return `നമസ്കാരം! ഞാൻ ${name}${from}. രണ്ട് മിനിറ്റ് സംസാരിക്കാമോ?`;
     },
     pa: () => {
       const from = companyName ? `, ${companyName} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ` : ` ਬੋਲ ਰਿਹਾ ਹਾਂ`;
-      const about = topic ? ` ਅੱਜ ਅਸੀਂ ${topic} ਬਾਰੇ ਗੱਲ ਕਰ ਰਹੇ ਹਾਂ —` : ` ਤੁਹਾਡੀ ਰਾਏ ਜਾਣਨਾ ਚਾਹੁੰਦੇ ਹਾਂ —`;
-      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}${from}।${about} ਬੱਸ ਇੱਕ ਮਿੰਟ ਲੱਗੇਗਾ। ਗੱਲ ਕਰ ਸਕਦੇ ਹੋ?`;
+      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${name}${from}। ਦੋ ਮਿੰਟ ਗੱਲ ਕਰ ਸਕਦੇ ਹੋ?`;
     },
     en: () => {
       const from = companyName ? ` from ${companyName}` : '';
-      const about = topic ? ` We're chatting with people about ${topic} today —` : ` We'd love to get your thoughts —`;
-      return `Hi! I'm ${name}${from}.${about} just takes a minute. Got a minute?`;
+      return `Hi! I'm ${name}${from}. Would you have a couple minutes to chat?`;
     },
   };
 
@@ -563,58 +553,48 @@ export function generateCustomGreeting(language, gender, surveyName, companyName
  */
 export function generateInboundGreeting(language, gender, surveyName, companyName, greetingTopic) {
   const name = getVoiceName(language, gender);
-  const topic = greetingTopic || '';
+
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
       const welcome = companyName ? `${companyName} में आपका स्वागत है। ` : '';
-      const about = topic ? `आज हम ${topic} के बारे में बात कर रहे हैं —` : `आपकी राय सुनना चाहते हैं —`;
-      return `नमस्ते! ${welcome}मैं ${name} बोल ${verb} हूँ। ${about} बस एक मिनट लगेगा। बताइए?`;
+      return `नमस्ते! ${welcome}मैं ${name} बोल ${verb} हूँ। बताइए, कैसे मदद कर सकती हूँ?`;
     },
     bn: () => {
       const welcome = companyName ? `${companyName}-এ স্বাগত। ` : '';
-      const about = topic ? `আজ আমরা ${topic} নিয়ে কথা বলছি —` : `আপনার মতামত শুনতে চাই —`;
-      return `নমস্কার! ${welcome}আমি ${name} বলছি। ${about} মাত্র এক মিনিট। বলবেন?`;
+      return `নমস্কার! ${welcome}আমি ${name} বলছি। বলুন, কীভাবে সাহায্য করতে পারি?`;
     },
     te: () => {
       const welcome = companyName ? `${companyName}‌కి స్వాగతం. ` : '';
-      const about = topic ? `ఈ రోజు ${topic} గురించి మాట్లాడుతున్నాము —` : `మీ అభిప్రాయం వినాలనుకుంటున్నాము —`;
-      return `నమస్కారం! ${welcome}నేను ${name}. ${about} ఒక్క నిమిషం. చెప్తారా?`;
+      return `నమస్కారం! ${welcome}నేను ${name}. చెప్పండి, ఎలా సహాయం చేయగలను?`;
     },
     mr: () => {
       const welcome = companyName ? `${companyName} मध्ये स्वागत. ` : '';
-      const about = topic ? `आज आम्ही ${topic} बद्दल बोलतोय —` : `तुमचे मत ऐकायला आवडेल —`;
-      return `नमस्कार! ${welcome}मी ${name}. ${about} फक्त एक मिनिट. सांगाल का?`;
+      return `नमस्कार! ${welcome}मी ${name}. बोला, कशी मदत करू शकते?`;
     },
     ta: () => {
       const welcome = companyName ? `${companyName}-க்கு வரவேற்கிறோம். ` : '';
-      const about = topic ? `இன்று நாங்கள் ${topic} பற்றி பேசுகிறோம் —` : `உங்கள் கருத்து கேட்க விரும்புகிறோம் —`;
-      return `வணக்கம்! ${welcome}நான் ${name}. ${about} ஒரு நிமிடம் தான். சொல்வீர்களா?`;
+      return `வணக்கம்! ${welcome}நான் ${name}. சொல்லுங்கள், எப்படி உதவ முடியும்?`;
     },
     gu: () => {
       const welcome = companyName ? `${companyName}માં સ્વાગત. ` : '';
-      const about = topic ? `આજે અમે ${topic} વિશે વાત કરી રહ્યા છીએ —` : `તમારો અભિપ્રાય સાંભળવો છે —`;
-      return `નમસ્તે! ${welcome}હું ${name}. ${about} બસ એક મિનિટ. કહેશો?`;
+      return `નમસ્તે! ${welcome}હું ${name}. બોલો, કેવી રીતે મદદ કરી શકું?`;
     },
     kn: () => {
       const welcome = companyName ? `${companyName}‌ಗೆ ಸ್ವಾಗತ. ` : '';
-      const about = topic ? `ಇಂದು ನಾವು ${topic} ಬಗ್ಗೆ ಮಾತನಾಡುತ್ತಿದ್ದೇವೆ —` : `ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಕೇಳಬೇಕು —`;
-      return `ನಮಸ್ಕಾರ! ${welcome}ನಾನು ${name}. ${about} ಒಂದೇ ನಿಮಿಷ. ಹೇಳ್ತೀರಾ?`;
+      return `ನಮಸ್ಕಾರ! ${welcome}ನಾನು ${name}. ಹೇಳಿ, ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?`;
     },
     ml: () => {
       const welcome = companyName ? `${companyName}-ലേക്ക് സ്വാഗതം. ` : '';
-      const about = topic ? `ഇന്ന് ഞങ്ങൾ ${topic} കുറിച്ച് സംസാരിക്കുന്നു —` : `നിങ്ങളുടെ അഭിപ്രായം കേൾക്കാൻ ആഗ്രഹിക്കുന്നു —`;
-      return `നമസ്കാരം! ${welcome}ഞാൻ ${name}. ${about} ഒരു മിനിറ്റ് മാത്രം. പറയാമോ?`;
+      return `നമസ്കാരം! ${welcome}ഞാൻ ${name}. പറയൂ, എങ്ങനെ സഹായിക്കാം?`;
     },
     pa: () => {
       const welcome = companyName ? `${companyName} ਵਿੱਚ ਸੁਆਗਤ ਹੈ। ` : '';
-      const about = topic ? `ਅੱਜ ਅਸੀਂ ${topic} ਬਾਰੇ ਗੱਲ ਕਰ ਰਹੇ ਹਾਂ —` : `ਤੁਹਾਡੀ ਰਾਏ ਸੁਣਨਾ ਚਾਹੁੰਦੇ ਹਾਂ —`;
-      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ${welcome}ਮੈਂ ${name}। ${about} ਬੱਸ ਇੱਕ ਮਿੰਟ। ਦੱਸੋਗੇ?`;
+      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ${welcome}ਮੈਂ ${name}। ਦੱਸੋ, ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦੀ ਹਾਂ?`;
     },
     en: () => {
       const from = companyName ? ` at ${companyName}` : '';
-      const about = topic ? ` We're talking about ${topic} today —` : ` We'd love to hear your thoughts —`;
-      return `Thanks for calling! I'm ${name}${from}.${about} just takes a minute. Want to share?`;
+      return `Thanks for calling! I'm ${name}${from}. How can I help you?`;
     },
   };
   return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
@@ -625,58 +605,48 @@ export function generateInboundGreeting(language, gender, surveyName, companyNam
  */
 export function generateCallbackGreeting(language, gender, surveyName, companyName, greetingTopic) {
   const name = getVoiceName(language, gender);
-  const topic = greetingTopic || '';
+
   const greetings = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      const from = companyName ? `, ${companyName} से बोल ${verb} हूँ` : ` बोल ${verb} हूँ`;
-      const about = topic ? ` Hum ${topic} ke baare mein baat karna chahte the —` : ` Aapki raaye sunna chahte the —`;
-      return `Namaste! Call back karne ka shukriya! Mein ${name}${from}.${about} bas ek minute lagega.`;
+      const from = companyName ? `, ${companyName} se bol ${verb} hoon` : ` bol ${verb} hoon`;
+      return `Namaste! Call back karne ka shukriya! Mein ${name}${from}. Kya aap do minute baat kar sakte hain?`;
     },
     bn: () => {
       const from = companyName ? `, ${companyName} থেকে` : '';
-      const about = topic ? ` আমরা ${topic} নিয়ে কথা বলতে চেয়েছিলাম —` : ` আপনার মতামত শুনতে চেয়েছিলাম —`;
-      return `নমস্কার! কল ব্যাক করার জন্য ধন্যবাদ! আমি ${name}${from}।${about} মাত্র এক মিনিট।`;
+      return `নমস্কার! কল ব্যাক করার জন্য ধন্যবাদ! আমি ${name}${from}। দু'মিনিট কথা বলতে পারবেন?`;
     },
     te: () => {
       const from = companyName ? `, ${companyName} నుండి` : '';
-      const about = topic ? ` ${topic} గురించి మాట్లాడాలనుకున్నాము —` : ` మీ అభిప్రాయం వినాలనుకున్నాము —`;
-      return `నమస్కారం! తిరిగి కాల్ చేసినందుకు ధన్యవాదాలు! నేను ${name}${from}.${about} ఒక్క నిమిషం.`;
+      return `నమస్కారం! తిరిగి కాల్ చేసినందుకు ధన్యవాదాలు! నేను ${name}${from}. రెండు నిమిషాలు మాట్లాడగలరా?`;
     },
     mr: () => {
       const from = companyName ? `, ${companyName} कडून` : '';
-      const about = topic ? ` ${topic} बद्दल बोलायचे होते —` : ` तुमचे मत ऐकायला आवडेल —`;
-      return `नमस्कार! परत कॉल केल्याबद्दल धन्यवाद! मी ${name}${from}.${about} फक्त एक मिनिट.`;
+      return `नमस्कार! परत कॉल केल्याबद्दल धन्यवाद! मी ${name}${from}. दोन मिनिटं बोलू शकता का?`;
     },
     ta: () => {
       const from = companyName ? `, ${companyName} இருந்து` : '';
-      const about = topic ? ` ${topic} பற்றி பேச விரும்பினோம் —` : ` உங்கள் கருத்து கேட்க விரும்பினோம் —`;
-      return `வணக்கம்! திரும்ப அழைத்ததற்கு நன்றி! நான் ${name}${from}.${about} ஒரு நிமிடம் தான்.`;
+      return `வணக்கம்! திரும்ப அழைத்ததற்கு நன்றி! நான் ${name}${from}. இரண்டு நிமிடம் பேச முடியுமா?`;
     },
     gu: () => {
       const from = companyName ? `, ${companyName} તરફથી` : '';
-      const about = topic ? ` ${topic} વિશે વાત કરવી હતી —` : ` તમારો અભિપ્રાય સાંભળવો હતો —`;
-      return `નમસ્તે! પાછા કૉલ કરવા બદલ આભાર! હું ${name}${from}.${about} બસ એક મિનિટ.`;
+      return `નમસ્તે! પાછા કૉલ કરવા બદલ આભાર! હું ${name}${from}. બે મિનિટ વાત કરી શકશો?`;
     },
     kn: () => {
       const from = companyName ? `, ${companyName} ನಿಂದ` : '';
-      const about = topic ? ` ${topic} ಬಗ್ಗೆ ಮಾತನಾಡಬೇಕಿತ್ತು —` : ` ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಕೇಳಬೇಕಿತ್ತು —`;
-      return `ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ! ನಾನು ${name}${from}.${about} ಒಂದೇ ನಿಮಿಷ.`;
+      return `ನಮಸ್ಕಾರ! ಮತ್ತೆ ಕರೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದ! ನಾನು ${name}${from}. ಎರಡು ನಿಮಿಷ ಮಾತನಾಡಬಹುದಾ?`;
     },
     ml: () => {
       const from = companyName ? `, ${companyName} ൽ നിന്ന്` : '';
-      const about = topic ? ` ${topic} കുറിച്ച് സംസാരിക്കാൻ ആഗ്രഹിച്ചു —` : ` നിങ്ങളുടെ അഭിപ്രായം കേൾക്കാൻ ആഗ്രഹിച്ചു —`;
-      return `നമസ്കാരം! തിരിച്ചു വിളിച്ചതിന് നന്ദി! ഞാൻ ${name}${from}.${about} ഒരു മിനിറ്റ് മാത്രം.`;
+      return `നമസ്കാരം! തിരിച്ചു വിളിച്ചതിന് നന്ദി! ഞാൻ ${name}${from}. രണ്ട് മിനിറ്റ് സംസാരിക്കാമോ?`;
     },
     pa: () => {
       const from = companyName ? `, ${companyName} ਤੋਂ` : '';
-      const about = topic ? ` ${topic} ਬਾਰੇ ਗੱਲ ਕਰਨਾ ਚਾਹੁੰਦੇ ਸੀ —` : ` ਤੁਹਾਡੀ ਰਾਏ ਸੁਣਨਾ ਚਾਹੁੰਦੇ ਸੀ —`;
-      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਦਾ ਸ਼ੁਕਰੀਆ! ਮੈਂ ${name}${from}।${about} ਬੱਸ ਇੱਕ ਮਿੰਟ।`;
+      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਵਾਪਸ ਕਾਲ ਕਰਨ ਦਾ ਸ਼ੁਕਰੀਆ! ਮੈਂ ${name}${from}। ਦੋ ਮਿੰਟ ਗੱਲ ਕਰ ਸਕਦੇ ਹੋ?`;
     },
     en: () => {
       const from = companyName ? ` from ${companyName}` : '';
-      const about = topic ? ` We wanted to chat about ${topic} —` : ` We wanted to hear your thoughts —`;
-      return `Hey, thanks for calling back! I'm ${name}${from}.${about} just takes a minute. Can you chat?`;
+      return `Hey, thanks for calling back! I'm ${name}${from}. Would you have a couple minutes to chat?`;
     },
   };
   return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
@@ -785,7 +755,7 @@ CRITICAL RULES:
 ${languageRule}
 2. Ask ONE question at a time.
 3. STRICTLY 1-2 sentences per response. No exceptions. This is a phone call — be warm but get to the point immediately. Never ramble.
-4. Sound like a REAL PERSON having a genuine conversation. Use filler words, casual phrasing, trailing thoughts, and natural reactions. You are not reading a script.
+4. Sound like a REAL PERSON having a genuine conversation. Use casual phrasing and natural language. Do NOT pad every response with filler words or reactions.
 5. NEVER use markdown formatting, asterisks, bold, quotes, or special characters in your text. Your words are spoken aloud via text-to-speech.
 6. Use simple, everyday words and contractions ("it's", "don't", "you're"). Sentence fragments are natural and fine.
 7. ${genderNote}
@@ -806,12 +776,12 @@ A) If they gave a CLEAR YES (haan, haan bolo, yes, sure, ok, theek hai, bolo):
 
 B) If they just said a GREETING (hello, namaste, hi, hey, haan ji):
    → They're acknowledging you, NOT consenting. Greet them back warmly and ask for consent again naturally.
-   Example: "Haan namaste! Basically hum ${customSurvey.name} ke baare mein logon ki raaye sun rahe hain — sirf ek minute lagega. Kya aap do minute de sakte hain?"
+   Example: "Haan namaste! Basically hum ${customSurvey.name} ke baare mein logon ki raaye sun rahe hain — do minute lagenge. Baat kar sakte hain?"
    DO NOT start asking survey questions yet.
 
 C) If they said NO or clearly declined → warm goodbye and [SURVEY_COMPLETE].
 
-D) If unclear/garbled → greet warmly and re-ask consent: "Kya aap abhi baat kar sakte hain? Bas ek minute lagega."
+D) If unclear/garbled → greet warmly and re-ask consent: "Kya aap do minute baat kar sakte hain?"
 
 NEVER say "Let's dive in" or "Let's get started with the questions" — it sounds transactional.
 
@@ -1046,7 +1016,7 @@ A) If they gave a CLEAR YES (haan, haan bolo, yes, sure, ok, theek hai, bolo, bo
 
 B) If they just said a GREETING (hello, namaste, hi, hey, haan ji):
    → They're acknowledging you, NOT consenting. Greet them back warmly and ask for consent again naturally.
-   Example: "[LANG:en] [EMOTION:content] Hey, hi! So basically we'd love to hear your thoughts on religious harmony — just takes a minute. Are you free to chat?"
+   Example: "[LANG:en] [EMOTION:content] Hey, hi! So I'm calling about religious harmony — would love to hear what you think. Got a couple minutes?"
    DO NOT start asking survey questions yet.
 
 C) If they said NO or clearly declined → warm goodbye and [SURVEY_COMPLETE].
@@ -1057,8 +1027,8 @@ The greeting was in English and asked "Which language would you prefer to speak 
 
 A) If they chose a language (e.g. "Hindi", "Tamil", "English", or just started speaking in a language):
    → Switch to that language, confirm briefly, and ask for consent to continue.
-   Example if Hindi: "[LANG:hi] [EMOTION:content] Achha Hindi mein baat karte hain! Toh basically hum dharmik sadbhav ke baare mein aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?"
-   Example if English: "[LANG:en] [EMOTION:content] Sure, let's chat in English! So we'd love your thoughts on religious harmony — just takes a minute. Can you chat?"
+   Example if Hindi: "[LANG:hi] [EMOTION:content] Achha Hindi mein baat karte hain! Toh basically hum dharmik sadbhav ke baare mein aapki raaye jaanna chahte hain — do minute lagenge. Baat kar sakte hain?"
+   Example if English: "[LANG:en] [EMOTION:content] Sure, let's chat in English! So we're looking at religious harmony — would love to hear what you think. Can you chat for a couple minutes?"
 
 B) If they skipped the language question and just said YES/consent:
    → Default to Hinglish and flow into the first question.
@@ -1326,8 +1296,8 @@ The greeting was in English and asked "Which language would you prefer to speak 
 
 A) If they chose a language (e.g. "Hindi", "Tamil", "English", or just started speaking in a language):
    → Switch to that language, confirm briefly, and ask for consent to continue.
-   Example if Hindi: "[LANG:hi] [EMOTION:content] Achha Hindi mein baat karte hain! Toh basically hum ${customSurvey.name} ke baare mein aapki raaye jaanna chahte hain — bas ek minute lagega. Kya aap baat kar sakte hain?"
-   Example if English: "[LANG:en] [EMOTION:content] Sure, let's chat in English! So we'd love your thoughts on ${customSurvey.name} — just takes a minute. Can you chat?"
+   Example if Hindi: "[LANG:hi] [EMOTION:content] Achha Hindi mein baat karte hain! Toh basically hum ${customSurvey.name} ke baare mein aapki raaye jaanna chahte hain — do minute lagenge. Baat kar sakte hain?"
+   Example if English: "[LANG:en] [EMOTION:content] Sure, let's chat in English! So we're looking at ${customSurvey.name} — would love to hear what you think. Can you chat for a couple minutes?"
 
 B) If they skipped the language question and just said YES/consent:
    → Default to Hinglish and flow into the first question.
