@@ -5,67 +5,46 @@ const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
 const formatPhoneInput = (value) => value.replace(/\D/g, '').slice(0, 12);
 
 const COUNTRIES = [
-  { code: '+91',  label: 'IN +91'  },
-  { code: '+1',   label: 'US/CA +1' },
-  { code: '+44',  label: 'GB +44'  },
-  { code: '+971', label: 'AE +971' },
-  { code: '+65',  label: 'SG +65'  },
-  { code: '+61',  label: 'AU +61'  },
-  { code: '+60',  label: 'MY +60'  },
-  { code: '+49',  label: 'DE +49'  },
-  { code: '+33',  label: 'FR +33'  },
-  { code: '+31',  label: 'NL +31'  },
-  { code: '+81',  label: 'JP +81'  },
-  { code: '+82',  label: 'KR +82'  },
-  { code: '+86',  label: 'CN +86'  },
+  { code: '+91', label: 'IN +91' },
+  { code: '+1',  label: 'US +1'  },
 ];
 
 // ─────────────────────────────────────────────
-// Nebula Orb — multi-layered, organic, alive
+// Nebula Orb — sharp, defined, glassy
 // ─────────────────────────────────────────────
 function NebulaOrb({ state = 'idle', size = 96 }) {
   const fast = state === 'requesting';
   const err = state === 'error';
 
-  // Each layer has its own animation rhythm for organic feel
   const layers = useMemo(() => [
-    { // Deep ambient glow
-      inset: -8,
+    { // Tight ambient glow — close to sphere, not diffuse
+      inset: -4,
       gradient: err
-        ? 'radial-gradient(circle at 50% 50%, rgba(239,68,68,0.18) 0%, transparent 70%)'
-        : 'radial-gradient(circle at 50% 50%, rgba(232,85,15,0.15) 0%, rgba(196,160,74,0.05) 40%, transparent 70%)',
-      scale: fast ? [1, 1.5, 1] : [1, 1.25, 1],
-      duration: fast ? 0.7 : 3.5,
+        ? 'radial-gradient(circle at 50% 50%, rgba(239,68,68,0.22) 0%, transparent 65%)'
+        : 'radial-gradient(circle at 50% 50%, rgba(232,85,15,0.18) 0%, transparent 65%)',
+      scale: fast ? [1, 1.4, 1] : [1, 1.18, 1],
+      duration: fast ? 0.65 : 3.2,
     },
-    { // Warm corona
-      inset: 0,
+    { // Core — sharp sphere with defined edge
+      inset: 8,
       gradient: err
-        ? 'radial-gradient(circle at 45% 40%, rgba(239,68,68,0.4) 0%, rgba(239,68,68,0.1) 50%, transparent 75%)'
-        : 'radial-gradient(circle at 45% 40%, rgba(251,191,108,0.35) 0%, rgba(232,85,15,0.15) 50%, transparent 75%)',
-      scale: fast ? [1, 1.2, 1] : [1, 1.1, 1],
-      duration: fast ? 0.5 : 2.8,
-      delay: 0.2,
-    },
-    { // Core — the visible sphere
-      inset: 10,
-      gradient: err
-        ? 'radial-gradient(circle at 38% 32%, #f87171 0%, #ef4444 35%, #b91c1c 65%, rgba(185,28,28,0.4) 100%)'
-        : 'radial-gradient(circle at 38% 32%, #fcd89d 0%, #f0923a 25%, #e8550f 50%, #c24a0e 72%, rgba(194,74,14,0.3) 100%)',
-      scale: fast ? [1, 1.08, 1] : [1, 1.04, 1],
-      duration: fast ? 0.4 : 3,
+        ? 'radial-gradient(circle at 36% 30%, #fca5a5 0%, #ef4444 30%, #b91c1c 58%, #7f1d1d 100%)'
+        : 'radial-gradient(circle at 36% 30%, #fde8c0 0%, #f4923a 22%, #e8550f 46%, #c24a0e 68%, #8b3109 100%)',
+      scale: fast ? [1, 1.07, 1] : [1, 1.03, 1],
+      duration: fast ? 0.4 : 2.8,
       delay: 0.1,
       shadow: err
-        ? 'inset 0 -6px 16px rgba(0,0,0,0.4), inset 0 3px 8px rgba(255,255,255,0.1), 0 0 40px rgba(239,68,68,0.3)'
-        : 'inset 0 -6px 16px rgba(0,0,0,0.35), inset 0 3px 8px rgba(255,255,255,0.12), 0 0 40px rgba(232,85,15,0.25), 0 0 80px rgba(232,85,15,0.08)',
+        ? 'inset 0 -8px 20px rgba(0,0,0,0.5), inset 0 4px 10px rgba(255,255,255,0.12), 0 0 32px rgba(239,68,68,0.35), 0 2px 8px rgba(0,0,0,0.6)'
+        : 'inset 0 -8px 20px rgba(0,0,0,0.5), inset 0 4px 10px rgba(255,255,255,0.14), 0 0 28px rgba(232,85,15,0.35), 0 0 56px rgba(232,85,15,0.12), 0 2px 8px rgba(0,0,0,0.5)',
     },
-    { // Hot spot — bright inner highlight
-      inset: 18,
+    { // Sharp inner highlight — hot spot, no blur
+      inset: 16,
       gradient: err
-        ? 'radial-gradient(circle at 42% 36%, rgba(252,165,165,0.5) 0%, transparent 60%)'
-        : 'radial-gradient(circle at 42% 36%, rgba(253,224,180,0.5) 0%, rgba(240,146,58,0.15) 40%, transparent 60%)',
-      scale: fast ? [1, 1.12, 0.97, 1] : [1, 1.06, 0.98, 1],
-      duration: fast ? 0.6 : 3.2,
-      delay: 0.3,
+        ? 'radial-gradient(circle at 40% 34%, rgba(255,255,255,0.22) 0%, rgba(252,165,165,0.1) 45%, transparent 70%)'
+        : 'radial-gradient(circle at 40% 34%, rgba(255,255,255,0.26) 0%, rgba(253,224,180,0.12) 45%, transparent 70%)',
+      scale: fast ? [1, 1.1, 0.97, 1] : [1, 1.05, 0.98, 1],
+      duration: fast ? 0.55 : 3.0,
+      delay: 0.25,
     },
   ], [fast, err]);
 
@@ -82,7 +61,7 @@ function NebulaOrb({ state = 'idle', size = 96 }) {
           }}
           animate={{
             scale: layer.scale,
-            y: fast ? [0, -1, 0] : [0, -3, 1, 0],
+            y: fast ? [0, -1, 0] : [0, -2.5, 1, 0],
           }}
           transition={{
             duration: layer.duration,
@@ -92,24 +71,22 @@ function NebulaOrb({ state = 'idle', size = 96 }) {
           }}
         />
       ))}
-      {/* Specular highlight — glass-like reflection */}
+      {/* Crisp specular highlight — sharp glass look, no blur */}
       <div
         className="absolute pointer-events-none"
         style={{
-          top: '18%', left: '25%', width: '35%', height: '22%',
-          background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 50%, transparent 100%)',
+          top: '17%', left: '24%', width: '32%', height: '20%',
+          background: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 55%, transparent 100%)',
           borderRadius: '50%',
-          filter: 'blur(1.5px)',
         }}
       />
-      {/* Subtle bottom reflection */}
+      {/* Secondary rim highlight on lower-left */}
       <div
         className="absolute pointer-events-none"
         style={{
-          bottom: '15%', left: '30%', width: '40%', height: '12%',
-          background: 'radial-gradient(ellipse, rgba(251,191,108,0.1) 0%, transparent 100%)',
+          bottom: '20%', left: '14%', width: '20%', height: '14%',
+          background: 'radial-gradient(ellipse, rgba(255,255,255,0.08) 0%, transparent 100%)',
           borderRadius: '50%',
-          filter: 'blur(3px)',
         }}
       />
     </div>
@@ -132,7 +109,6 @@ function RingPulse() {
           transition={{ duration: 2.2, repeat: Infinity, delay, ease: [0.25, 0.1, 0.25, 1] }}
         />
       ))}
-      {/* Center glowing dot */}
       <motion.div
         className="relative rounded-full"
         style={{
@@ -162,7 +138,6 @@ function AudioBars() {
   useEffect(() => {
     const interval = setInterval(() => {
       setHeights(prev => prev.map((_, i) => {
-        // Center bars taller, edges shorter — natural EQ shape
         const center = Math.abs(i - (barCount - 1) / 2) / ((barCount - 1) / 2);
         const maxH = 38 * (1 - center * 0.5);
         return Math.random() * maxH + 4;
@@ -232,11 +207,12 @@ function AnimatedCheck() {
 }
 
 // ─────────────────────────────────────────────
-// Floating button — alive, breathing
+// Floating button — always alive, even at rest
 // ─────────────────────────────────────────────
 function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave }) {
   const [tick, setTick] = useState(0);
-  const speed = isHovered || isActive ? 80 : 400;
+  // Always animate — faster when hovered/active, lively even at rest
+  const speed = isHovered || isActive ? 55 : 130;
 
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), speed);
@@ -244,8 +220,8 @@ function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave
   }, [speed]);
 
   const bars = [0.3, 0.55, 0.8, 1, 0.8, 0.55, 0.3].map((base, i) => {
-    const phase = (tick * (isHovered || isActive ? 0.4 : 0.15)) + i * 1.2;
-    const wave = Math.sin(phase) * 0.35 + 0.65;
+    const phase = (tick * (isHovered || isActive ? 0.45 : 0.28)) + i * 1.2;
+    const wave = Math.sin(phase) * 0.42 + 0.58;
     return base * wave * 20;
   });
 
@@ -264,7 +240,6 @@ function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 1.5 }}
     >
-      {/* Background layers */}
       <div
         className="absolute inset-0 rounded-full transition-all duration-500"
         style={{
@@ -274,7 +249,6 @@ function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave
             : '0 0 0 1px rgba(255,255,255,0.05), 0 6px 24px rgba(0,0,0,0.4)',
         }}
       />
-      {/* Subtle inner glow */}
       <div
         className="absolute inset-0 rounded-full transition-opacity duration-500"
         style={{
@@ -283,7 +257,6 @@ function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave
         }}
       />
 
-      {/* Icon content */}
       <div className="relative z-10">
         <AnimatePresence mode="wait">
           {isOpen ? (
@@ -317,7 +290,7 @@ function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave
                     height: Math.max(3, h),
                     background: 'linear-gradient(180deg, #fbbf6c, #e8550f)',
                     opacity: 0.6 + (h / 20) * 0.4,
-                    transition: `height ${speed < 200 ? 70 : 350}ms ease-out`,
+                    transition: `height ${speed < 100 ? 50 : 110}ms ease-out`,
                   }}
                 />
               ))}
@@ -436,7 +409,7 @@ export default function CallMeWidget() {
               boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04), 0 0 60px rgba(232,85,15,0.04)',
             }}
           >
-            {/* Ambient background glow — makes the panel feel alive */}
+            {/* Ambient background glow */}
             <div
               className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
               style={{
@@ -488,12 +461,8 @@ export default function CallMeWidget() {
                             border: '1px solid rgba(255,255,255,0.06)',
                             boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)',
                           }}
-                          onFocus={(e) => {
-                            e.target.style.borderColor = 'rgba(232,85,15,0.3)';
-                          }}
-                          onBlur={(e) => {
-                            e.target.style.borderColor = 'rgba(255,255,255,0.06)';
-                          }}
+                          onFocus={(e) => { e.target.style.borderColor = 'rgba(232,85,15,0.3)'; }}
+                          onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }}
                         >
                           {COUNTRIES.map(c => (
                             <option key={c.code} value={c.code} style={{ background: '#1a1210', color: '#fff' }}>
@@ -501,7 +470,6 @@ export default function CallMeWidget() {
                             </option>
                           ))}
                         </select>
-                        {/* Dropdown chevron */}
                         <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
                           <svg className="w-3 h-3 text-white/25" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -554,10 +522,6 @@ export default function CallMeWidget() {
                       Call Me
                     </motion.button>
                   </div>
-
-                  <p className="mt-4 text-[10px] text-white/15 font-body tracking-wide uppercase">
-                    One free demo per number per day
-                  </p>
                 </motion.div>
               )}
 
