@@ -256,11 +256,17 @@ export class CampaignRunner {
       try {
         await updateCampaignNumberStatus(num.id, 'calling', null, null);
 
+        // For verification campaigns, inject per-number lead data into the survey config
+        let surveyConfig = state.config.survey_config;
+        if (num.metadata && surveyConfig?.type === 'verification') {
+          surveyConfig = { ...surveyConfig, leadData: num.metadata };
+        }
+
         const result = await this.initiateCall({
           phoneNumber: num.phone_number,
           language: state.config.language,
           gender: state.config.gender,
-          customSurvey: state.config.survey_config,
+          customSurvey: surveyConfig,
           autoDetectLanguage: state.config.auto_detect_language,
           campaignId: campaignId,
         });

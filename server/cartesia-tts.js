@@ -6,7 +6,7 @@ import { WebSocket } from 'ws';
 const CARTESIA_TTS_URL = 'https://api.cartesia.ai/tts/bytes';
 const CARTESIA_TTS_WS_URL = 'wss://api.cartesia.ai/tts/websocket';
 
-// Voice IDs — Dhwani is the default Hindi female voice
+// Voice IDs — Ananya is the default Hindi female voice
 const VOICES = {
   hi_female: '86d3b948-5a63-49e4-98c5-b67da63aba50',
   hi_male: '7e8cb11d-37af-476b-ab8f-25da99b18644',

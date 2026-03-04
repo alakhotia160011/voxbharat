@@ -5,6 +5,7 @@ export const SURVEY_TYPES = [
   { id: 'employee', name: 'Employee Survey', icon: 'E', desc: 'Engagement, culture, workplace' },
   { id: 'social', name: 'Social Research', icon: 'S', desc: 'Attitudes, behaviors, social issues' },
   { id: 'custom', name: 'Custom Survey', icon: '+', desc: 'Build from scratch' },
+  { id: 'verification', name: 'Lead Verification', icon: 'V', desc: 'Verify signups, confirm identity, qualify leads' },
 ];
 
 export const QUESTION_TYPES = [
