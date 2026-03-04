@@ -375,14 +375,17 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
     greetingText = generateCustomGreeting(language, gender, 'VoxBharat Survey');
   }
 
-  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
+  // Store the promise itself so sendGreeting can await it even if TTS hasn't finished yet
+  const greetingPromise = generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
     .then(mulawBase64 => {
-      greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
       console.log(`[Call:${call.id}] Greeting audio pre-cached`);
+      return { mulawBase64, language: greetingLang };
     })
     .catch(err => {
       console.warn(`[Call:${call.id}] Greeting pre-cache failed (will generate on pickup): ${err.message}`);
+      return null;
     });
+  greetingAudioCache.set(call.id, greetingPromise);
 
   return { callId: call.id, twilioSid: twilioCall.sid, status: 'ringing' };
 }
@@ -515,14 +518,16 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
     greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName, surveyConfig?.greetingTopic);
   }
 
-  generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
+  const greetingPromise = generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
     .then(mulawBase64 => {
-      greetingAudioCache.set(call.id, { mulawBase64, language: greetingLang });
       console.log(`[Inbound:${call.id}] Greeting audio pre-cached`);
+      return { mulawBase64, language: greetingLang };
     })
     .catch(err => {
       console.warn(`[Inbound:${call.id}] Greeting pre-cache failed: ${err.message}`);
+      return null;
     });
+  greetingAudioCache.set(call.id, greetingPromise);
 
   // Start recording for inbound call
   twilioClient.calls(twilioCallSid).recordings.create({
@@ -1493,11 +1498,13 @@ async function sendGreeting(session) {
   const greeting = session.conversation.getGreeting();
   console.log(`[Call] Greeting: "${greeting.substring(0, 50)}..."`);
 
-  // Check for pre-cached greeting audio (generated while phone was ringing)
-  const cached = greetingAudioCache.get(callId);
+  // Await pre-cached greeting audio (started while phone was ringing)
+  const cachedPromise = greetingAudioCache.get(callId);
+  const cached = cachedPromise ? await cachedPromise : null;
+  greetingAudioCache.delete(callId);
+
   if (cached) {
-    greetingAudioCache.delete(callId);
-    console.log(`[Call:${callId}] Using pre-cached greeting audio (zero TTS latency)`);
+    console.log(`[Call:${callId}] Using pre-cached greeting audio`);
 
     session.isAiSpeaking = true;
 
@@ -1527,7 +1534,7 @@ async function sendGreeting(session) {
       }));
     }
   } else {
-    // Fallback: generate TTS now (cache miss — e.g. pre-generation failed)
+    // Fallback: generate TTS now (pre-generation failed)
     console.log(`[Call:${callId}] No cached greeting, generating TTS now`);
     await speakAndStream(session, greeting);
   }
