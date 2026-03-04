@@ -160,7 +160,7 @@ export default function InboundConfigForm({ onBack, onCreated }) {
               value={language}
               onChange={e => setLanguage(e.target.value)}
               disabled={autoDetect}
-              className="w-full px-4 py-2.5 border border-cream-warm rounded-lg font-body text-sm text-earth focus:outline-none focus:border-saffron/50 cursor-pointer disabled:opacity-50"
+              className="w-full px-4 py-2.5 border border-cream-warm rounded-lg font-body text-sm text-earth bg-white focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors cursor-pointer disabled:opacity-50"
             >
               {LANGUAGES.map(l => (
                 <option key={l.code} value={l.code}>{l.label}</option>
