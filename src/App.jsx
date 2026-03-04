@@ -21,6 +21,7 @@ import AboutPage, { FaqsPage } from './components/pages/AboutPage';
 import DashboardPage from './components/pages/DashboardPage';
 import MemoPage from './components/pages/MemoPage';
 import ResetPasswordPage from './components/pages/ResetPasswordPage';
+import CallMeWidget from './components/landing/CallMeWidget';
 
 
 export default function VoxBharat() {
@@ -64,57 +65,78 @@ export default function VoxBharat() {
   // ── Sub-pages (wrapped in PageShell) ──
   if (currentPage === 'how-it-works') {
     return (
-      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-        <HowItWorksPage navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-      </PageShell>
+      <>
+        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+          <HowItWorksPage navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
+        </PageShell>
+        <CallMeWidget />
+      </>
     );
   }
 
   if (currentPage === 'about') {
     return (
-      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-        <AboutPage navigateTo={navigateTo} />
-      </PageShell>
+      <>
+        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+          <AboutPage navigateTo={navigateTo} />
+        </PageShell>
+        <CallMeWidget />
+      </>
     );
   }
 
   if (currentPage === 'faqs') {
     return (
-      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-        <FaqsPage navigateTo={navigateTo} />
-      </PageShell>
+      <>
+        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+          <FaqsPage navigateTo={navigateTo} />
+        </PageShell>
+        <CallMeWidget />
+      </>
     );
   }
 
-if (currentPage === 'memo') {
+  if (currentPage === 'memo') {
     return (
-      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-        <MemoPage navigateTo={navigateTo} />
-      </PageShell>
+      <>
+        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+          <MemoPage navigateTo={navigateTo} />
+        </PageShell>
+        <CallMeWidget />
+      </>
     );
   }
 
-if (currentPage === 'dashboard') {
+  if (currentPage === 'dashboard') {
     return (
-      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-        <DashboardPage setShowBuilder={setShowBuilder} />
-      </PageShell>
+      <>
+        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+          <DashboardPage setShowBuilder={setShowBuilder} />
+        </PageShell>
+        <CallMeWidget />
+      </>
     );
   }
 
   if (currentPage.startsWith('reset-password')) {
     return (
-      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-        <ResetPasswordPage navigateTo={navigateTo} />
-      </PageShell>
+      <>
+        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+          <ResetPasswordPage navigateTo={navigateTo} />
+        </PageShell>
+        <CallMeWidget />
+      </>
     );
   }
 
   if (currentPage === 'data-policy') {
     return (
-      <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-        <DataPolicyPage navigateTo={navigateTo} />
-      </PageShell>
+      <>
+        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+          <DataPolicyPage navigateTo={navigateTo} />
+        </PageShell>
+        <CallMeWidget />
+      </>
     );
   }
 
@@ -161,6 +183,7 @@ if (currentPage === 'dashboard') {
         onClose={() => setShowSampleCallLog(false)}
         data={sampleCallLog}
       />
+      <CallMeWidget />
       <Analytics />
     </div>
   );

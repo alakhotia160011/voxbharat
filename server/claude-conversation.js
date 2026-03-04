@@ -6,6 +6,7 @@ import {
   getAutoDetectSystemPrompt, getAutoDetectCustomSystemPrompt,
   generateInboundGreeting, generateCallbackGreeting, getVoiceName,
   generateVerificationGreeting, getVerificationSystemPrompt, getVerificationExtractionPrompt,
+  getDemoSystemPrompt, generateDemoGreeting, getDemoExtractionPrompt,
 } from './survey-scripts.js';
 
 export class ClaudeConversation {
@@ -25,8 +26,11 @@ export class ClaudeConversation {
     this.lastEmotion = 'content'; // default TTS emotion
 
     this.isVerification = this.customSurvey?.type === 'verification';
+    this.isDemo = this.customSurvey?.type === 'demo';
 
-    if (this.isVerification) {
+    if (this.isDemo) {
+      this.systemPrompt = getDemoSystemPrompt(this.gender, this.sttProvider);
+    } else if (this.isVerification) {
       const leadData = this.customSurvey.leadData || {};
       this.systemPrompt = getVerificationSystemPrompt(this.language, this.gender, this.customSurvey, leadData);
     } else if (this.autoDetectLanguage) {
@@ -54,7 +58,9 @@ export class ClaudeConversation {
   getGreeting() {
     let greeting;
 
-    if (this.isVerification) {
+    if (this.isDemo) {
+      greeting = generateDemoGreeting(this.gender, this.sttProvider);
+    } else if (this.isVerification) {
       const leadData = this.customSurvey?.leadData || {};
       greeting = generateVerificationGreeting(this.language, this.gender, leadData, this.customSurvey?.companyName);
     } else if (this.direction === 'inbound') {
@@ -194,7 +200,9 @@ export class ClaudeConversation {
 
     try {
       let extractionPrompt;
-      if (this.isVerification) {
+      if (this.isDemo) {
+        extractionPrompt = getDemoExtractionPrompt();
+      } else if (this.isVerification) {
         extractionPrompt = getVerificationExtractionPrompt(this.customSurvey, this.customSurvey?.leadData);
       } else if (this.customSurvey) {
         extractionPrompt = getCustomExtractionPrompt(this.customSurvey);
