@@ -1503,8 +1503,14 @@ async function sendGreeting(session) {
   const cached = cachedPromise ? await cachedPromise : null;
   greetingAudioCache.delete(callId);
 
-  if (cached) {
-    console.log(`[Call:${callId}] Using pre-cached greeting audio`);
+  // Sanity check: greeting audio should be at least ~1 second of mulaw (8000 bytes base64 ≈ 6000 raw bytes ≈ 0.75s)
+  // If the cached audio is suspiciously small, it was likely truncated — regenerate
+  if (cached && cached.mulawBase64.length < 8000) {
+    console.warn(`[Call:${callId}] Cached greeting audio too small (${cached.mulawBase64.length} chars), regenerating`);
+  }
+
+  if (cached && cached.mulawBase64.length >= 8000) {
+    console.log(`[Call:${callId}] Using pre-cached greeting audio (${cached.mulawBase64.length} chars)`);
 
     session.isAiSpeaking = true;
 
@@ -1612,35 +1618,9 @@ async function processUserSpeech(callId, text) {
     console.log(`[Call:${callId}] Injecting move-on hint (${session.repeatCount} repeats)`);
   }
 
-  // --- Optionally play a filler word to fill the gap while Claude thinks ---
-  // Skip fillers ~50% of the time so it doesn't sound robotic/predictable.
-  // Always skip on the very first response (consent turn — greeting just played).
-  const fillerLang = session.currentLanguage || session.call.language;
-  const fillers = {
-    hi: ['Hmm', 'Umm', 'Achha', 'Haan', 'Theek hai'],
-    bn: ['Hmm', 'Umm', 'Achha', 'Haan'],
-    en: ['Hmm', 'Umm', 'Right', 'Okay', 'I see'],
-    ta: ['Hmm', 'Umm', 'Sari', 'Aama'],
-    te: ['Hmm', 'Umm', 'Sare', 'Avunu'],
-    mr: ['Hmm', 'Umm', 'Barobar', 'Haan'],
-    gu: ['Hmm', 'Umm', 'Saru', 'Haa'],
-    kn: ['Hmm', 'Umm', 'Sari', 'Howdu'],
-    ml: ['Hmm', 'Umm', 'Sheri', 'Athe'],
-    pa: ['Hmm', 'Umm', 'Achha', 'Haanji'],
-  };
-  const assistantTurns = session.conversation.messages.filter(m => m.role === 'assistant').length;
-  const isFirstResponse = assistantTurns <= 1;
-  const shouldPlayFiller = !isFirstResponse && Math.random() > 0.5;
-
+  // No filler words — go straight to Claude's response for crisp delivery
   session.isAiSpeaking = true;
-  let fillerDone;
-  if (shouldPlayFiller) {
-    const fillerPool = fillers[fillerLang] || fillers.en;
-    const fillerText = fillerPool[Math.floor(Math.random() * fillerPool.length)];
-    fillerDone = speakSentence(session, fillerText, fillerLang, null);
-  } else {
-    fillerDone = Promise.resolve();
-  }
+  const fillerDone = Promise.resolve();
 
   // --- Streaming pipeline: Claude → sentence TTS → Twilio ---
   const stream = session.conversation.startResponseStream(textForClaude);
