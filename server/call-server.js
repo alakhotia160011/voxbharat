@@ -113,9 +113,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Apply general rate limiter to all /api/ routes
-app.use('/api/', apiLimiter);
-
 // Rate limiter for auth endpoints (stricter)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -143,6 +140,9 @@ const apiLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id || req.ip,
   message: { error: 'Too many requests, please slow down.' },
 });
+
+// Apply general rate limiter to all /api/ routes
+app.use('/api/', apiLimiter);
 
 // Per-phone rate limit for demo calls: 1 call per phone number per 24 hours
 const demoCallLog = new Map(); // phone -> timestamp
