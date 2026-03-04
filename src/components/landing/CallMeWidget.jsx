@@ -309,12 +309,14 @@ export default function CallMeWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
+  const [countryOpen, setCountryOpen] = useState(false);
   const [callState, setCallState] = useState('idle');
   const [error, setError] = useState(null);
   const [callDuration, setCallDuration] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const pollRef = useRef(null);
   const timerRef = useRef(null);
+  const countryRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -322,6 +324,17 @@ export default function CallMeWidget() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!countryOpen) return;
+    const handler = (e) => {
+      if (countryRef.current && !countryRef.current.contains(e.target)) {
+        setCountryOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [countryOpen]);
 
   useEffect(() => {
     if (callState === 'connected') {
@@ -450,31 +463,54 @@ export default function CallMeWidget() {
 
                   <div className="mt-6 w-full space-y-3">
                     <div className="flex gap-2">
-                      {/* Country code selector */}
-                      <div className="relative flex-shrink-0">
-                        <select
-                          value={countryCode}
-                          onChange={(e) => { setCountryCode(e.target.value); setPhone(''); }}
-                          className="h-full pl-3 pr-6 rounded-2xl font-body text-[13px] text-white/60 outline-none appearance-none cursor-pointer transition-all duration-300"
+                      {/* Country code selector — custom dropdown */}
+                      <div className="relative flex-shrink-0" ref={countryRef}>
+                        <button
+                          type="button"
+                          onClick={() => setCountryOpen(o => !o)}
+                          className="h-full pl-3 pr-7 rounded-2xl font-body text-[13px] text-white/60 outline-none cursor-pointer transition-all duration-200 flex items-center whitespace-nowrap"
                           style={{
                             background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.06)',
+                            border: `1px solid ${countryOpen ? 'rgba(232,85,15,0.3)' : 'rgba(255,255,255,0.06)'}`,
                             boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)',
+                            minWidth: 76,
                           }}
-                          onFocus={(e) => { e.target.style.borderColor = 'rgba(232,85,15,0.3)'; }}
-                          onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }}
                         >
-                          {COUNTRIES.map(c => (
-                            <option key={c.code} value={c.code} style={{ background: '#1a1210', color: '#fff' }}>
-                              {c.label}
-                            </option>
-                          ))}
-                        </select>
+                          {COUNTRIES.find(c => c.code === countryCode)?.label}
+                        </button>
                         <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
                           <svg className="w-3 h-3 text-white/25" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>
+                        {countryOpen && (
+                          <div
+                            className="absolute top-full left-0 mt-1.5 rounded-xl overflow-hidden z-20"
+                            style={{
+                              background: '#1e1410',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+                              minWidth: '100%',
+                            }}
+                          >
+                            {COUNTRIES.map(c => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => { setCountryCode(c.code); setPhone(''); setCountryOpen(false); }}
+                                className="w-full text-left px-3 py-2.5 font-body text-[13px] transition-colors duration-150 cursor-pointer"
+                                style={{
+                                  color: countryCode === c.code ? '#e8550f' : 'rgba(255,255,255,0.55)',
+                                  background: countryCode === c.code ? 'rgba(232,85,15,0.1)' : 'transparent',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = countryCode === c.code ? 'rgba(232,85,15,0.1)' : 'transparent'; }}
+                              >
+                                {c.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Phone number input */}
