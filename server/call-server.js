@@ -607,7 +607,7 @@ app.post('/call/amd-callback', validateTwilioSignature, async (req, res) => {
   // Generate and stream voicemail message
   const language = session.currentLanguage || call.language;
   const surveyName = call.customSurvey?.name || null;
-  const voicemailText = getVoicemailMessage(language, call.gender, surveyName);
+  const voicemailText = getVoicemailMessage(language, call.gender, surveyName, call.customSurvey?.companyName);
 
   console.log(`[AMD:${callId}] Voicemail (${language}): "${voicemailText.substring(0, 60)}..."`);
 
