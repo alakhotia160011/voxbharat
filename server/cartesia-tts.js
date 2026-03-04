@@ -24,7 +24,7 @@ const VOICES = {
   kn_male: '6baae46d-1226-45b5-a976-c7f9b797aae2',
   ml_female: 'b426013c-002b-4e89-8874-8cd20b68373a',
   ml_male: '374b80da-e622-4dfc-90f6-1eeb13d331c9',
-  en_female: 'f8f5f1b2-f02d-4d8e-a40d-fd850a487b3d',
+  en_female: '86d3b948-5a63-49e4-98c5-b67da63aba50',
   en_male: '1259b7e3-cb8a-43df-9446-30971a46b8b0',
 };
 
