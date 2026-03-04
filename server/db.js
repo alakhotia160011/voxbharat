@@ -116,6 +116,9 @@ export async function initDb() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_numbers_campaign ON campaign_numbers(campaign_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_numbers_status ON campaign_numbers(campaign_id, status)`);
 
+  // Lead verification: per-number metadata (name, signupSource, product, etc.)
+  await pool.query(`ALTER TABLE campaign_numbers ADD COLUMN IF NOT EXISTS metadata JSONB`);
+
   // Add 'voicemail' to campaign_numbers status check constraint (migration for existing tables)
   await pool.query(`
     DO $$ BEGIN
@@ -932,22 +935,42 @@ export async function updateCampaignProgress(id, progress) {
 
 export async function addCampaignNumbers(campaignId, phoneNumbers) {
   if (!pool) return;
-  const values = phoneNumbers.map((num, i) => `($1, $${i + 2})`).join(', ');
+
+  // Support both string arrays and {phoneNumber, metadata} objects
+  const normalized = phoneNumbers.map(n =>
+    typeof n === 'string' ? { phoneNumber: n, metadata: null } : n
+  );
+
+  const placeholders = [];
+  const params = [campaignId];
+  let idx = 2;
+  for (const entry of normalized) {
+    if (entry.metadata) {
+      placeholders.push(`($1, $${idx}, $${idx + 1})`);
+      params.push(entry.phoneNumber, JSON.stringify(entry.metadata));
+      idx += 2;
+    } else {
+      placeholders.push(`($1, $${idx}, NULL)`);
+      params.push(entry.phoneNumber);
+      idx += 1;
+    }
+  }
+
   await pool.query(
-    `INSERT INTO campaign_numbers (campaign_id, phone_number) VALUES ${values}`,
-    [campaignId, ...phoneNumbers]
+    `INSERT INTO campaign_numbers (campaign_id, phone_number, metadata) VALUES ${placeholders.join(', ')}`,
+    params
   );
   // Update initial progress
   await pool.query(`
     UPDATE campaigns SET progress = jsonb_set(progress, '{pending}', to_jsonb($2::int)), updated_at = NOW()
     WHERE id = $1
-  `, [campaignId, phoneNumbers.length]);
+  `, [campaignId, normalized.length]);
 }
 
 export async function getNextPendingNumbers(campaignId, limit) {
   if (!pool) return [];
   const { rows } = await pool.query(`
-    SELECT id, phone_number, attempts FROM campaign_numbers
+    SELECT id, phone_number, attempts, metadata FROM campaign_numbers
     WHERE campaign_id = $1 AND status = 'pending'
       AND (retry_after IS NULL OR retry_after <= NOW())
     ORDER BY id LIMIT $2

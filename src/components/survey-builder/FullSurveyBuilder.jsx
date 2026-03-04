@@ -357,12 +357,21 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
           autoDetectLanguage: config.autoDetectLanguage,
           customSurvey: {
             name: config.name || 'Custom Survey',
-            tone: config.tone || 'conversational',
+            tone: config.type === 'verification' ? 'formal' : (config.tone || 'conversational'),
             purpose: config.purpose || '',
             keyQuestions: config.keyQuestions || '',
             analysisGoals: config.analysisGoals || '',
             targetAudience: config.targetAudience || '',
             type: config.type || '',
+            ...(config.type === 'verification' ? {
+              productName: config.productName || '',
+              signupSource: config.testLeadSource || config.signupSource || '',
+              leadData: {
+                name: config.testLeadName || '',
+                signupSource: config.testLeadSource || config.signupSource || '',
+                product: config.productName || '',
+              },
+            } : {}),
             languages: config.languages || ['hi'],
             autoDetectLanguage: config.autoDetectLanguage || false,
             geography: config.geography || 'national',
@@ -454,7 +463,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
     }
   };
 
-  const estimatedDuration = Math.ceil(questions.length * 0.75);
+  const isVerification = config.type === 'verification';
+  const estimatedDuration = isVerification ? 1 : Math.ceil(questions.length * 0.75);
   const estimatedCost = config.sampleSize * (config.urgency === 'urgent' ? 55 : config.urgency === 'express' ? 45 : 38);
   const marginOfError = (1.96 * Math.sqrt(0.5 * 0.5 / config.sampleSize) * 100).toFixed(1);
 
@@ -498,7 +508,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       {/* Progress */}
       <div className="bg-white border-b border-cream-warm px-6 py-3 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex items-center gap-2">
-          {['Setup', 'Audience', 'Timeline', 'Goals', 'Questions', 'Review'].map((s, i) => (
+          {(isVerification ? ['Setup', 'Lead Data', 'Settings', 'Questions', 'Preview', 'Review'] : ['Setup', 'Audience', 'Timeline', 'Goals', 'Questions', 'Review']).map((s, i) => (
             <React.Fragment key={s}>
               <button
                 onClick={() => i + 1 <= step && setStep(i + 1)}
@@ -721,18 +731,94 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 )}
               </div>
 
+              {isVerification && (
+                <>
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                    <label className="block text-sm font-medium text-earth mb-2">Product / Service Name *</label>
+                    <p className="text-xs text-earth-mid/60 font-body mb-3">What did the lead sign up for?</p>
+                    <input
+                      type="text"
+                      value={config.productName || ''}
+                      onChange={(e) => setConfig({ ...config, productName: e.target.value })}
+                      placeholder="e.g., Premium Plan, Free Trial, Webinar Registration"
+                      className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                    />
+                  </div>
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                    <label className="block text-sm font-medium text-earth mb-2">Default Signup Source</label>
+                    <p className="text-xs text-earth-mid/60 font-body mb-3">Where did leads come from? Can be overridden per-lead in CSV.</p>
+                    <input
+                      type="text"
+                      value={config.signupSource || ''}
+                      onChange={(e) => setConfig({ ...config, signupSource: e.target.value })}
+                      placeholder="e.g., Website, Facebook Ad, Google Form"
+                      className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                    />
+                  </div>
+                </>
+              )}
+
               <button
                 onClick={() => setStep(2)}
-                disabled={!config.name || !config.type}
+                disabled={!config.name || !config.type || (isVerification && !config.productName)}
                 className="w-full py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Continue to Audience →
+                {isVerification ? 'Continue to Lead Data →' : 'Continue to Audience →'}
               </button>
             </div>
           )}
 
-          {/* Step 2: Audience */}
-          {step === 2 && (
+          {/* Step 2: Audience / Lead Data */}
+          {step === 2 && isVerification && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Test Lead Data</h2>
+                <p className="text-gray-600">Enter lead details for test calls. For batch campaigns, you'll upload a CSV with per-lead data.</p>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Lead Name (for test call)</label>
+                <p className="text-xs text-earth-mid/60 font-body mb-3">The AI will greet this person by name: "Am I speaking with [name]?"</p>
+                <input
+                  type="text"
+                  value={config.testLeadName || ''}
+                  onChange={(e) => setConfig({ ...config, testLeadName: e.target.value })}
+                  placeholder="e.g., Rahul Sharma"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                />
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-2">Test Lead Signup Source</label>
+                <input
+                  type="text"
+                  value={config.testLeadSource || config.signupSource || ''}
+                  onChange={(e) => setConfig({ ...config, testLeadSource: e.target.value })}
+                  placeholder="e.g., Website Form, Facebook Ad"
+                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                />
+              </div>
+
+              <div className="bg-saffron/5 border border-saffron/20 rounded-2xl p-6">
+                <h3 className="font-medium text-earth mb-2">How batch campaigns work</h3>
+                <p className="text-sm text-earth-mid">
+                  When you launch a batch campaign, you'll upload a CSV with columns: <code className="bg-white px-1.5 py-0.5 rounded text-xs">phone, name, source, product</code>.
+                  Each lead gets a personalized verification call with their name and signup details.
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <button onClick={() => setStep(1)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
+                  ← Back
+                </button>
+                <button onClick={() => setStep(3)} className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep">
+                  Continue to Settings →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && !isVerification && (
             <div className="space-y-6 animate-fadeIn">
               <div>
                 <h2 className="font-display text-2xl font-semibold text-earth mb-2">Define your audience</h2>
@@ -839,63 +925,67 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
             </div>
           )}
 
-          {/* Step 3: Timeline & Budget (NEW) */}
+          {/* Step 3: Timeline & Budget / Verification Settings */}
           {step === 3 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Timeline & Budget</h2>
-                <p className="text-gray-600">When do you need results and what's your budget?</p>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">{isVerification ? 'Call Settings' : 'Timeline & Budget'}</h2>
+                <p className="text-gray-600">{isVerification ? 'Configure call timing and retry behavior.' : 'When do you need results and what\'s your budget?'}</p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
-                <label className="block text-sm font-medium text-earth mb-4">Urgency</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { id: 'standard', name: 'Standard', time: '5-7 days', price: '₹38/response', icon: '·' },
-                    { id: 'express', name: 'Express', time: '2-3 days', price: '\u20B945/response', icon: '\u00BB' },
-                    { id: 'urgent', name: 'Urgent', time: '24-48 hours', price: '\u20B955/response', icon: '!' },
-                  ].map(opt => (
-                    <button
-                      key={opt.id}
-                      onClick={() => setConfig({ ...config, urgency: opt.id })}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
-                        config.urgency === opt.id ? 'border-saffron bg-saffron/5' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="font-medium block mb-1">{opt.name}</span>
-                      <span className="text-sm text-gray-500 block">{opt.time}</span>
-                      <span className="text-xs text-saffron">{opt.price}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {!isVerification && (
+                <>
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                    <label className="block text-sm font-medium text-earth mb-4">Urgency</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: 'standard', name: 'Standard', time: '5-7 days', price: '₹38/response', icon: '·' },
+                        { id: 'express', name: 'Express', time: '2-3 days', price: '\u20B945/response', icon: '\u00BB' },
+                        { id: 'urgent', name: 'Urgent', time: '24-48 hours', price: '\u20B955/response', icon: '!' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          onClick={() => setConfig({ ...config, urgency: opt.id })}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            config.urgency === opt.id ? 'border-saffron bg-saffron/5' : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <span className="font-medium block mb-1">{opt.name}</span>
+                          <span className="text-sm text-gray-500 block">{opt.time}</span>
+                          <span className="text-xs text-saffron">{opt.price}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
-                <label className="block text-sm font-medium text-earth mb-2">Deadline (Optional)</label>
-                <input
-                  type="date"
-                  value={config.deadline}
-                  onChange={(e) => setConfig({ ...config, deadline: e.target.value })}
-                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
-                />
-              </div>
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                    <label className="block text-sm font-medium text-earth mb-2">Deadline (Optional)</label>
+                    <input
+                      type="date"
+                      value={config.deadline}
+                      onChange={(e) => setConfig({ ...config, deadline: e.target.value })}
+                      className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                    />
+                  </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
-                <label className="block text-sm font-medium text-earth mb-2">Budget (Optional)</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500">₹</span>
-                  <input
-                    type="number"
-                    value={config.budget}
-                    onChange={(e) => setConfig({ ...config, budget: e.target.value })}
-                    placeholder="e.g., 50000"
-                    className="flex-1 px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
-                  />
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  Estimated: ₹{estimatedCost.toLocaleString()} for {config.sampleSize.toLocaleString()} responses
-                </p>
-              </div>
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                    <label className="block text-sm font-medium text-earth mb-2">Budget (Optional)</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">₹</span>
+                      <input
+                        type="number"
+                        value={config.budget}
+                        onChange={(e) => setConfig({ ...config, budget: e.target.value })}
+                        placeholder="e.g., 50000"
+                        className="flex-1 px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                      />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Estimated: ₹{estimatedCost.toLocaleString()} for {config.sampleSize.toLocaleString()} responses
+                    </p>
+                  </div>
+                </>
+              )}
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
                 <label className="block text-sm font-medium text-earth mb-4">Call Timing Preferences</label>
@@ -945,30 +1035,98 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
-                <label className="block text-sm font-medium text-earth mb-2">Incentive for Respondents (Optional)</label>
-                <input
-                  type="text"
-                  value={config.incentive}
-                  onChange={(e) => setConfig({ ...config, incentive: e.target.value })}
-                  placeholder="e.g., ₹50 mobile recharge, lottery entry..."
-                  className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
-                />
-              </div>
+              {!isVerification && (
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                  <label className="block text-sm font-medium text-earth mb-2">Incentive for Respondents (Optional)</label>
+                  <input
+                    type="text"
+                    value={config.incentive}
+                    onChange={(e) => setConfig({ ...config, incentive: e.target.value })}
+                    placeholder="e.g., ₹50 mobile recharge, lottery entry..."
+                    className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                  />
+                </div>
+              )}
 
               <div className="flex gap-4">
                 <button onClick={() => setStep(2)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
                   ← Back
                 </button>
                 <button onClick={() => setStep(4)} className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep">
-                  Continue to Goals →
+                  {isVerification ? 'Continue to Questions →' : 'Continue to Goals →'}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 4: Goals */}
-          {step === 4 && (
+          {/* Step 4: Goals / Qualifying Questions */}
+          {step === 4 && isVerification && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Qualifying Questions</h2>
+                <p className="text-gray-600">Add 2-4 short questions to ask after verifying identity and signup intent.</p>
+              </div>
+
+              <div className="bg-saffron/5 border border-saffron/20 rounded-2xl p-6">
+                <h3 className="font-medium text-earth mb-3">Fixed Verification Flow</h3>
+                <div className="space-y-2 text-sm text-earth-mid">
+                  <div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-saffron/20 flex items-center justify-center text-xs font-medium text-saffron">1</span> Identity: "Am I speaking with [name]?"</div>
+                  <div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-saffron/20 flex items-center justify-center text-xs font-medium text-saffron">2</span> Intent: "You signed up for [product]. Was that you?"</div>
+                  <div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-saffron/20 flex items-center justify-center text-xs font-medium text-saffron">3</span> Your qualifying questions (below)</div>
+                  <div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-saffron/20 flex items-center justify-center text-xs font-medium text-saffron">4</span> Quick thank-you and closing</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-3">Your Qualifying Questions</label>
+                <p className="text-xs text-earth-mid/60 mb-4">These are asked after identity + signup confirmation. Keep them short — one sentence each.</p>
+                {questions.map((q, i) => (
+                  <div key={q.id} className="flex items-center gap-2 mb-3">
+                    <span className="text-sm text-gray-400 w-6">{i + 1}.</span>
+                    <input
+                      type="text"
+                      value={q.textEn || q.text}
+                      onChange={(e) => {
+                        const updated = [...questions];
+                        updated[i] = { ...q, text: e.target.value, textEn: e.target.value };
+                        setQuestions(updated);
+                      }}
+                      placeholder={`e.g., ${i === 0 ? 'What made you interested in our product?' : i === 1 ? 'When are you looking to get started?' : 'Any specific features you need?'}`}
+                      className="flex-1 px-4 py-2.5 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 text-sm"
+                    />
+                    <button
+                      onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}
+                      className="p-2 text-gray-400 hover:text-red-500"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                ))}
+                {questions.length < 4 && (
+                  <button
+                    onClick={() => setQuestions([...questions, { id: Date.now(), text: '', textEn: '', type: 'open', options: null, category: 'Qualifying' }])}
+                    className="text-sm text-saffron hover:text-saffron-deep flex items-center gap-1 mt-2"
+                  >
+                    + Add Question
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-4">
+                <button onClick={() => setStep(3)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
+                  ← Back
+                </button>
+                <button
+                  onClick={() => setStep(5)}
+                  className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep"
+                >
+                  Continue to Preview →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && !isVerification && (
             <div className="space-y-6 animate-fadeIn">
               <div>
                 <h2 className="font-display text-2xl font-semibold text-earth mb-2">Research Goals</h2>
@@ -1105,8 +1263,106 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
             </div>
           )}
 
-          {/* Step 5: Questions */}
-          {step === 5 && (
+          {/* Step 5: Preview (Verification) */}
+          {step === 5 && isVerification && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-earth mb-2">Verification Flow Preview</h2>
+                <p className="text-gray-600">This is exactly what leads will experience. Test it with a real call.</p>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <h3 className="font-medium text-earth mb-4">Call Flow</h3>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-3 bg-cream-warm rounded-xl">
+                    <span className="w-7 h-7 rounded-full bg-saffron text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+                    <div>
+                      <div className="font-medium text-sm text-earth">Identity Confirmation</div>
+                      <div className="text-xs text-gray-500 mt-1">"Am I speaking with {config.testLeadName || '[Lead Name]'}? This is Ananya from {config.companyName || '[Company]'}."</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-cream-warm rounded-xl">
+                    <span className="w-7 h-7 rounded-full bg-saffron text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+                    <div>
+                      <div className="font-medium text-sm text-earth">Signup Intent</div>
+                      <div className="text-xs text-gray-500 mt-1">"You recently signed up for {config.productName || '[Product]'}. Just wanted to confirm — was that you?"</div>
+                    </div>
+                  </div>
+                  {questions.length > 0 && (
+                    <div className="flex items-start gap-3 p-3 bg-cream-warm rounded-xl">
+                      <span className="w-7 h-7 rounded-full bg-saffron text-white flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+                      <div>
+                        <div className="font-medium text-sm text-earth">Qualifying Questions ({questions.length})</div>
+                        <div className="text-xs text-gray-500 mt-1 space-y-1">
+                          {questions.map((q, i) => (
+                            <div key={q.id}>• {q.textEn || q.text || `Question ${i + 1}`}</div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-3 p-3 bg-cream-warm rounded-xl">
+                    <span className="w-7 h-7 rounded-full bg-saffron text-white flex items-center justify-center text-xs font-bold flex-shrink-0">{questions.length > 0 ? 4 : 3}</span>
+                    <div>
+                      <div className="font-medium text-sm text-earth">Closing</div>
+                      <div className="text-xs text-gray-500 mt-1">"That's all I needed. Thanks for your time! Have a great day."</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-amber-50 rounded-lg text-xs text-amber-700">
+                  Target duration: 30-60 seconds. Professional tone, no small talk.
+                </div>
+              </div>
+
+              {/* Test Call Section */}
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <h3 className="font-medium text-earth mb-3">Test This Flow</h3>
+                <p className="text-xs text-earth-mid/60 mb-4">
+                  Make a test verification call using the lead name "{config.testLeadName || '(not set)'}" from Step 2.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    value={testPhoneNumber}
+                    onChange={(e) => setTestPhoneNumber(e.target.value)}
+                    placeholder="+919876543210"
+                    className="flex-1 px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                  />
+                  <button
+                    onClick={initiateTestCall}
+                    disabled={!testPhoneNumber.trim() || testCallStatus === 'calling' || testCallStatus === 'ringing' || testCallStatus === 'connected'}
+                    className="px-6 py-3 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep disabled:opacity-50"
+                  >
+                    {testCallStatus === 'calling' ? 'Calling...' : testCallStatus === 'ringing' ? 'Ringing...' : testCallStatus === 'connected' ? 'In Progress...' : 'Call Now'}
+                  </button>
+                </div>
+                {testCallError && <p className="text-red-500 text-sm mt-2">{testCallError}</p>}
+                {testCallStatus === 'completed' && testCallResult && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                    <div className="text-sm font-medium text-green-800 mb-2">Call Complete</div>
+                    {testCallResult.extractedData?.summary && (
+                      <p className="text-sm text-green-700">{testCallResult.extractedData.summary}</p>
+                    )}
+                    {testCallResult.extractedData?.verification_status && (
+                      <p className="text-xs text-green-600 mt-1">Status: {testCallResult.extractedData.verification_status}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-4">
+                <button onClick={() => setStep(4)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
+                  ← Back
+                </button>
+                <button onClick={() => setStep(6)} className="flex-1 py-4 bg-saffron text-white rounded-xl font-medium hover:bg-saffron-deep">
+                  Review & Launch →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Questions (Survey) */}
+          {step === 5 && !isVerification && (
             <div className="space-y-6 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
@@ -1582,16 +1838,16 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-saffron">{questions.length}</div>
-                  <div className="text-sm text-gray-500">Questions</div>
+                  <div className="text-3xl font-bold text-saffron">{isVerification ? questions.length + 2 : questions.length}</div>
+                  <div className="text-sm text-gray-500">{isVerification ? 'Steps' : 'Questions'}</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 border text-center">
                   <div className="text-3xl font-bold text-saffron-deep">~{estimatedDuration} min</div>
                   <div className="text-sm text-gray-500">Duration</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 border text-center">
-                  <div className="text-3xl font-bold text-earth">{config.sampleSize.toLocaleString()}</div>
-                  <div className="text-sm text-gray-500">Responses</div>
+                  <div className="text-3xl font-bold text-earth">{isVerification ? 'Per Lead' : config.sampleSize.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">{isVerification ? 'Personalized' : 'Responses'}</div>
                 </div>
               </div>
 
@@ -1601,47 +1857,75 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   <div><span className="text-gray-500">Name:</span> <span className="font-medium">{config.name}</span></div>
                   <div><span className="text-gray-500">Type:</span> <span className="font-medium">{SURVEY_TYPES.find(t => t.id === config.type)?.name}</span></div>
                   <div><span className="text-gray-500">Languages:</span> <span className="font-medium">{config.languages.map(l => LANGUAGES.find(lg => lg.code === l)?.english).join(', ')}</span></div>
-                  <div><span className="text-gray-500">Geography:</span> <span className="font-medium">{GEOGRAPHIES.find(g => g.id === config.geography)?.name}</span></div>
-                  <div><span className="text-gray-500">Urgency:</span> <span className="font-medium capitalize">{config.urgency}</span></div>
+                  {isVerification ? (
+                    <>
+                      <div><span className="text-gray-500">Product:</span> <span className="font-medium">{config.productName}</span></div>
+                      <div><span className="text-gray-500">Signup Source:</span> <span className="font-medium">{config.signupSource || 'Per-lead'}</span></div>
+                      <div><span className="text-gray-500">Company:</span> <span className="font-medium">{config.companyName || 'Not set'}</span></div>
+                    </>
+                  ) : (
+                    <>
+                      <div><span className="text-gray-500">Geography:</span> <span className="font-medium">{GEOGRAPHIES.find(g => g.id === config.geography)?.name}</span></div>
+                      <div><span className="text-gray-500">Urgency:</span> <span className="font-medium capitalize">{config.urgency}</span></div>
+                    </>
+                  )}
                   <div><span className="text-gray-500">Call Times:</span> <span className="font-medium capitalize">{config.callTiming.join(', ')}</span></div>
                   <div><span className="text-gray-500">Retries:</span> <span className="font-medium">{config.retryPolicy}x</span></div>
-                  <div><span className="text-gray-500">Margin of Error:</span> <span className="font-medium">±{marginOfError}%</span></div>
+                  {!isVerification && (
+                    <div><span className="text-gray-500">Margin of Error:</span> <span className="font-medium">±{marginOfError}%</span></div>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border">
-                <h3 className="font-semibold text-earth mb-3">Questions ({questions.length})</h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {questions.map((q, i) => (
-                    <div key={q.id} className="flex items-start gap-2 p-2 bg-cream-warm rounded-lg">
-                      <span className="w-6 h-6 rounded-full bg-saffron/10 flex items-center justify-center text-xs text-saffron font-medium flex-shrink-0">{i + 1}</span>
-                      <div className="min-w-0">
-                        <p className="text-sm truncate">{config.languages[0] === 'en' ? (q.textEn || q.text) : q.text}</p>
-                        {q.textEn && config.languages[0] !== 'en' && <p className="text-xs text-gray-400 truncate">{q.textEn}</p>}
-                        <p className="text-xs text-gray-400">{q.type}</p>
+              {isVerification ? (
+                <div className="bg-white rounded-2xl p-6 shadow-sm border">
+                  <h3 className="font-semibold text-earth mb-3">Verification Flow</h3>
+                  <div className="space-y-2">
+                    <div className="p-2 bg-cream-warm rounded-lg text-sm">1. Identity confirmation — "Am I speaking with [name]?"</div>
+                    <div className="p-2 bg-cream-warm rounded-lg text-sm">2. Signup intent — "You signed up for {config.productName}. Was that you?"</div>
+                    {questions.map((q, i) => (
+                      <div key={q.id} className="p-2 bg-cream-warm rounded-lg text-sm">{i + 3}. {q.textEn || q.text}</div>
+                    ))}
+                    <div className="p-2 bg-cream-warm rounded-lg text-sm">{questions.length + 3}. Thank you and closing</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl p-6 shadow-sm border">
+                  <h3 className="font-semibold text-earth mb-3">Questions ({questions.length})</h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {questions.map((q, i) => (
+                      <div key={q.id} className="flex items-start gap-2 p-2 bg-cream-warm rounded-lg">
+                        <span className="w-6 h-6 rounded-full bg-saffron/10 flex items-center justify-center text-xs text-saffron font-medium flex-shrink-0">{i + 1}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm truncate">{config.languages[0] === 'en' ? (q.textEn || q.text) : q.text}</p>
+                          {q.textEn && config.languages[0] !== 'en' && <p className="text-xs text-gray-400 truncate">{q.textEn}</p>}
+                          <p className="text-xs text-gray-400">{q.type}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!isVerification && (
+                <div className="bg-gradient-to-r from-saffron to-saffron-deep rounded-2xl p-6 text-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="text-sm text-white/70">Estimated Total Cost</div>
+                      <div className="text-4xl font-bold">₹{estimatedCost.toLocaleString()}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-white/70">Delivery</div>
+                      <div className="font-semibold">
+                        {config.urgency === 'urgent' ? '24-48 hours' : config.urgency === 'express' ? '2-3 days' : '5-7 days'}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-saffron to-saffron-deep rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="text-sm text-white/70">Estimated Total Cost</div>
-                    <div className="text-4xl font-bold">₹{estimatedCost.toLocaleString()}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm text-white/70">Delivery</div>
-                    <div className="font-semibold">
-                      {config.urgency === 'urgent' ? '24-48 hours' : config.urgency === 'express' ? '2-3 days' : '5-7 days'}
-                    </div>
+                  <div className="text-sm text-white/60">
+                    {config.sampleSize.toLocaleString()} responses × ₹{config.urgency === 'urgent' ? 55 : config.urgency === 'express' ? 45 : 38}/response
                   </div>
                 </div>
-                <div className="text-sm text-white/60">
-                  {config.sampleSize.toLocaleString()} responses × ₹{config.urgency === 'urgent' ? 55 : config.urgency === 'express' ? 45 : 38}/response
-                </div>
-              </div>
+              )}
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border">
                 <h3 className="font-semibold text-earth mb-4">Quality Settings</h3>
@@ -1669,13 +1953,13 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
 
               <div className="flex gap-4">
                 <button onClick={() => setStep(5)} className="px-6 py-4 border border-gray-300 rounded-xl hover:bg-cream-warm">
-                  ← Edit Questions
+                  {isVerification ? '← Edit Flow' : '← Edit Questions'}
                 </button>
                 <button
                   onClick={() => onLaunch && onLaunch(config, questions)}
                   className="flex-1 py-4 bg-gradient-to-r from-saffron to-saffron-deep text-white rounded-xl font-medium hover:opacity-90"
                 >
-                  → Launch Survey
+                  {isVerification ? '→ Launch Verification' : '→ Launch Survey'}
                 </button>
               </div>
             </div>

@@ -36,7 +36,7 @@ import {
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
 import { scrapeWebsite } from './website-scraper.js';
-import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName } from './survey-scripts.js';
+import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName, generateVerificationGreeting } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
@@ -359,7 +359,10 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   const sttProvider = customSurvey?.sttProvider || 'cartesia';
   const greetingLang = autoDetectLanguage ? 'en' : language;
   let greetingText;
-  if (autoDetectLanguage) {
+  if (customSurvey?.type === 'verification') {
+    const leadData = customSurvey.leadData || {};
+    greetingText = generateVerificationGreeting(language, gender, leadData, customSurvey.companyName);
+  } else if (autoDetectLanguage) {
     const enName = getVoiceName('en', gender);
     const orgName = customSurvey?.companyName;
     const fromPart = orgName ? ` from ${orgName}` : '';
@@ -2048,10 +2051,13 @@ function cleanupSession(callId) {
 // Create a new campaign
 app.post('/api/campaigns', requireAuth, requireDb, async (req, res) => {
   try {
-    const { name, surveyConfig, phoneNumbers, language, gender, autoDetectLanguage, concurrency, maxRetries, callTiming } = req.body;
+    const { name, surveyConfig, phoneNumbers, numbersWithData, language, gender, autoDetectLanguage, concurrency, maxRetries, callTiming } = req.body;
 
-    if (!name || !surveyConfig || !phoneNumbers || !Array.isArray(phoneNumbers) || phoneNumbers.length === 0) {
-      return res.status(400).json({ error: 'name, surveyConfig, and phoneNumbers[] are required' });
+    // Accept either phoneNumbers (string[]) or numbersWithData ([{phoneNumber, metadata}])
+    const hasNumbers = (phoneNumbers && Array.isArray(phoneNumbers) && phoneNumbers.length > 0) ||
+                       (numbersWithData && Array.isArray(numbersWithData) && numbersWithData.length > 0);
+    if (!name || !surveyConfig || !hasNumbers) {
+      return res.status(400).json({ error: 'name, surveyConfig, and phoneNumbers[] or numbersWithData[] are required' });
     }
 
     const validConcurrency = Math.min(Math.max(concurrency || 2, 1), 2);
@@ -2064,7 +2070,9 @@ app.post('/api/campaigns', requireAuth, requireDb, async (req, res) => {
       concurrency: validConcurrency, maxRetries: retries, callTiming: timing,
     });
 
-    await addCampaignNumbers(campaign.id, phoneNumbers);
+    // numbersWithData takes precedence; fall back to plain phoneNumbers
+    const numbersToAdd = numbersWithData || phoneNumbers;
+    await addCampaignNumbers(campaign.id, numbersToAdd);
 
     const progress = await getProgressCounts(campaign.id);
     res.json({ ...campaign, progress });

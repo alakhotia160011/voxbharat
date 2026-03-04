@@ -34,7 +34,7 @@ const VOICE_NAMES = {
   pa_female: 'ਜਸਪ੍ਰੀਤ', pa_male: 'ਗੁਰਪ੍ਰੀਤ',
   kn_female: 'ದಿವ್ಯ', kn_male: 'ಪ್ರಕಾಶ',
   ml_female: 'ലതാ', ml_male: 'വിജയ്',
-  en_female: 'Dhwani', en_male: 'Devansh',
+  en_female: 'Ananya', en_male: 'Devansh',
 };
 
 export function getVoiceName(language, gender) {
@@ -770,13 +770,15 @@ ${languageRule}
 YOUR FIRST RESPONSE — HANDLE CONSENT PROPERLY:
 The greeting asked if they can talk. You need a CLEAR yes before starting the survey.
 
+TOPIC DESCRIPTION RULE: NEVER say the survey name ("${customSurvey.name}") verbatim to the respondent — it sounds robotic and unnatural. Instead, describe the topic in your own words based on the questions. For example, if the survey is called "Customer Satisfaction Survey", say something like "how your experience has been" or "what you think of the service". Be natural and conversational.${customSurvey.companyName ? `\nALWAYS mention ${customSurvey.companyName} in your first sentence after consent — the respondent should know who's calling and why.` : ''}
+
 A) If they gave a CLEAR YES (haan, haan bolo, yes, sure, ok, theek hai, bolo):
-   → Thank them briefly and flow into the first question.
-   Example: "Oh great, thanks so much! So yeah, we're doing a quick survey about ${customSurvey.name} — won't take long at all. So to start, [first question]?"
+   → Thank them briefly, ${customSurvey.companyName ? `mention you're calling from ${customSurvey.companyName},` : ''} describe the topic naturally, and flow into the first question.
+   Example: "${customSurvey.companyName ? `Oh great, thanks! So I'm calling from ${customSurvey.companyName} — ` : 'Oh great, thanks! So '}we'd love to hear your thoughts on [topic in your own words]. Won't take long. So first, [first question]?"
 
 B) If they just said a GREETING (hello, namaste, hi, hey, haan ji):
    → They're acknowledging you, NOT consenting. Greet them back warmly and ask for consent again naturally.
-   Example: "Haan namaste! Basically hum ${customSurvey.name} ke baare mein logon ki raaye sun rahe hain — do minute lagenge. Baat kar sakte hain?"
+   Example: "${customSurvey.companyName ? `Haan namaste! Main ${customSurvey.companyName} se bol rahi hoon — ` : 'Haan namaste! '}hum logon ki raaye sun rahe hain [topic in your own words] ke baare mein — do minute lagenge. Baat kar sakte hain?"
    DO NOT start asking survey questions yet.
 
 C) If they said NO or clearly declined → warm goodbye and [SURVEY_COMPLETE].
@@ -1279,10 +1281,12 @@ LANGUAGE DETECTION — IMPORTANT:
 - For AMBIGUOUS cases (just "hello", "hi", "namaste" with no other context): default to Hinglish — English with a casual Indian style (mix in words like "achha", "haan", "theek hai", "basically", "na").
 - Once you detect their language, stick with it unless they switch.
 
+TOPIC DESCRIPTION RULE: NEVER say the survey name ("${customSurvey.name}") verbatim — describe the topic in your own words based on the questions (e.g., "how your experience has been" instead of "Customer Satisfaction Survey").${customSurvey.companyName ? ` ALWAYS mention ${customSurvey.companyName} in your first sentence after consent.` : ''}
+
 HANDLE CONSENT:
 A) If they gave a CLEAR YES (haan, haan bolo, yes, sure, ok, theek hai, bolo, boliye):
-   → Thank them briefly and flow into the first question.
-   Example: "[LANG:en] [EMOTION:content] Great, thanks! So we're looking at ${customSurvey.name} — super quick. So first, [first question]?"
+   → Thank them briefly, ${customSurvey.companyName ? `mention ${customSurvey.companyName},` : ''} describe the topic naturally, and flow into the first question.
+   Example: "[LANG:en] [EMOTION:content] Great, thanks! ${customSurvey.companyName ? `I'm calling from ${customSurvey.companyName} — ` : ''}We'd love to hear your thoughts on [topic in your own words]. So first, [first question]?"
 
 B) If they just said a GREETING (hello, namaste, hi, hey, haan ji):
    → They're acknowledging you, NOT consenting. Greet them back warmly and ask for consent again naturally.
@@ -1295,9 +1299,9 @@ D) If unclear/garbled → greet warmly and re-ask consent.`
 The greeting was in English and asked "Which language would you prefer to speak in?" Wait for them to tell you their language.
 
 A) If they chose a language (e.g. "Hindi", "Tamil", "English", or just started speaking in a language):
-   → Switch to that language, confirm briefly, and ask for consent to continue.
-   Example if Hindi: "[LANG:hi] [EMOTION:content] Achha Hindi mein baat karte hain! Toh basically hum ${customSurvey.name} ke baare mein aapki raaye jaanna chahte hain — do minute lagenge. Baat kar sakte hain?"
-   Example if English: "[LANG:en] [EMOTION:content] Sure, let's chat in English! So we're looking at ${customSurvey.name} — would love to hear what you think. Can you chat for a couple minutes?"
+   → Switch to that language, confirm briefly, and ask for consent to continue. Describe the topic naturally — NEVER quote the survey name verbatim.${customSurvey.companyName ? ` Mention ${customSurvey.companyName} in your first sentence.` : ''}
+   Example if Hindi: "[LANG:hi] [EMOTION:content] Achha Hindi mein baat karte hain! ${customSurvey.companyName ? `Main ${customSurvey.companyName} se bol rahi hoon — ` : ''}hum aapki raaye jaanna chahte hain [topic in your own words] ke baare mein — do minute lagenge. Baat kar sakte hain?"
+   Example if English: "[LANG:en] [EMOTION:content] Sure, let's chat in English! ${customSurvey.companyName ? `I'm calling from ${customSurvey.companyName} — ` : ''}We'd love to hear what you think about [topic in your own words]. Can you chat for a couple minutes?"
 
 B) If they skipped the language question and just said YES/consent:
    → Default to Hinglish and flow into the first question.
@@ -1534,4 +1538,228 @@ export function getVoicemailMessage(language, gender, surveyName, companyName) {
   };
 
   return (messages[language] || messages.en)();
+}
+
+// ─── Lead Verification Functions ─────────────────────────
+
+/**
+ * Generate greeting for a verification call.
+ * Confirms identity upfront: "Am I speaking with {name}?"
+ */
+export function generateVerificationGreeting(language, gender, leadData, companyName) {
+  const voiceName = getVoiceName(language, gender);
+  const leadName = leadData?.name || '';
+
+  const greetings = {
+    hi: () => {
+      const verb = gender === 'female' ? 'रही' : 'रहा';
+      const from = companyName ? `, ${companyName} se bol ${verb} hoon` : ` bol ${verb} hoon`;
+      return leadName
+        ? `Namaste! Kya main ${leadName} se baat kar ${verb} hoon? Main ${voiceName}${from}.`
+        : `Namaste! Main ${voiceName}${from}. Kya aap se ek minute baat ho sakti hai?`;
+    },
+    bn: () => {
+      const from = companyName ? `, ${companyName} থেকে বলছি` : ` বলছি`;
+      return leadName
+        ? `নমস্কার! আমি কি ${leadName}-এর সাথে কথা বলছি? আমি ${voiceName}${from}।`
+        : `নমস্কার! আমি ${voiceName}${from}। এক মিনিট কথা বলা যাবে?`;
+    },
+    te: () => {
+      const from = companyName ? `, ${companyName} నుండి మాట్లాడుతున్నాను` : ` మాట్లాడుతున్నాను`;
+      return leadName
+        ? `నమస్కారం! నేను ${leadName} గారితో మాట్లాడుతున్నానా? నేను ${voiceName}${from}.`
+        : `నమస్కారం! నేను ${voiceName}${from}. ఒక నిమిషం మాట్లాడగలరా?`;
+    },
+    mr: () => {
+      const from = companyName ? `, ${companyName} कडून बोलत आहे` : ` बोलत आहे`;
+      return leadName
+        ? `नमस्कार! मी ${leadName} शी बोलत आहे का? मी ${voiceName}${from}.`
+        : `नमस्कार! मी ${voiceName}${from}. एक मिनिट बोलता येईल का?`;
+    },
+    ta: () => {
+      const from = companyName ? `, ${companyName} இருந்து பேசுகிறேன்` : ` பேசுகிறேன்`;
+      return leadName
+        ? `வணக்கம்! நான் ${leadName} அவர்களிடம் பேசுகிறேனா? நான் ${voiceName}${from}.`
+        : `வணக்கம்! நான் ${voiceName}${from}. ஒரு நிமிடம் பேச முடியுமா?`;
+    },
+    gu: () => {
+      const from = companyName ? `, ${companyName} તરફથી બોલી રહ્યો છું` : ` બોલી રહ્યો છું`;
+      return leadName
+        ? `નમસ્તે! શું હું ${leadName} સાથે વાત કરી રહ્યો છું? હું ${voiceName}${from}.`
+        : `નમસ્તે! હું ${voiceName}${from}. એક મિનિટ વાત થઈ શકે?`;
+    },
+    kn: () => {
+      const from = companyName ? `, ${companyName} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ` : ` ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ`;
+      return leadName
+        ? `ನಮಸ್ಕಾರ! ನಾನು ${leadName} ಅವರೊಂದಿಗೆ ಮಾತನಾಡುತ್ತಿದ್ದೇನಾ? ನಾನು ${voiceName}${from}.`
+        : `ನಮಸ್ಕಾರ! ನಾನು ${voiceName}${from}. ಒಂದು ನಿಮಿಷ ಮಾತನಾಡಬಹುದಾ?`;
+    },
+    ml: () => {
+      const from = companyName ? `, ${companyName} ൽ നിന്ന് വിളിക്കുന്നു` : ` വിളിക്കുന്നു`;
+      return leadName
+        ? `നമസ്കാരം! ഞാൻ ${leadName} ആയിട്ടാണോ സംസാരിക്കുന്നത്? ഞാൻ ${voiceName}${from}.`
+        : `നമസ്കാരം! ഞാൻ ${voiceName}${from}. ഒരു മിനിറ്റ് സംസാരിക്കാമോ?`;
+    },
+    pa: () => {
+      const from = companyName ? `, ${companyName} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ` : ` ਬੋਲ ਰਿਹਾ ਹਾਂ`;
+      return leadName
+        ? `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਕੀ ਮੈਂ ${leadName} ਨਾਲ ਗੱਲ ਕਰ ਰਿਹਾ ਹਾਂ? ਮੈਂ ${voiceName}${from}।`
+        : `ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ${voiceName}${from}। ਇੱਕ ਮਿੰਟ ਗੱਲ ਹੋ ਸਕਦੀ ਹੈ?`;
+    },
+    en: () => {
+      const from = companyName ? ` from ${companyName}` : '';
+      return leadName
+        ? `Hi! Am I speaking with ${leadName}? This is ${voiceName}${from}.`
+        : `Hi! This is ${voiceName}${from}. Do you have a minute to chat?`;
+    },
+  };
+
+  return (greetings[language] || greetings.en)();
+}
+
+/**
+ * System prompt for verification calls.
+ * Direct, professional, 30-60 second target. NOT conversational survey style.
+ */
+export function getVerificationSystemPrompt(language, gender, customSurvey, leadData) {
+  const langName = LANGUAGE_MAP[language] || 'Hindi';
+  const genderNote = getGenderNote(language, gender);
+  const companyName = customSurvey?.companyName || 'our company';
+  const leadName = leadData?.name || 'the person';
+  const signupSource = leadData?.signupSource || 'our website';
+  const product = leadData?.product || customSurvey?.productName || 'our service';
+
+  const questionsBlock = customSurvey?.questions?.length > 0
+    ? customSurvey.questions.map((q, i) => {
+        const questionText = (language === 'en' && q.textEn) ? q.textEn : q.text;
+        return `${i + 1}. ${questionText}`;
+      }).join('\n')
+    : '';
+
+  const languageRule = language === 'en'
+    ? 'Speak ONLY in English.'
+    : `Speak ONLY in ${langName}. Never switch to English or any other language.`;
+
+  return `You are a professional, friendly verification agent for ${companyName}. Your job is to verify that someone who signed up is a real, interested person — NOT to conduct a long survey. Be direct, polite, and efficient. Target call duration: thirty to sixty seconds.
+
+LEAD DETAILS:
+- Name: ${leadName}
+- Signed up via: ${signupSource}
+- Product/Service: ${product}
+
+IMPORTANT: You work for ${companyName}. If asked, say your name and that you're calling from ${companyName} to verify their recent signup. Never mention "VoxBharat".
+If asked "Is this an AI call?", respond honestly: "Yes, this is an AI-assisted verification call from ${companyName}."
+
+CRITICAL RULES:
+1. ${languageRule}
+2. STRICTLY ONE sentence per response. This is a quick verification, not a conversation.
+3. NEVER use markdown, asterisks, or special characters. Your words are spoken aloud via TTS.
+4. Use simple, everyday words. Be professional but warm.
+${genderNote ? `5. ${genderNote}` : ''}
+
+VERIFICATION FLOW (follow this exact sequence):
+
+STEP 1 — IDENTITY CONFIRMATION (already done in greeting):
+The greeting already asked "Am I speaking with ${leadName}?"
+
+Handle the response:
+A) If YES (haan, yes, speaking, bolu, ji):
+   → Move directly to Step 2.
+
+B) If NO / WRONG NUMBER (nahi, no, wrong number, galat number):
+   → Say "I'm sorry for the trouble, thank you for your time!" and add [SURVEY_COMPLETE].
+   → This is VALID data — a wrong number is useful information, not a failure.
+
+C) If they ask WHO ARE YOU / WHY ARE YOU CALLING:
+   → "I'm ${getVoiceName(language, gender)} from ${companyName}. We noticed a signup on ${signupSource} and just wanted to quickly verify it was you."
+   → Then proceed to Step 2.
+
+D) If UNCLEAR:
+   → "Sorry, am I speaking with ${leadName}?" — re-confirm once.
+
+STEP 2 — SIGNUP INTENT:
+Confirm they actually signed up.
+Example: "You recently signed up for ${product} on ${signupSource}. Just wanted to confirm — was that you?"
+
+Handle response:
+- YES → "Great, thanks for confirming!" → Move to Step 3.
+- NO / DIDN'T SIGN UP → "Okay, no worries. Sorry for the confusion!" → [SURVEY_COMPLETE].
+- UNCLEAR → Rephrase once: "Just checking — did you fill out a form for ${product} recently?"
+
+STEP 3 — QUALIFYING QUESTIONS:
+${questionsBlock ? `Ask these questions one at a time:\n${questionsBlock}\n\nKeep each question to one sentence. Accept short answers and move on quickly.` : 'No qualifying questions configured. Skip to Step 4.'}
+
+STEP 4 — CLOSING:
+Brief professional thank you: "That's all I needed. Thanks for your time, ${leadName}! Have a great day."
+Add [SURVEY_COMPLETE] at the end.
+
+TONE:
+- Professional and warm, NOT chatty or overly casual
+- No small talk, no fillers, no "that's interesting"
+- Get the information and wrap up efficiently
+- Use [EMOTION:content] throughout — no emotion switching
+
+WRONG NUMBER / DIDN'T SIGN UP:
+These are VALID verification outcomes, not call failures. Record the information and end politely.
+
+NUMBERS AND PRONUNCIATION:
+Write numbers as spoken words, NEVER as digits. Say "twenty-five" NOT "25".
+
+HANDLING INTERRUPTIONS:
+- If they interrupt with an answer, accept it and move on
+- If they ask to repeat, rephrase the question briefly
+- If they want to end the call, thank them immediately and add [SURVEY_COMPLETE]
+
+SPEECH RECOGNITION:
+The user's speech is transcribed by STT software which may be inaccurate. Interpret generously. Accept short answers. Never say you didn't understand — just re-ask briefly if unclear.
+
+[EMOTION:content] Use this for every response. No emotion variation needed for verification calls.`;
+}
+
+/**
+ * Extraction prompt for verification calls — returns verification-specific structured data.
+ */
+export function getVerificationExtractionPrompt(customSurvey, leadData) {
+  const leadName = leadData?.name || null;
+
+  // Build qualifying question fields if present
+  const qualifyingFields = customSurvey?.questions?.length > 0
+    ? customSurvey.questions.map(q => {
+        const fieldName = q.textEn
+          ? q.textEn.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').substring(0, 40)
+          : `question_${q.id}`;
+        return `      "${fieldName}": "<string or null>"`;
+      }).join(',\n')
+    : '';
+
+  const qualifyingSection = qualifyingFields
+    ? `"qualifying_responses": {\n${qualifyingFields}\n    },`
+    : `"qualifying_responses": {},`;
+
+  return `Extract verification data from the following conversation transcript.
+The call was a lead verification call${leadName ? ` for a person named "${leadName}"` : ''}.
+
+Return ONLY valid JSON matching this exact schema:
+
+{
+  "identity_confirmed": <true if they confirmed they are ${leadName || 'the named person'}, false if wrong person, null if unclear>,
+  "signup_recalled": <true if they remember signing up, false if they deny it, null if not asked or unclear>,
+  "verified": <true if identity confirmed AND signup recalled, false otherwise>,
+  "interest_level": "<high|medium|low|none|null>",
+  "contact_valid": <true if reached a real person (even wrong number), false if no answer/voicemail>,
+  ${qualifyingSection}
+  "verification_status": "<verified|unverified|wrong_number|declined|null>",
+  "notes": "<1 sentence summary of the verification outcome>"
+}
+
+EXTRACTION RULES:
+1. "verified" = true ONLY when both identity_confirmed and signup_recalled are true.
+2. "verification_status" mapping:
+   - "verified" = identity confirmed + signup recalled + answered qualifying questions
+   - "unverified" = could not confirm identity or signup
+   - "wrong_number" = person confirmed they are NOT the lead
+   - "declined" = person refused to engage or ended call early
+3. "interest_level": judge from their tone and responses. "high" = eager/enthusiastic, "medium" = cooperative but neutral, "low" = reluctant, "none" = not interested.
+4. "contact_valid" = true as long as a real person answered (even if wrong number).
+5. For qualifying_responses, extract concise answers. Use null if not asked or not answered.`;
 }

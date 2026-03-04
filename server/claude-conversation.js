@@ -5,6 +5,7 @@ import {
   getCustomSystemPrompt, getCustomExtractionPrompt, generateCustomGreeting,
   getAutoDetectSystemPrompt, getAutoDetectCustomSystemPrompt,
   generateInboundGreeting, generateCallbackGreeting, getVoiceName,
+  generateVerificationGreeting, getVerificationSystemPrompt, getVerificationExtractionPrompt,
 } from './survey-scripts.js';
 
 export class ClaudeConversation {
@@ -23,7 +24,12 @@ export class ClaudeConversation {
     this.isComplete = false;
     this.lastEmotion = 'content'; // default TTS emotion
 
-    if (this.autoDetectLanguage) {
+    this.isVerification = this.customSurvey?.type === 'verification';
+
+    if (this.isVerification) {
+      const leadData = this.customSurvey.leadData || {};
+      this.systemPrompt = getVerificationSystemPrompt(this.language, this.gender, this.customSurvey, leadData);
+    } else if (this.autoDetectLanguage) {
       this.systemPrompt = this.customSurvey
         ? getAutoDetectCustomSystemPrompt(this.gender, this.customSurvey, this.sttProvider)
         : getAutoDetectSystemPrompt(this.gender, this.sttProvider);
@@ -48,7 +54,10 @@ export class ClaudeConversation {
   getGreeting() {
     let greeting;
 
-    if (this.direction === 'inbound') {
+    if (this.isVerification) {
+      const leadData = this.customSurvey?.leadData || {};
+      greeting = generateVerificationGreeting(this.language, this.gender, leadData, this.customSurvey?.companyName);
+    } else if (this.direction === 'inbound') {
       // Inbound call greetings
       const surveyName = this.customSurvey?.name || 'our survey';
       const lang = this.autoDetectLanguage ? 'en' : this.language;
@@ -88,10 +97,12 @@ export class ClaudeConversation {
 
     this.messages.push({ role: 'user', content: userText });
 
+    const maxTokens = this.isVerification ? 200 : 500;
+
     try {
       const response = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
+        max_tokens: maxTokens,
         system: this.systemPrompt,
         messages: this.messages,
       });
@@ -116,7 +127,7 @@ export class ClaudeConversation {
       try {
         const response = await this.client.messages.create({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 500,
+          max_tokens: maxTokens,
           system: this.systemPrompt,
           messages: this.messages,
         });
@@ -149,7 +160,7 @@ export class ClaudeConversation {
 
     return this.client.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
+      max_tokens: this.isVerification ? 200 : 500,
       system: this.systemPrompt,
       messages: this.messages,
     });
@@ -182,12 +193,19 @@ export class ClaudeConversation {
       .join('\n');
 
     try {
+      let extractionPrompt;
+      if (this.isVerification) {
+        extractionPrompt = getVerificationExtractionPrompt(this.customSurvey, this.customSurvey?.leadData);
+      } else if (this.customSurvey) {
+        extractionPrompt = getCustomExtractionPrompt(this.customSurvey);
+      } else {
+        extractionPrompt = getExtractionPrompt(this.language);
+      }
+
       const response = await this.client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
-        system: this.customSurvey
-          ? getCustomExtractionPrompt(this.customSurvey)
-          : getExtractionPrompt(this.language),
+        system: extractionPrompt,
         messages: [{ role: 'user', content: transcript }],
       });
 
