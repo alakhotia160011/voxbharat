@@ -5,19 +5,19 @@ const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
 const formatPhoneInput = (value) => value.replace(/\D/g, '').slice(0, 12);
 
 const COUNTRIES = [
-  { code: '+91',  label: '🇮🇳 +91'  },
-  { code: '+1',   label: '🇺🇸🇨🇦 +1' },
-  { code: '+44',  label: '🇬🇧 +44'  },
-  { code: '+971', label: '🇦🇪 +971' },
-  { code: '+65',  label: '🇸🇬 +65'  },
-  { code: '+61',  label: '🇦🇺 +61'  },
-  { code: '+60',  label: '🇲🇾 +60'  },
-  { code: '+49',  label: '🇩🇪 +49'  },
-  { code: '+33',  label: '🇫🇷 +33'  },
-  { code: '+31',  label: '🇳🇱 +31'  },
-  { code: '+81',  label: '🇯🇵 +81'  },
-  { code: '+82',  label: '🇰🇷 +82'  },
-  { code: '+86',  label: '🇨🇳 +86'  },
+  { code: '+91',  label: 'IN +91'  },
+  { code: '+1',   label: 'US/CA +1' },
+  { code: '+44',  label: 'GB +44'  },
+  { code: '+971', label: 'AE +971' },
+  { code: '+65',  label: 'SG +65'  },
+  { code: '+61',  label: 'AU +61'  },
+  { code: '+60',  label: 'MY +60'  },
+  { code: '+49',  label: 'DE +49'  },
+  { code: '+33',  label: 'FR +33'  },
+  { code: '+31',  label: 'NL +31'  },
+  { code: '+81',  label: 'JP +81'  },
+  { code: '+82',  label: 'KR +82'  },
+  { code: '+86',  label: 'CN +86'  },
 ];
 
 // ─────────────────────────────────────────────
