@@ -143,7 +143,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_SECRET || '' },
           body: JSON.stringify({ text, voiceId, language }),
           signal,
         });

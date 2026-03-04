@@ -1,15 +1,24 @@
 // Vercel Serverless Function - Cartesia TTS Proxy
 // This keeps the API key secure on the server
 
+const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'https://voxbharat.com';
+const MAX_TEXT_LENGTH = 2000;
+
 export default async function handler(req, res) {
-  // CORS headers (must be set before any method checks so preflight works)
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers — restrict to frontend origin
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // API key check — prevents unauthorized usage
+  const API_SECRET = process.env.API_SECRET;
+  if (API_SECRET && req.headers['x-api-key'] !== API_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY;
@@ -23,6 +32,10 @@ export default async function handler(req, res) {
 
     if (!text || !voiceId) {
       return res.status(400).json({ error: 'Missing required fields: text, voiceId' });
+    }
+
+    if (typeof text !== 'string' || text.length > MAX_TEXT_LENGTH) {
+      return res.status(400).json({ error: `Text must be a string under ${MAX_TEXT_LENGTH} characters` });
     }
 
     const response = await fetch('https://api.cartesia.ai/tts/bytes', {
@@ -59,6 +72,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('TTS proxy error:', error);
-    res.status(500).json({ error: 'Internal server error', message: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

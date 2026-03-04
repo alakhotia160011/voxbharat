@@ -3,14 +3,22 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 
+const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'https://voxbharat.com';
+
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS — restrict to frontend origin
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // API key check — prevents unauthorized usage
+  const API_SECRET = process.env.API_SECRET;
+  if (API_SECRET && req.headers['x-api-key'] !== API_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_API_KEY) {
@@ -21,6 +29,14 @@ export default async function handler(req, res) {
     const { config } = req.body;
     if (!config || !config.type || !config.purpose) {
       return res.status(400).json({ error: 'Missing required fields: config.type, config.purpose' });
+    }
+
+    // Input length validation
+    const MAX_FIELD_LENGTH = 5000;
+    for (const field of ['purpose', 'keyQuestions', 'targetAudience', 'analysisGoals', 'brandNames']) {
+      if (config[field] && typeof config[field] === 'string' && config[field].length > MAX_FIELD_LENGTH) {
+        return res.status(400).json({ error: `Field ${field} exceeds maximum length` });
+      }
     }
 
     const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
@@ -117,6 +133,6 @@ Call the generate_survey_questions tool with all the questions and the greetingT
     res.status(200).json({ questions, greetingTopic });
   } catch (error) {
     console.error('Question generation error:', error);
-    res.status(500).json({ error: 'Failed to generate questions', message: error.message });
+    res.status(500).json({ error: 'Failed to generate questions' });
   }
 }

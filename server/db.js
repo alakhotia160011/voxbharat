@@ -442,6 +442,12 @@ export async function getAnalytics() {
   };
 }
 
+/** Mask phone numbers for exports — show only last 4 digits */
+function maskPhoneForExport(phone) {
+  if (!phone || phone.length < 6) return phone;
+  return phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4);
+}
+
 /**
  * Export all calls as JSON (full data)
  */
@@ -564,7 +570,7 @@ export async function exportProjectCallsCsv(projectName) {
       row.started_at,
       row.duration,
       row.language,
-      row.phone_number,
+      maskPhoneForExport(row.phone_number),
       row.demographics?.age ?? '',
       row.demographics?.ageGroup ?? '',
       row.demographics?.religion ?? '',

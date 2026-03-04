@@ -1,8 +1,20 @@
 // Lightweight website scraper — fetches a URL and extracts clean text content
 // No external dependencies, uses native fetch
+import { resolve } from 'dns/promises';
 
 const MAX_CONTENT_LENGTH = 3000;
 const FETCH_TIMEOUT = 10000;
+
+// Block private/reserved IP ranges to prevent SSRF
+const PRIVATE_IP_PATTERNS = [
+  /^127\./, /^10\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./,
+  /^169\.254\./, /^0\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,
+  /^::1$/, /^fc00:/, /^fe80:/, /^fd/,
+];
+
+function isPrivateIP(ip) {
+  return PRIVATE_IP_PATTERNS.some(p => p.test(ip));
+}
 
 /**
  * Scrape a website and return clean text content.
@@ -17,10 +29,28 @@ export async function scrapeWebsite(url) {
   }
 
   // Validate URL
+  let parsedUrl;
   try {
-    new URL(normalizedUrl);
+    parsedUrl = new URL(normalizedUrl);
   } catch {
     throw new Error('Invalid URL');
+  }
+
+  // Block localhost and private hostnames
+  const hostname = parsedUrl.hostname;
+  if (hostname === 'localhost' || hostname === '[::1]') {
+    throw new Error('Internal URLs are not allowed');
+  }
+
+  // Resolve hostname and check for private IPs
+  try {
+    const addresses = await resolve(hostname);
+    if (addresses.some(isPrivateIP)) {
+      throw new Error('Internal URLs are not allowed');
+    }
+  } catch (err) {
+    if (err.message === 'Internal URLs are not allowed') throw err;
+    // DNS resolution failed — let fetch handle it
   }
 
   const controller = new AbortController();
