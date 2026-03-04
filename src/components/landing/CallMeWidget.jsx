@@ -1,8 +1,24 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
-const formatPhoneInput = (value) => value.replace(/\D/g, '').slice(0, 10);
+const formatPhoneInput = (value) => value.replace(/\D/g, '').slice(0, 12);
+
+const COUNTRIES = [
+  { code: '+91',  label: '🇮🇳 +91'  },
+  { code: '+1',   label: '🇺🇸🇨🇦 +1' },
+  { code: '+44',  label: '🇬🇧 +44'  },
+  { code: '+971', label: '🇦🇪 +971' },
+  { code: '+65',  label: '🇸🇬 +65'  },
+  { code: '+61',  label: '🇦🇺 +61'  },
+  { code: '+60',  label: '🇲🇾 +60'  },
+  { code: '+49',  label: '🇩🇪 +49'  },
+  { code: '+33',  label: '🇫🇷 +33'  },
+  { code: '+31',  label: '🇳🇱 +31'  },
+  { code: '+81',  label: '🇯🇵 +81'  },
+  { code: '+82',  label: '🇰🇷 +82'  },
+  { code: '+86',  label: '🇨🇳 +86'  },
+];
 
 // ─────────────────────────────────────────────
 // Nebula Orb — multi-layered, organic, alive
@@ -319,6 +335,7 @@ function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave
 export default function CallMeWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+91');
   const [callState, setCallState] = useState('idle');
   const [error, setError] = useState(null);
   const [callDuration, setCallDuration] = useState(0);
@@ -345,6 +362,7 @@ export default function CallMeWidget() {
   const reset = () => {
     setCallState('idle');
     setPhone('');
+    setCountryCode('+91');
     setError(null);
     setCallDuration(0);
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -352,15 +370,18 @@ export default function CallMeWidget() {
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
+  const canCall = phone.length >= 6;
+
   const initiateDemoCall = async () => {
-    if (phone.length < 10) return;
+    if (!canCall) return;
     setCallState('requesting');
     setError(null);
+    const fullNumber = countryCode + phone;
     try {
       const response = await fetch(`${CALL_SERVER}/call/demo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone }),
+        body: JSON.stringify({ phoneNumber: fullNumber }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to start call');
@@ -395,7 +416,7 @@ export default function CallMeWidget() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && phone.length >= 10) initiateDemoCall();
+    if (e.key === 'Enter' && canCall) initiateDemoCall();
   };
 
   const isActive = callState === 'ringing' || callState === 'connected';
@@ -451,22 +472,52 @@ export default function CallMeWidget() {
                     Talk to Us
                   </h3>
                   <p className="mt-2 text-[13px] text-white/35 font-body leading-[1.6] max-w-[250px] mx-auto">
-                    Our AI will call you about VoxBharat — in your preferred language
+                    Our AI will call you about VoxBharat in your preferred language
                   </p>
 
                   <div className="mt-6 w-full space-y-3">
-                    <div className="relative group">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[13px] text-white/20 font-body select-none transition-colors group-focus-within:text-white/35">
-                        +91
-                      </span>
+                    <div className="flex gap-2">
+                      {/* Country code selector */}
+                      <div className="relative flex-shrink-0">
+                        <select
+                          value={countryCode}
+                          onChange={(e) => { setCountryCode(e.target.value); setPhone(''); }}
+                          className="h-full pl-3 pr-6 rounded-2xl font-body text-[13px] text-white/60 outline-none appearance-none cursor-pointer transition-all duration-300"
+                          style={{
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)',
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = 'rgba(232,85,15,0.3)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = 'rgba(255,255,255,0.06)';
+                          }}
+                        >
+                          {COUNTRIES.map(c => (
+                            <option key={c.code} value={c.code} style={{ background: '#1a1210', color: '#fff' }}>
+                              {c.label}
+                            </option>
+                          ))}
+                        </select>
+                        {/* Dropdown chevron */}
+                        <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+                          <svg className="w-3 h-3 text-white/25" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Phone number input */}
                       <input
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
                         onKeyDown={handleKeyDown}
-                        placeholder="98765 43210"
-                        maxLength={10}
-                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl font-body text-[14px] text-white placeholder:text-white/15 transition-all duration-300 outline-none"
+                        placeholder="Phone number"
+                        maxLength={12}
+                        className="flex-1 min-w-0 px-4 py-3.5 rounded-2xl font-body text-[14px] text-white placeholder:text-white/15 transition-all duration-300 outline-none"
                         style={{
                           background: 'rgba(255,255,255,0.04)',
                           border: '1px solid rgba(255,255,255,0.06)',
@@ -485,20 +536,20 @@ export default function CallMeWidget() {
 
                     <motion.button
                       onClick={initiateDemoCall}
-                      disabled={phone.length < 10}
+                      disabled={!canCall}
                       className="w-full py-3.5 rounded-2xl font-body font-semibold text-[14px] transition-all duration-300 cursor-pointer outline-none"
                       style={{
-                        color: phone.length < 10 ? 'rgba(255,255,255,0.2)' : '#fff',
-                        background: phone.length < 10
+                        color: !canCall ? 'rgba(255,255,255,0.2)' : '#fff',
+                        background: !canCall
                           ? 'rgba(255,255,255,0.04)'
                           : 'linear-gradient(135deg, #e8550f 0%, #c24a0e 100%)',
-                        boxShadow: phone.length < 10
+                        boxShadow: !canCall
                           ? 'none'
                           : '0 4px 20px rgba(232,85,15,0.25), inset 0 1px 0 rgba(255,255,255,0.1)',
-                        cursor: phone.length < 10 ? 'not-allowed' : 'pointer',
+                        cursor: !canCall ? 'not-allowed' : 'pointer',
                       }}
-                      whileHover={phone.length >= 10 ? { scale: 1.01, y: -1 } : {}}
-                      whileTap={phone.length >= 10 ? { scale: 0.98 } : {}}
+                      whileHover={canCall ? { scale: 1.01, y: -1 } : {}}
+                      whileTap={canCall ? { scale: 0.98 } : {}}
                     >
                       Call Me
                     </motion.button>
