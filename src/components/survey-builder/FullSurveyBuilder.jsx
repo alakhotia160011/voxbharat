@@ -279,6 +279,9 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       );
 
       setQuestions(generated);
+      if (data.greetingTopic) {
+        setConfig(prev => ({ ...prev, greetingTopic: data.greetingTopic }));
+      }
       setStep(5);
     } catch (error) {
       console.error('Question generation error:', error);
@@ -383,6 +386,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
             qualityChecks: config.qualityChecks ?? true,
             recordAudio: config.recordAudio ?? true,
             sttProvider: config.sttProvider || 'cartesia',
+            greetingTopic: config.greetingTopic || '',
             questions: questions.map(q => ({
               id: q.id,
               text: q.text,

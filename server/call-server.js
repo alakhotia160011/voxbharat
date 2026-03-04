@@ -363,12 +363,15 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
     const enName = getVoiceName('en', gender);
     const orgName = customSurvey?.companyName;
     const fromPart = orgName ? ` from ${orgName}` : '';
+    const topicPart = customSurvey?.greetingTopic
+      ? ` We're chatting with people about ${customSurvey.greetingTopic} today —`
+      : ` We'd love to get your thoughts —`;
     const langQuestion = sttProvider === 'cartesia'
       ? ' Which language would you prefer to speak in? Aap kis bhasha mein baat karna chahte hain?'
       : '';
-    greetingText = `Hi! I'm ${enName}${fromPart}. We'd love to get your thoughts — it'll just take a minute. Can you chat?${langQuestion}`;
+    greetingText = `Hi! I'm ${enName}${fromPart}.${topicPart} just takes a minute. Got a minute?${langQuestion}`;
   } else if (customSurvey) {
-    greetingText = generateCustomGreeting(language, gender, customSurvey.name, customSurvey.companyName);
+    greetingText = generateCustomGreeting(language, gender, customSurvey.name, customSurvey.companyName, customSurvey.greetingTopic);
   } else if (SURVEY_SCRIPTS[language]) {
     greetingText = generateCustomGreeting(language, gender, SURVEY_SCRIPTS[language].name);
   } else {
@@ -510,9 +513,9 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
   const surveyName = surveyConfig?.name || 'our survey';
   let greetingText;
   if (campaignId) {
-    greetingText = generateCallbackGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName);
+    greetingText = generateCallbackGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName, surveyConfig?.greetingTopic);
   } else {
-    greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName);
+    greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName, surveyConfig?.greetingTopic);
   }
 
   generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })

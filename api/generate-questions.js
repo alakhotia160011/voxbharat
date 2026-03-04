@@ -62,8 +62,9 @@ INSTRUCTIONS:
 9. Do NOT include demographic questions (age, gender) — those are added automatically.
 10. For likert type, always use exactly 5 options from negative to positive.
 11. For rating type, set min=1, max=10. For nps type, set min=0, max=10.
+12. Also generate a short greetingTopic (2-5 words) — a casual phrase describing what the survey is about, suitable for a phone greeting like "Aaj hum logon se [topic] ke baare mein baat kar rahe hain". Do NOT include the company name. Examples: "cricket", "online shopping", "your neighbourhood safety", "food delivery apps".
 
-Call the generate_survey_questions tool with all the questions.`;
+Call the generate_survey_questions tool with all the questions and the greetingTopic.`;
 
     const questionTool = {
       name: 'generate_survey_questions',
@@ -89,8 +90,12 @@ Call the generate_survey_questions tool with all the questions.`;
               required: ['id', 'type', 'text', 'textEn', 'required', 'category'],
             },
           },
+            greetingTopic: {
+            type: 'string',
+            description: 'Short 2-5 word topic for the phone greeting (e.g. "cricket", "online shopping")',
+          },
         },
-        required: ['questions'],
+        required: ['questions', 'greetingTopic'],
       },
     };
 
@@ -108,8 +113,8 @@ Call the generate_survey_questions tool with all the questions.`;
       throw new Error('Claude did not return tool output');
     }
 
-    const questions = toolBlock.input.questions;
-    res.status(200).json({ questions });
+    const { questions, greetingTopic } = toolBlock.input;
+    res.status(200).json({ questions, greetingTopic });
   } catch (error) {
     console.error('Question generation error:', error);
     res.status(500).json({ error: 'Failed to generate questions', message: error.message });
