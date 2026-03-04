@@ -25,7 +25,7 @@ import SectionHeading from '../shared/SectionHeading';
 import { fadeInUp, sectionViewport } from '../../styles/animations';
 
 const CARTESIA_VOICES = [
-  { id: '95d51f79-c397-46f9-b49a-23763d3eaa2d', name: 'Hindi Female', gender: 'Female', lang: 'hi' },
+  { id: '86d3b948-5a63-49e4-98c5-b67da63aba50', name: 'Dhwani (Hindi)', gender: 'Female', lang: 'hi' },
   { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', gender: 'Male', lang: 'hi' },
   { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', gender: 'Female', lang: 'bn' },
   { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', gender: 'Male', lang: 'bn' },
@@ -68,7 +68,7 @@ const VOICE_LABELS = {
 
 
 export default function DemoSection({ onShowSampleReport, onShowSampleCallLog }) {
-  const [selectedVoice, setSelectedVoice] = useState('95d51f79-c397-46f9-b49a-23763d3eaa2d');
+  const [selectedVoice, setSelectedVoice] = useState('86d3b948-5a63-49e4-98c5-b67da63aba50');
   const [demoActive, setDemoActive] = useState(false);
   const [demoStep, setDemoStep] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);

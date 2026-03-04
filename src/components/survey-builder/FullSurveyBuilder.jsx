@@ -14,7 +14,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [playingQuestionId, setPlayingQuestionId] = useState(null);
-  const [selectedPreviewVoice, setSelectedPreviewVoice] = useState('95d51f79-c397-46f9-b49a-23763d3eaa2d');
+  const [selectedPreviewVoice, setSelectedPreviewVoice] = useState('86d3b948-5a63-49e4-98c5-b67da63aba50');
   const [previewLanguage, setPreviewLanguage] = useState('hi');
   const [showCustomQuestionInput, setShowCustomQuestionInput] = useState(false);
   const [customTestText, setCustomTestText] = useState('');
@@ -67,7 +67,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
   }, [testCallStatus]);
 
   const PREVIEW_VOICES = [
-    { id: '95d51f79-c397-46f9-b49a-23763d3eaa2d', name: 'Hindi Female', lang: 'hi' },
+    { id: '86d3b948-5a63-49e4-98c5-b67da63aba50', name: 'Dhwani (Hindi)', lang: 'hi' },
     { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', lang: 'hi' },
     { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', lang: 'bn' },
     { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', lang: 'bn' },
