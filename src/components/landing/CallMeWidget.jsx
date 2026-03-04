@@ -1,139 +1,213 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
-
 const formatPhoneInput = (value) => value.replace(/\D/g, '').slice(0, 10);
 
-// ─── CSS-only animated orb ───
-function Orb({ state }) {
+// ─────────────────────────────────────────────
+// Nebula Orb — multi-layered, organic, alive
+// ─────────────────────────────────────────────
+function NebulaOrb({ state = 'idle', size = 96 }) {
   const fast = state === 'requesting';
-  const errorMode = state === 'error';
-  const baseColor = errorMode ? '#ef4444' : '#e8550f';
-  const glowColor = errorMode ? 'rgba(239,68,68,0.3)' : 'rgba(232,85,15,0.25)';
+  const err = state === 'error';
+
+  // Each layer has its own animation rhythm for organic feel
+  const layers = useMemo(() => [
+    { // Deep ambient glow
+      inset: -8,
+      gradient: err
+        ? 'radial-gradient(circle at 50% 50%, rgba(239,68,68,0.18) 0%, transparent 70%)'
+        : 'radial-gradient(circle at 50% 50%, rgba(232,85,15,0.15) 0%, rgba(196,160,74,0.05) 40%, transparent 70%)',
+      scale: fast ? [1, 1.5, 1] : [1, 1.25, 1],
+      duration: fast ? 0.7 : 3.5,
+    },
+    { // Warm corona
+      inset: 0,
+      gradient: err
+        ? 'radial-gradient(circle at 45% 40%, rgba(239,68,68,0.4) 0%, rgba(239,68,68,0.1) 50%, transparent 75%)'
+        : 'radial-gradient(circle at 45% 40%, rgba(251,191,108,0.35) 0%, rgba(232,85,15,0.15) 50%, transparent 75%)',
+      scale: fast ? [1, 1.2, 1] : [1, 1.1, 1],
+      duration: fast ? 0.5 : 2.8,
+      delay: 0.2,
+    },
+    { // Core — the visible sphere
+      inset: 10,
+      gradient: err
+        ? 'radial-gradient(circle at 38% 32%, #f87171 0%, #ef4444 35%, #b91c1c 65%, rgba(185,28,28,0.4) 100%)'
+        : 'radial-gradient(circle at 38% 32%, #fcd89d 0%, #f0923a 25%, #e8550f 50%, #c24a0e 72%, rgba(194,74,14,0.3) 100%)',
+      scale: fast ? [1, 1.08, 1] : [1, 1.04, 1],
+      duration: fast ? 0.4 : 3,
+      delay: 0.1,
+      shadow: err
+        ? 'inset 0 -6px 16px rgba(0,0,0,0.4), inset 0 3px 8px rgba(255,255,255,0.1), 0 0 40px rgba(239,68,68,0.3)'
+        : 'inset 0 -6px 16px rgba(0,0,0,0.35), inset 0 3px 8px rgba(255,255,255,0.12), 0 0 40px rgba(232,85,15,0.25), 0 0 80px rgba(232,85,15,0.08)',
+    },
+    { // Hot spot — bright inner highlight
+      inset: 18,
+      gradient: err
+        ? 'radial-gradient(circle at 42% 36%, rgba(252,165,165,0.5) 0%, transparent 60%)'
+        : 'radial-gradient(circle at 42% 36%, rgba(253,224,180,0.5) 0%, rgba(240,146,58,0.15) 40%, transparent 60%)',
+      scale: fast ? [1, 1.12, 0.97, 1] : [1, 1.06, 0.98, 1],
+      duration: fast ? 0.6 : 3.2,
+      delay: 0.3,
+    },
+  ], [fast, err]);
 
   return (
-    <div className="relative w-20 h-20 mx-auto">
-      {/* Outer glow */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{ background: `radial-gradient(circle, ${glowColor} 0%, transparent 70%)` }}
-        animate={{ scale: fast ? [1, 1.4, 1] : [1, 1.2, 1], opacity: [0.6, 0.3, 0.6] }}
-        transition={{ duration: fast ? 0.8 : 2.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      {/* Mid glow */}
-      <motion.div
-        className="absolute inset-2 rounded-full"
-        style={{ background: `radial-gradient(circle at 40% 35%, ${baseColor}dd 0%, ${baseColor}66 50%, transparent 80%)` }}
-        animate={{ scale: fast ? [1, 1.15, 1] : [1, 1.08, 1] }}
-        transition={{ duration: fast ? 0.6 : 2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-      />
-      {/* Core sphere */}
-      <motion.div
-        className="absolute inset-3 rounded-full"
-        style={{
-          background: `radial-gradient(circle at 35% 30%, #fbbf6c 0%, ${baseColor} 40%, ${baseColor}99 70%, transparent 100%)`,
-          boxShadow: `inset 0 -4px 12px rgba(0,0,0,0.3), inset 0 2px 6px rgba(255,255,255,0.15), 0 0 30px ${glowColor}`,
-        }}
-        animate={{
-          y: fast ? [0, -2, 0] : [0, -4, 0],
-          scale: fast ? [1, 1.06, 1] : [1, 1.03, 1],
-        }}
-        transition={{ duration: fast ? 0.5 : 3, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      {/* Specular highlight */}
+    <div className="relative mx-auto" style={{ width: size, height: size }}>
+      {layers.map((layer, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            inset: layer.inset,
+            background: layer.gradient,
+            boxShadow: layer.shadow || 'none',
+          }}
+          animate={{
+            scale: layer.scale,
+            y: fast ? [0, -1, 0] : [0, -3, 1, 0],
+          }}
+          transition={{
+            duration: layer.duration,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: layer.delay || 0,
+          }}
+        />
+      ))}
+      {/* Specular highlight — glass-like reflection */}
       <div
-        className="absolute rounded-full"
+        className="absolute pointer-events-none"
         style={{
-          top: '16px', left: '22px', width: '20px', height: '12px',
-          background: 'radial-gradient(ellipse, rgba(255,255,255,0.4) 0%, transparent 80%)',
-          filter: 'blur(2px)',
+          top: '18%', left: '25%', width: '35%', height: '22%',
+          background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 50%, transparent 100%)',
+          borderRadius: '50%',
+          filter: 'blur(1.5px)',
+        }}
+      />
+      {/* Subtle bottom reflection */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          bottom: '15%', left: '30%', width: '40%', height: '12%',
+          background: 'radial-gradient(ellipse, rgba(251,191,108,0.1) 0%, transparent 100%)',
+          borderRadius: '50%',
+          filter: 'blur(3px)',
         }}
       />
     </div>
   );
 }
 
-// ─── Concentric ring pulse (ringing state) ───
+// ─────────────────────────────────────────────
+// Concentric rings — breathing, elegant
+// ─────────────────────────────────────────────
 function RingPulse() {
   return (
-    <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-      {[0, 0.6, 1.2].map((delay, i) => (
+    <div className="relative mx-auto flex items-center justify-center" style={{ width: 96, height: 96 }}>
+      {[0, 0.5, 1.0, 1.5].map((delay, i) => (
         <motion.div
           key={i}
-          className="absolute rounded-full border-2 border-[#e8550f]"
-          initial={{ width: 20, height: 20, opacity: 0.8 }}
-          animate={{ width: 80, height: 80, opacity: 0 }}
-          transition={{ duration: 1.8, repeat: Infinity, delay, ease: 'easeOut' }}
+          className="absolute rounded-full"
+          style={{ border: `${i === 0 ? 2 : 1.5}px solid rgba(232,85,15,${0.6 - i * 0.12})` }}
+          initial={{ width: 24, height: 24, opacity: 0.8 }}
+          animate={{ width: 96, height: 96, opacity: 0 }}
+          transition={{ duration: 2.2, repeat: Infinity, delay, ease: [0.25, 0.1, 0.25, 1] }}
         />
       ))}
-      {/* Center phone icon */}
+      {/* Center glowing dot */}
       <motion.div
-        className="relative w-10 h-10 rounded-full bg-[#e8550f]/20 flex items-center justify-center"
-        animate={{ scale: [1, 1.1, 1] }}
-        transition={{ duration: 0.6, repeat: Infinity }}
+        className="relative rounded-full"
+        style={{
+          width: 40, height: 40,
+          background: 'radial-gradient(circle, rgba(232,85,15,0.25) 0%, rgba(232,85,15,0.08) 60%, transparent 100%)',
+        }}
+        animate={{ scale: [1, 1.15, 1] }}
+        transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <svg className="w-5 h-5 text-[#e8550f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#e8550f" strokeWidth={1.8} strokeOpacity={0.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+        </div>
       </motion.div>
     </div>
   );
 }
 
-// ─── Audio bars visualizer (connected state) ───
+// ─────────────────────────────────────────────
+// Audio bars — organic, staggered, beautiful
+// ─────────────────────────────────────────────
 function AudioBars() {
-  const [heights, setHeights] = useState(() => Array(12).fill(6));
+  const barCount = 16;
+  const [heights, setHeights] = useState(() => Array(barCount).fill(4));
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setHeights(prev => prev.map(() => Math.random() * 32 + 6));
-    }, 80);
+      setHeights(prev => prev.map((_, i) => {
+        // Center bars taller, edges shorter — natural EQ shape
+        const center = Math.abs(i - (barCount - 1) / 2) / ((barCount - 1) / 2);
+        const maxH = 38 * (1 - center * 0.5);
+        return Math.random() * maxH + 4;
+      }));
+    }, 70);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="flex items-end justify-center gap-[3px] h-12 mx-auto w-fit">
-      {heights.map((h, i) => (
-        <div
-          key={i}
-          className="w-[3px] rounded-full transition-all duration-75"
-          style={{
-            height: `${h}px`,
-            backgroundColor: '#e8550f',
-            opacity: 0.5 + (h / 38) * 0.5,
-          }}
-        />
-      ))}
+    <div className="flex items-center justify-center h-14 mx-auto" style={{ gap: 2.5 }}>
+      {heights.map((h, i) => {
+        const center = Math.abs(i - (barCount - 1) / 2) / ((barCount - 1) / 2);
+        const opacity = 0.4 + (1 - center) * 0.4 + (h / 42) * 0.2;
+        return (
+          <div
+            key={i}
+            className="rounded-full"
+            style={{
+              width: 3,
+              height: h,
+              background: `linear-gradient(180deg, #fbbf6c ${Math.max(0, 100 - h * 2)}%, #e8550f 100%)`,
+              opacity,
+              transition: 'height 65ms ease-out, opacity 65ms ease-out',
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
 
-// ─── Animated check ───
+// ─────────────────────────────────────────────
+// Animated checkmark — satisfying draw-in
+// ─────────────────────────────────────────────
 function AnimatedCheck() {
   return (
-    <div className="w-16 h-16 mx-auto flex items-center justify-center">
+    <div className="mx-auto flex items-center justify-center" style={{ width: 96, height: 96 }}>
       <motion.div
-        className="w-16 h-16 rounded-full flex items-center justify-center"
-        style={{ background: 'radial-gradient(circle, rgba(34,197,94,0.15) 0%, transparent 70%)' }}
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+        className="flex items-center justify-center"
+        style={{
+          width: 72, height: 72, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)',
+        }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 180, damping: 14 }}
       >
-        <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
           <motion.circle
-            cx="20" cy="20" r="16"
-            stroke="#22c55e" strokeWidth="2" fill="none" strokeOpacity="0.3"
+            cx="24" cy="24" r="20"
+            stroke="#22c55e" strokeWidth="1.5" fill="none" strokeOpacity="0.25"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
           />
           <motion.path
-            d="M13 20l5 5 9-10"
+            d="M15 24l7 7 11-13"
             stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
-            transition={{ duration: 0.3, delay: 0.3 }}
+            transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }}
           />
         </svg>
       </motion.div>
@@ -141,40 +215,107 @@ function AnimatedCheck() {
   );
 }
 
-// ─── Floating button soundwave bars ───
-function ButtonBars({ active }) {
+// ─────────────────────────────────────────────
+// Floating button — alive, breathing
+// ─────────────────────────────────────────────
+function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave }) {
   const [tick, setTick] = useState(0);
+  const speed = isHovered || isActive ? 80 : 400;
 
   useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), active ? 120 : 600);
+    const interval = setInterval(() => setTick(t => t + 1), speed);
     return () => clearInterval(interval);
-  }, [active]);
+  }, [speed]);
 
-  const heights = [0.4, 0.7, 1, 0.7, 0.4].map((base, i) => {
-    const wave = Math.sin((tick + i * 2) * (active ? 0.5 : 0.3)) * 0.3 + 0.7;
-    return base * wave * 18;
+  const bars = [0.3, 0.55, 0.8, 1, 0.8, 0.55, 0.3].map((base, i) => {
+    const phase = (tick * (isHovered || isActive ? 0.4 : 0.15)) + i * 1.2;
+    const wave = Math.sin(phase) * 0.35 + 0.65;
+    return base * wave * 20;
   });
 
+  const glowIntensity = isHovered || isActive;
+
   return (
-    <div className="flex items-center justify-center gap-[2.5px] h-5">
-      {heights.map((h, i) => (
-        <div
-          key={i}
-          className="w-[2.5px] rounded-full transition-all"
-          style={{
-            height: `${Math.max(3, h)}px`,
-            backgroundColor: '#e8550f',
-            transitionDuration: active ? '100ms' : '500ms',
-          }}
-        />
-      ))}
-    </div>
+    <motion.button
+      onClick={onClick}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
+      className="relative flex items-center justify-center cursor-pointer outline-none"
+      style={{ width: 60, height: 60 }}
+      whileHover={{ scale: 1.06 }}
+      whileTap={{ scale: 0.94 }}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 1.5 }}
+    >
+      {/* Background layers */}
+      <div
+        className="absolute inset-0 rounded-full transition-all duration-500"
+        style={{
+          background: 'linear-gradient(145deg, #221b17, #171110)',
+          boxShadow: glowIntensity
+            ? '0 0 0 1.5px rgba(232,85,15,0.35), 0 0 24px rgba(232,85,15,0.12), 0 8px 28px rgba(0,0,0,0.5)'
+            : '0 0 0 1px rgba(255,255,255,0.05), 0 6px 24px rgba(0,0,0,0.4)',
+        }}
+      />
+      {/* Subtle inner glow */}
+      <div
+        className="absolute inset-0 rounded-full transition-opacity duration-500"
+        style={{
+          background: 'radial-gradient(circle at 50% 40%, rgba(232,85,15,0.08) 0%, transparent 60%)',
+          opacity: glowIntensity ? 1 : 0.3,
+        }}
+      />
+
+      {/* Icon content */}
+      <div className="relative z-10">
+        <AnimatePresence mode="wait">
+          {isOpen ? (
+            <motion.svg
+              key="x"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="w-[18px] h-[18px]" style={{ color: 'rgba(255,255,255,0.5)' }}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </motion.svg>
+          ) : (
+            <motion.div
+              key="wave"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center justify-center"
+              style={{ gap: 2.5, height: 22 }}
+            >
+              {bars.map((h, i) => (
+                <div
+                  key={i}
+                  className="rounded-full"
+                  style={{
+                    width: 2.5,
+                    height: Math.max(3, h),
+                    background: 'linear-gradient(180deg, #fbbf6c, #e8550f)',
+                    opacity: 0.6 + (h / 20) * 0.4,
+                    transition: `height ${speed < 200 ? 70 : 350}ms ease-out`,
+                  }}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.button>
   );
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // Main Widget
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════
 export default function CallMeWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [phone, setPhone] = useState('');
@@ -185,7 +326,6 @@ export default function CallMeWidget() {
   const pollRef = useRef(null);
   const timerRef = useRef(null);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -193,16 +333,12 @@ export default function CallMeWidget() {
     };
   }, []);
 
-  // Call duration timer
   useEffect(() => {
     if (callState === 'connected') {
       setCallDuration(0);
       timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
     } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     }
   }, [callState]);
 
@@ -220,7 +356,6 @@ export default function CallMeWidget() {
     if (phone.length < 10) return;
     setCallState('requesting');
     setError(null);
-
     try {
       const response = await fetch(`${CALL_SERVER}/call/demo`, {
         method: 'POST',
@@ -229,9 +364,7 @@ export default function CallMeWidget() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to start call');
-
       setCallState('ringing');
-
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(async () => {
         try {
@@ -242,21 +375,16 @@ export default function CallMeWidget() {
             setCallState('connected');
           } else if (['completed', 'saved', 'extracting'].includes(callData.status)) {
             setCallState('completed');
-            clearInterval(pollRef.current);
-            pollRef.current = null;
+            clearInterval(pollRef.current); pollRef.current = null;
           } else if (callData.status === 'failed') {
-            setCallState('error');
-            setError('Call failed. Please try again.');
-            clearInterval(pollRef.current);
-            pollRef.current = null;
+            setCallState('error'); setError('Call failed. Please try again.');
+            clearInterval(pollRef.current); pollRef.current = null;
           }
         } catch { /* ignore */ }
       }, 2000);
-
       setTimeout(() => {
         if (pollRef.current) {
-          clearInterval(pollRef.current);
-          pollRef.current = null;
+          clearInterval(pollRef.current); pollRef.current = null;
           setCallState(prev => prev === 'ringing' ? 'error' : prev);
         }
       }, 5 * 60 * 1000);
@@ -277,46 +405,60 @@ export default function CallMeWidget() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-            className="w-[calc(100vw-40px)] sm:w-[340px] rounded-[20px] overflow-hidden"
+            exit={{ opacity: 0, y: 20, scale: 0.92 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            className="w-[calc(100vw-40px)] sm:w-[348px] rounded-[24px] overflow-hidden relative"
             style={{
-              background: 'linear-gradient(180deg, #1e1613 0%, #1a1210 100%)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)',
+              background: 'linear-gradient(170deg, #201916 0%, #181210 40%, #141110 100%)',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04), 0 0 60px rgba(232,85,15,0.04)',
             }}
           >
-            {/* Close button */}
+            {/* Ambient background glow — makes the panel feel alive */}
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
+              style={{
+                width: 200, height: 200,
+                background: 'radial-gradient(circle, rgba(232,85,15,0.06) 0%, transparent 70%)',
+                filter: 'blur(40px)',
+              }}
+            />
+
+            {/* Close */}
             <button
               onClick={() => setIsOpen(false)}
-              className="absolute top-3.5 right-3.5 w-7 h-7 rounded-full flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/5 transition-all cursor-pointer z-10"
+              className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center text-white/20 hover:text-white/50 hover:bg-white/[0.04] transition-all cursor-pointer z-10"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
-            <div className="px-6 pt-7 pb-6 flex flex-col items-center text-center">
+            <div className="relative px-7 pt-8 pb-7 flex flex-col items-center text-center">
 
-              {/* ── Idle state ── */}
+              {/* ── IDLE ── */}
               {callState === 'idle' && (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
                   className="w-full"
                 >
-                  <Orb state="idle" />
-                  <h3 className="mt-4 text-[17px] font-display font-semibold text-white">
+                  <NebulaOrb state="idle" />
+
+                  <h3 className="mt-5 text-[18px] font-display font-semibold text-white tracking-tight">
                     Talk to Us
                   </h3>
-                  <p className="mt-1.5 text-[13px] text-white/40 font-body leading-relaxed max-w-[240px] mx-auto">
+                  <p className="mt-2 text-[13px] text-white/35 font-body leading-[1.6] max-w-[250px] mx-auto">
                     Our AI will call you about VoxBharat — in your preferred language
                   </p>
 
-                  <div className="mt-5 w-full">
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-white/25 font-body select-none">+91</span>
+                  <div className="mt-6 w-full space-y-3">
+                    <div className="relative group">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[13px] text-white/20 font-body select-none transition-colors group-focus-within:text-white/35">
+                        +91
+                      </span>
                       <input
                         type="tel"
                         value={phone}
@@ -324,97 +466,153 @@ export default function CallMeWidget() {
                         onKeyDown={handleKeyDown}
                         placeholder="98765 43210"
                         maxLength={10}
-                        className="w-full pl-11 pr-4 py-3 bg-white/[0.06] border border-white/[0.08] rounded-xl font-body text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#e8550f]/40 focus:ring-1 focus:ring-[#e8550f]/20 transition-all"
+                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl font-body text-[14px] text-white placeholder:text-white/15 transition-all duration-300 outline-none"
+                        style={{
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)',
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = 'rgba(232,85,15,0.3)';
+                          e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.2), 0 0 0 3px rgba(232,85,15,0.06)';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = 'rgba(255,255,255,0.06)';
+                          e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.2)';
+                        }}
                       />
                     </div>
-                    <button
+
+                    <motion.button
                       onClick={initiateDemoCall}
                       disabled={phone.length < 10}
-                      className={`mt-3 w-full py-3 rounded-xl font-body font-semibold text-sm text-white transition-all cursor-pointer ${
-                        phone.length < 10
-                          ? 'bg-white/[0.06] text-white/25 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-[#e8550f] to-[#c24a0e] hover:from-[#f06020] hover:to-[#d45510] shadow-lg shadow-[#e8550f]/20'
-                      }`}
+                      className="w-full py-3.5 rounded-2xl font-body font-semibold text-[14px] transition-all duration-300 cursor-pointer outline-none"
+                      style={{
+                        color: phone.length < 10 ? 'rgba(255,255,255,0.2)' : '#fff',
+                        background: phone.length < 10
+                          ? 'rgba(255,255,255,0.04)'
+                          : 'linear-gradient(135deg, #e8550f 0%, #c24a0e 100%)',
+                        boxShadow: phone.length < 10
+                          ? 'none'
+                          : '0 4px 20px rgba(232,85,15,0.25), inset 0 1px 0 rgba(255,255,255,0.1)',
+                        cursor: phone.length < 10 ? 'not-allowed' : 'pointer',
+                      }}
+                      whileHover={phone.length >= 10 ? { scale: 1.01, y: -1 } : {}}
+                      whileTap={phone.length >= 10 ? { scale: 0.98 } : {}}
                     >
                       Call Me
-                    </button>
+                    </motion.button>
                   </div>
-                  <p className="mt-3 text-[10px] text-white/20 font-body">
-                    One free demo call per number per day
+
+                  <p className="mt-4 text-[10px] text-white/15 font-body tracking-wide uppercase">
+                    One free demo per number per day
                   </p>
                 </motion.div>
               )}
 
-              {/* ── Requesting state ── */}
+              {/* ── REQUESTING ── */}
               {callState === 'requesting' && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="py-4"
+                  transition={{ duration: 0.3 }}
+                  className="py-6"
                 >
-                  <Orb state="requesting" />
-                  <p className="mt-5 text-sm text-white/60 font-body">Connecting...</p>
+                  <NebulaOrb state="requesting" />
+                  <motion.p
+                    className="mt-6 text-[14px] text-white/50 font-body"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    Connecting...
+                  </motion.p>
                 </motion.div>
               )}
 
-              {/* ── Ringing state ── */}
+              {/* ── RINGING ── */}
               {callState === 'ringing' && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                   className="py-4"
                 >
                   <RingPulse />
-                  <p className="mt-5 text-[15px] text-white font-display font-semibold">Ringing your phone...</p>
-                  <p className="mt-1 text-xs text-white/40 font-body">Pick up to talk to our AI</p>
+                  <p className="mt-5 text-[16px] text-white font-display font-semibold tracking-tight">
+                    Ringing your phone...
+                  </p>
+                  <p className="mt-1.5 text-[12px] text-white/30 font-body">
+                    Pick up to talk to our AI
+                  </p>
                 </motion.div>
               )}
 
-              {/* ── Connected state ── */}
+              {/* ── CONNECTED ── */}
               {callState === 'connected' && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                   className="py-4 w-full"
                 >
-                  <AudioBars />
-                  <p className="mt-5 text-[15px] text-white font-display font-semibold">You're connected</p>
-                  <p className="mt-1 text-xs text-white/40 font-body">Hang up anytime</p>
-                  <p className="mt-3 text-xs text-white/20 font-mono tabular-nums">{formatTime(callDuration)}</p>
+                  <div className="py-2">
+                    <AudioBars />
+                  </div>
+                  <p className="mt-5 text-[16px] text-white font-display font-semibold tracking-tight">
+                    You're connected
+                  </p>
+                  <p className="mt-1.5 text-[12px] text-white/30 font-body">
+                    Hang up anytime
+                  </p>
+                  <p className="mt-4 text-[11px] text-white/15 font-body tabular-nums tracking-widest">
+                    {formatTime(callDuration)}
+                  </p>
                 </motion.div>
               )}
 
-              {/* ── Completed state ── */}
+              {/* ── COMPLETED ── */}
               {callState === 'completed' && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                   className="py-2"
                 >
                   <AnimatedCheck />
-                  <p className="mt-3 text-[15px] text-white font-display font-semibold">Thanks for trying VoxBharat!</p>
-                  <p className="mt-1 text-xs text-white/40 font-body">Our team will follow up with details</p>
+                  <p className="mt-3 text-[16px] text-white font-display font-semibold tracking-tight">
+                    Thanks for trying VoxBharat!
+                  </p>
+                  <p className="mt-1.5 text-[12px] text-white/30 font-body">
+                    Our team will follow up with details
+                  </p>
                   <button
                     onClick={reset}
-                    className="mt-4 text-xs text-[#e8550f] hover:text-[#f06020] font-body transition-colors cursor-pointer"
+                    className="mt-5 text-[12px] text-[#e8550f]/80 hover:text-[#e8550f] font-body transition-colors cursor-pointer"
                   >
                     Try another number
                   </button>
                 </motion.div>
               )}
 
-              {/* ── Error state ── */}
+              {/* ── ERROR ── */}
               {callState === 'error' && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                   className="py-2"
                 >
-                  <Orb state="error" />
-                  <p className="mt-4 text-sm text-red-400 font-body leading-relaxed max-w-[260px] mx-auto">{error}</p>
+                  <NebulaOrb state="error" />
+                  <p className="mt-5 text-[13px] text-red-400/80 font-body leading-relaxed max-w-[260px] mx-auto">
+                    {error}
+                  </p>
                   <button
                     onClick={reset}
-                    className="mt-4 px-5 py-2 rounded-lg bg-white/[0.06] text-white/60 text-xs font-body hover:bg-white/[0.1] hover:text-white/80 transition-all cursor-pointer"
+                    className="mt-5 px-6 py-2.5 rounded-xl text-[12px] font-body text-white/50 hover:text-white/70 transition-all cursor-pointer"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
                   >
                     Try again
                   </button>
@@ -425,51 +623,14 @@ export default function CallMeWidget() {
         )}
       </AnimatePresence>
 
-      {/* ── Floating button ── */}
-      <motion.button
+      <FloatingButton
+        isOpen={isOpen}
+        isHovered={isHovered}
+        isActive={isActive}
         onClick={() => setIsOpen(!isOpen)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className="group relative w-[60px] h-[60px] rounded-full flex items-center justify-center cursor-pointer"
-        style={{
-          background: 'linear-gradient(135deg, #1e1613, #1a1210)',
-          boxShadow: isHovered || isActive
-            ? '0 0 0 2px rgba(232,85,15,0.3), 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(232,85,15,0.15)'
-            : '0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)',
-          transition: 'box-shadow 0.3s ease',
-        }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 1.5 }}
-      >
-        <AnimatePresence mode="wait">
-          {isOpen ? (
-            <motion.svg
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="w-5 h-5 text-white/60"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </motion.svg>
-          ) : (
-            <motion.div
-              key="bars"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <ButtonBars active={isHovered || isActive} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button>
+        onHover={() => setIsHovered(true)}
+        onLeave={() => setIsHovered(false)}
+      />
     </div>
   );
 }
