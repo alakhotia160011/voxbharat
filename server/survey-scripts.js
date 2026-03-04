@@ -276,7 +276,9 @@ export function getSystemPrompt(language, gender) {
     ? '1. Speak ONLY in English.'
     : `1. Speak ONLY in ${langName}. Never switch to English or any other language.`;
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India. You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  return `You are a skilled, empathetic phone survey interviewer conducting a survey about religious harmony in India. You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+
+IMPORTANT: You do NOT work for "VoxBharat" or any tech platform. If asked who you are or where you're calling from, say your name and that you're conducting a survey. Never mention VoxBharat.
 
 CRITICAL RULES:
 ${languageRule}
@@ -394,7 +396,7 @@ NUMBERS AND PRONUNCIATION:
 - You are speaking on a phone call via text-to-speech. ALWAYS write numbers as spoken words, NEVER as digits.
 - Examples: say "ten thousand" or "दस हज़ार", NOT "10,000". Say "fifteen hundred" or "पंद्रह सौ", NOT "1,500". Say "twenty-five" NOT "25".
 - This applies to ALL numbers: prices, ages, percentages, years, quantities — everything.
-${getBrandPronunciationRule(language)}
+
 HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - Sometimes the respondent's message will start with [USER_INTERRUPTED: You were saying "..." when the respondent interrupted with:]. This means they spoke while you were still talking.
 - Read what you were saying and what they said to understand the INTENT of the interruption.
@@ -767,7 +769,13 @@ ${customSurvey.companyContext}
 Use this to answer questions about the company — pricing, services, products, charges, credibility, etc. Be genuinely helpful and natural (1-3 sentences), then gently steer back. Never volunteer company info unprompted.\n`
     : '';
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  const orgIdentity = customSurvey.companyName
+    ? `You work for ${customSurvey.companyName}. If asked who you are or where you're calling from, say your name and that you're calling from ${customSurvey.companyName}.`
+    : `If asked who you are or where you're calling from, say your name and that you're conducting a survey.`;
+
+  return `You are a skilled, empathetic phone survey interviewer conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+
+IMPORTANT: ${orgIdentity} Never mention "VoxBharat" — that is the technology platform, not who you represent.
 ${companyContextBlock}
 CRITICAL RULES:
 ${languageRule}
@@ -887,7 +895,7 @@ NUMBERS AND PRONUNCIATION:
 - You are speaking on a phone call via text-to-speech. ALWAYS write numbers as spoken words, NEVER as digits.
 - Examples: say "ten thousand" or "दस हज़ार", NOT "10,000". Say "fifteen hundred" or "पंद्रह सौ", NOT "1,500". Say "twenty-five" NOT "25".
 - This applies to ALL numbers: prices, ages, percentages, years, quantities — everything.
-${getBrandPronunciationRule(language)}
+
 HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - Sometimes the respondent's message will start with [USER_INTERRUPTED: You were saying "..." when the respondent interrupted with:]. This means they spoke while you were still talking.
 - Read what you were saying and what they said to understand the INTENT of the interruption.
@@ -1056,7 +1064,9 @@ C) If they said NO or clearly declined → warm goodbye and [SURVEY_COMPLETE].
 
 D) If unclear/garbled → ask again gently in Hinglish: "Sorry, which language would you be most comfortable in? Hindi, English, ya koi aur?"`;
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey about religious harmony in India. You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  return `You are a skilled, empathetic phone survey interviewer conducting a survey about religious harmony in India. You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+
+IMPORTANT: You do NOT work for "VoxBharat" or any tech platform. If asked who you are or where you're calling from, say your name and that you're conducting a survey. Never mention VoxBharat.
 
 ${langRules}
 
@@ -1164,7 +1174,7 @@ NUMBERS AND PRONUNCIATION:
 - You are speaking on a phone call via text-to-speech. ALWAYS write numbers as spoken words, NEVER as digits.
 - Examples: say "ten thousand" or "दस हज़ार", NOT "10,000". Say "fifteen hundred" or "पंद्रह सौ", NOT "1,500". Say "twenty-five" NOT "25".
 - This applies to ALL numbers: prices, ages, percentages, years, quantities — everything.
-${getAutoDetectBrandPronunciationRule()}
+
 HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - Sometimes the respondent's message will start with [USER_INTERRUPTED: You were saying "..." when the respondent interrupted with:]. This means they spoke while you were still talking.
 - Read what you were saying and what they said to understand the INTENT of the interruption.
@@ -1322,7 +1332,13 @@ C) If they said NO or clearly declined → warm goodbye and [SURVEY_COMPLETE].
 
 D) If unclear/garbled → ask again gently in Hinglish: "Sorry, which language would you be most comfortable in? Hindi, English, ya koi aur?"`;
 
-  return `You are a skilled, empathetic phone survey interviewer for VoxBharat, conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+  const orgIdentity = customSurvey.companyName
+    ? `You work for ${customSurvey.companyName}. If asked who you are or where you're calling from, say your name and that you're calling from ${customSurvey.companyName}.`
+    : `If asked who you are or where you're calling from, say your name and that you're conducting a survey.`;
+
+  return `You are a skilled, empathetic phone survey interviewer conducting a survey called "${customSurvey.name}". You have already introduced yourself in the greeting. Now be warm, curious, and conversational — listen genuinely and react naturally, not like a script-reading robot.
+
+IMPORTANT: ${orgIdentity} Never mention "VoxBharat" — that is the technology platform, not who you represent.
 ${companyContextBlock}
 ${langRules}
 
@@ -1432,7 +1448,7 @@ NUMBERS AND PRONUNCIATION:
 - You are speaking on a phone call via text-to-speech. ALWAYS write numbers as spoken words, NEVER as digits.
 - Examples: say "ten thousand" or "दस हज़ार", NOT "10,000". Say "fifteen hundred" or "पंद्रह सौ", NOT "1,500". Say "twenty-five" NOT "25".
 - This applies to ALL numbers: prices, ages, percentages, years, quantities — everything.
-${getAutoDetectBrandPronunciationRule()}
+
 HANDLING INTERRUPTIONS — READ THIS VERY CAREFULLY:
 - Sometimes the respondent's message will start with [USER_INTERRUPTED: You were saying "..." when the respondent interrupted with:]. This means they spoke while you were still talking.
 - Read what you were saying and what they said to understand the INTENT of the interruption.
@@ -1494,25 +1510,53 @@ ${getEmotionInstructions(true)}`;
 
 /**
  * Generate voicemail message for when an answering machine is detected.
- * Brief, clear, identifies VoxBharat, explains why calling, mentions retry.
+ * Brief, clear, identifies the company (never VoxBharat), explains why calling, mentions retry.
  */
-export function getVoicemailMessage(language, gender, surveyName) {
-  const native = VOXBHARAT_NATIVE[language] || VOXBHARAT_NATIVE.en;
+export function getVoicemailMessage(language, gender, surveyName, companyName) {
+  const org = companyName || null;
 
   const messages = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
-      return `नमस्ते, मैं ${native} से बोल ${verb} हूँ। हम "${surveyName || 'एक सर्वेक्षण'}" के सिलसिले में आपसे बात करना चाहते थे। कृपया हमें वापस कॉल करें, या हम आपको दोबारा कॉल करेंगे। धन्यवाद।`;
+      const from = org ? `${org} से बोल ${verb} हूँ` : `बोल ${verb} हूँ`;
+      return `नमस्ते, मैं ${from}। हम आपसे बात करना चाहते थे — कृपया हमें वापस कॉल करें, या हम दोबारा कॉल करेंगे। धन्यवाद।`;
     },
-    bn: () => `নমস্কার, আমি ${native} থেকে বলছি। আমরা "${surveyName || 'একটি সমীক্ষা'}" সম্পর্কে আপনার সাথে কথা বলতে চেয়েছিলাম। অনুগ্রহ করে আমাদের ফিরে কল করুন, অথবা আমরা আবার কল করব। ধন্যবাদ।`,
-    te: () => `నమస్కారం, నేను ${native} నుండి మాట్లాడుతున్నాను. "${surveyName || 'ఒక సర్వే'}" గురించి మీతో మాట్లాడాలనుకున్నాము. దయచేసి మాకు తిరిగి కాల్ చేయండి, లేదా మేము మళ్ళీ కాల్ చేస్తాము. ధన్యవాదాలు.`,
-    mr: () => `नमस्कार, मी ${native} कडून बोलत आहे. "${surveyName || 'एक सर्वे'}" बद्दल तुमच्याशी बोलायचे होते. कृपया आम्हाला परत कॉल करा, किंवा आम्ही पुन्हा कॉल करू. धन्यवाद.`,
-    ta: () => `வணக்கம், நான் ${native}-இலிருந்து பேசுகிறேன். "${surveyName || 'ஒரு கருத்துக்கணிப்பு'}" பற்றி உங்களிடம் பேச விரும்பினோம். தயவுசெய்து எங்களை திரும்ப அழைக்கவும், அல்லது நாங்கள் மீண்டும் அழைப்போம். நன்றி.`,
-    gu: () => `નમસ્તે, હું ${native} તરફથી બોલી રહ્યો છું. "${surveyName || 'એક સર્વે'}" વિશે તમારી સાથે વાત કરવા માંગતા હતા. કૃપા કરીને અમને પાછો કૉલ કરો, અથવા અમે ફરીથી કૉલ કરીશું. આભાર.`,
-    kn: () => `ನಮಸ್ಕಾರ, ನಾನು ${native} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. "${surveyName || 'ಒಂದು ಸಮೀಕ್ಷೆ'}" ಬಗ್ಗೆ ನಿಮ್ಮೊಂದಿಗೆ ಮಾತನಾಡಲು ಬಯಸಿದ್ದೆವು. ದಯವಿಟ್ಟು ನಮಗೆ ಮರಳಿ ಕರೆ ಮಾಡಿ, ಅಥವಾ ನಾವು ಮತ್ತೆ ಕರೆ ಮಾಡುತ್ತೇವೆ. ಧನ್ಯವಾದಗಳು.`,
-    ml: () => `നമസ്കാരം, ഞാൻ ${native}-ൽ നിന്ന് വിളിക്കുന്നു. "${surveyName || 'ഒരു സർവേ'}" സംബന്ധിച്ച് നിങ്ങളോട് സംസാരിക്കാൻ ഞങ്ങൾ ആഗ്രഹിച്ചു. ദയവായി ഞങ്ങളെ തിരിച്ചു വിളിക്കുക, അല്ലെങ്കിൽ ഞങ്ങൾ വീണ്ടും വിളിക്കാം. നന്ദി.`,
-    pa: () => `ਸਤ ਸ੍ਰੀ ਅਕਾਲ, ਮੈਂ ${native} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ। "${surveyName || 'ਇੱਕ ਸਰਵੇ'}" ਬਾਰੇ ਤੁਹਾਡੇ ਨਾਲ ਗੱਲ ਕਰਨਾ ਚਾਹੁੰਦੇ ਸੀ। ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਵਾਪਸ ਕਾਲ ਕਰੋ, ਜਾਂ ਅਸੀਂ ਦੁਬਾਰਾ ਕਾਲ ਕਰਾਂਗੇ। ਧੰਨਵਾਦ।`,
-    en: () => `Hello, this is ${native}. We were calling regarding "${surveyName || 'a survey'}". Please call us back, or we will try again later. Thank you.`,
+    bn: () => {
+      const from = org ? `${org} থেকে বলছি` : `বলছি`;
+      return `নমস্কার, আমি ${from}। আপনার সাথে কথা বলতে চেয়েছিলাম — অনুগ্রহ করে আমাদের ফিরে কল করুন, অথবা আমরা আবার কল করব। ধন্যবাদ।`;
+    },
+    te: () => {
+      const from = org ? `${org} నుండి మాట్లాడుతున్నాను` : `మాట్లాడుతున్నాను`;
+      return `నమస్కారం, నేను ${from}. మీతో మాట్లాడాలనుకున్నాము — దయచేసి మాకు తిరిగి కాల్ చేయండి, లేదా మేము మళ్ళీ కాల్ చేస్తాము. ధన్యవాదాలు.`;
+    },
+    mr: () => {
+      const from = org ? `${org} कडून बोलत आहे` : `बोलत आहे`;
+      return `नमस्कार, मी ${from}. तुमच्याशी बोलायचे होते — कृपया आम्हाला परत कॉल करा, किंवा आम्ही पुन्हा कॉल करू. धन्यवाद.`;
+    },
+    ta: () => {
+      const from = org ? `${org}-இலிருந்து பேசுகிறேன்` : `பேசுகிறேன்`;
+      return `வணக்கம், நான் ${from}. உங்களிடம் பேச விரும்பினோம் — தயவுசெய்து எங்களை திரும்ப அழைக்கவும், அல்லது நாங்கள் மீண்டும் அழைப்போம். நன்றி.`;
+    },
+    gu: () => {
+      const from = org ? `${org} તરફથી બોલી રહ્યો છું` : `બોલી રહ્યો છું`;
+      return `નમસ્તે, હું ${from}. તમારી સાથે વાત કરવા માંગતા હતા — કૃપા કરીને અમને પાછો કૉલ કરો, અથવા અમે ફરીથી કૉલ કરીશું. આભાર.`;
+    },
+    kn: () => {
+      const from = org ? `${org} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ` : `ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ`;
+      return `ನಮಸ್ಕಾರ, ನಾನು ${from}. ನಿಮ್ಮೊಂದಿಗೆ ಮಾತನಾಡಲು ಬಯಸಿದ್ದೆವು — ದಯವಿಟ್ಟು ನಮಗೆ ಮರಳಿ ಕರೆ ಮಾಡಿ, ಅಥವಾ ನಾವು ಮತ್ತೆ ಕರೆ ಮಾಡುತ್ತೇವೆ. ಧನ್ಯವಾದಗಳು.`;
+    },
+    ml: () => {
+      const from = org ? `${org}-ൽ നിന്ന് വിളിക്കുന്നു` : `വിളിക്കുന്നു`;
+      return `നമസ്കാരം, ഞാൻ ${from}. നിങ്ങളോട് സംസാരിക്കാൻ ആഗ്രഹിച്ചു — ദയവായി ഞങ്ങളെ തിരിച്ചു വിളിക്കുക, അല്ലെങ്കിൽ ഞങ്ങൾ വീണ്ടും വിളിക്കാം. നന്ദി.`;
+    },
+    pa: () => {
+      const from = org ? `${org} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ` : `ਬੋਲ ਰਿਹਾ ਹਾਂ`;
+      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ, ਮੈਂ ${from}। ਤੁਹਾਡੇ ਨਾਲ ਗੱਲ ਕਰਨਾ ਚਾਹੁੰਦੇ ਸੀ — ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਵਾਪਸ ਕਾਲ ਕਰੋ, ਜਾਂ ਅਸੀਂ ਦੁਬਾਰਾ ਕਾਲ ਕਰਾਂਗੇ। ਧੰਨਵਾਦ।`;
+    },
+    en: () => {
+      const from = org ? `calling from ${org}` : `calling`;
+      return `Hello, we were ${from} and wanted to speak with you. Please call us back, or we will try again later. Thank you.`;
+    },
   };
 
   return (messages[language] || messages.en)();
