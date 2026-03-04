@@ -61,13 +61,10 @@ export class ClaudeConversation {
       const enName = getVoiceName('en', this.gender);
       const autoOrgName = this.customSurvey?.companyName;
       const fromPart = autoOrgName ? ` from ${autoOrgName}` : '';
-      const topicPart = this.customSurvey?.greetingTopic
-        ? ` We're chatting with people about ${this.customSurvey.greetingTopic} today —`
-        : ` We'd love to get your thoughts —`;
       const langQuestion = this.sttProvider === 'cartesia'
         ? ' Which language would you prefer to speak in? Aap kis bhasha mein baat karna chahte hain?'
         : '';
-      greeting = `Hi! I'm ${enName}${fromPart}.${topicPart} just takes a minute. Got a minute?${langQuestion}`;
+      greeting = `Hi! I'm ${enName}${fromPart}. Would you have a couple minutes to chat?${langQuestion}`;
     } else if (this.customSurvey) {
       greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name, this.customSurvey.companyName, this.customSurvey.greetingTopic);
     } else if (SURVEY_SCRIPTS[this.language]) {
