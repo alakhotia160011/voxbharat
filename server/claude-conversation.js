@@ -53,20 +53,23 @@ export class ClaudeConversation {
       const surveyName = this.customSurvey?.name || 'our survey';
       const lang = this.autoDetectLanguage ? 'en' : this.language;
       if (this.inboundType === 'callback') {
-        greeting = generateCallbackGreeting(lang, this.gender, surveyName, this.customSurvey?.companyName);
+        greeting = generateCallbackGreeting(lang, this.gender, surveyName, this.customSurvey?.companyName, this.customSurvey?.greetingTopic);
       } else {
-        greeting = this.customGreeting || generateInboundGreeting(lang, this.gender, surveyName, this.customSurvey?.companyName);
+        greeting = this.customGreeting || generateInboundGreeting(lang, this.gender, surveyName, this.customSurvey?.companyName, this.customSurvey?.greetingTopic);
       }
     } else if (this.autoDetectLanguage) {
       const enName = getVoiceName('en', this.gender);
       const autoOrgName = this.customSurvey?.companyName;
       const fromPart = autoOrgName ? ` from ${autoOrgName}` : '';
+      const topicPart = this.customSurvey?.greetingTopic
+        ? ` We're chatting with people about ${this.customSurvey.greetingTopic} today —`
+        : ` We'd love to get your thoughts —`;
       const langQuestion = this.sttProvider === 'cartesia'
         ? ' Which language would you prefer to speak in? Aap kis bhasha mein baat karna chahte hain?'
         : '';
-      greeting = `Hi! I'm ${enName}${fromPart}. We'd love to get your thoughts — it'll just take a minute. Can you chat?${langQuestion}`;
+      greeting = `Hi! I'm ${enName}${fromPart}.${topicPart} just takes a minute. Got a minute?${langQuestion}`;
     } else if (this.customSurvey) {
-      greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name, this.customSurvey.companyName);
+      greeting = generateCustomGreeting(this.language, this.gender, this.customSurvey.name, this.customSurvey.companyName, this.customSurvey.greetingTopic);
     } else if (SURVEY_SCRIPTS[this.language]) {
       greeting = generateCustomGreeting(this.language, this.gender, SURVEY_SCRIPTS[this.language].name);
     } else {
