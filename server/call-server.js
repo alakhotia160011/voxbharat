@@ -4,6 +4,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import twilio from 'twilio';
@@ -36,7 +37,7 @@ import {
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
 import { scrapeWebsite } from './website-scraper.js';
-import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName, generateVerificationGreeting } from './survey-scripts.js';
+import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName, generateVerificationGreeting, generateDemoGreeting } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import nodemailer from 'nodemailer';
@@ -101,14 +102,21 @@ const app = express();
 const server = createServer(app);
 
 const FRONTEND_URL = process.env.FRONTEND_URL || '';
+if (!FRONTEND_URL) {
+  console.warn('[Security] FRONTEND_URL not set — CORS will block all cross-origin requests. Set FRONTEND_URL for production.');
+}
+app.use(helmet());
 app.use(cors({
-  origin: FRONTEND_URL ? FRONTEND_URL.split(',').map(u => u.trim()) : true,
+  origin: FRONTEND_URL ? FRONTEND_URL.split(',').map(u => u.trim()) : false,
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiter for auth endpoints (Finding #5)
+// Apply general rate limiter to all /api/ routes
+app.use('/api/', apiLimiter);
+
+// Rate limiter for auth endpoints (stricter)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -116,6 +124,39 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many attempts, please try again later' },
 });
+
+// Rate limiter for demo calls — IP-based
+const demoLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 demo calls per IP per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many demo requests. Please try again later.' },
+});
+
+// General API rate limiter — 100 requests per minute per user/IP
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  message: { error: 'Too many requests, please slow down.' },
+});
+
+// Per-phone rate limit for demo calls: 1 call per phone number per 24 hours
+const demoCallLog = new Map(); // phone -> timestamp
+const DEMO_RATE_LIMIT_MS = 24 * 60 * 60 * 1000;
+
+// Clean up old demo rate limit entries every hour
+setInterval(() => {
+  const now = Date.now();
+  for (const [phone, timestamp] of demoCallLog) {
+    if (now - timestamp > DEMO_RATE_LIMIT_MS) {
+      demoCallLog.delete(phone);
+    }
+  }
+}, 60 * 60 * 1000);
 
 // Twilio webhook signature validation (Finding #4)
 const validateTwilioSignature = (req, res, next) => {
@@ -359,7 +400,9 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   const sttProvider = customSurvey?.sttProvider || 'cartesia';
   const greetingLang = autoDetectLanguage ? 'en' : language;
   let greetingText;
-  if (customSurvey?.type === 'verification') {
+  if (customSurvey?.type === 'demo') {
+    greetingText = generateDemoGreeting(gender, customSurvey?.sttProvider || 'cartesia');
+  } else if (customSurvey?.type === 'verification') {
     const leadData = customSurvey.leadData || {};
     greetingText = generateVerificationGreeting(language, gender, leadData, customSurvey.companyName);
   } else if (autoDetectLanguage) {
@@ -414,6 +457,73 @@ app.post('/call/initiate', requireAuth, async (req, res) => {
     console.error('[Call] Initiation failed:', error.message);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Demo call — no auth required, rate-limited (for "Talk to Us" widget)
+app.post('/call/demo', demoLimiter, async (req, res) => {
+  const { phoneNumber } = req.body;
+
+  if (!phoneNumber) {
+    return res.status(400).json({ error: 'Phone number is required' });
+  }
+
+  // Normalize phone number (auto-add +91 for 10-digit Indian numbers)
+  let cleaned = phoneNumber.replace(/[\s\-().]/g, '');
+  if (/^[6-9]\d{9}$/.test(cleaned)) cleaned = '+91' + cleaned;
+  if (!/^\+\d{8,15}$/.test(cleaned)) {
+    return res.status(400).json({ error: 'Please enter a valid phone number' });
+  }
+
+  // Per-phone rate limit check
+  const lastCall = demoCallLog.get(cleaned);
+  if (lastCall && Date.now() - lastCall < DEMO_RATE_LIMIT_MS) {
+    const hoursLeft = Math.ceil((DEMO_RATE_LIMIT_MS - (Date.now() - lastCall)) / (60 * 60 * 1000));
+    return res.status(429).json({
+      error: `You've already received a demo call. Try again in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''}.`,
+    });
+  }
+
+  // Capacity check
+  if (getActiveCalls().length >= 2) {
+    return res.status(503).json({ error: 'All demo lines are currently busy. Please try again in a few minutes.' });
+  }
+
+  try {
+    demoCallLog.set(cleaned, Date.now());
+
+    const result = await initiateCall({
+      phoneNumber: cleaned,
+      language: 'en',
+      gender: 'female',
+      autoDetectLanguage: true,
+      customSurvey: {
+        name: 'VoxBharat Demo',
+        type: 'demo',
+        companyName: 'VoxBharat',
+        sttProvider: 'cartesia',
+        questions: [],
+      },
+    });
+
+    res.json(result);
+  } catch (error) {
+    demoCallLog.delete(cleaned); // rollback rate limit on failure
+    console.error('[Demo] Call initiation failed:', error.message);
+    res.status(500).json({ error: 'Failed to initiate demo call. Please try again.' });
+  }
+});
+
+// Demo call status — no auth required (limited data)
+app.get('/call/demo/:id', (req, res) => {
+  const call = getCall(req.params.id);
+  if (!call) return res.status(404).json({ error: 'Call not found' });
+
+  res.json({
+    id: call.id,
+    status: call.status,
+    connectedAt: call.connectedAt,
+    endedAt: call.endedAt,
+  });
 });
 
 // Twilio webhook - returns TwiML to connect media stream
@@ -858,10 +968,18 @@ app.get('/api/analytics', requireAuth, requireDb, async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Mask phone numbers in exports to protect PII
+function maskPhone(phone) {
+  if (!phone || phone.length < 6) return phone;
+  return phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4);
+}
+
 app.get('/api/export/json', requireAuth, requireDb, async (req, res) => {
   try {
+    const data = await exportCallsJson();
+    const masked = data.map(row => ({ ...row, phone_number: maskPhone(row.phone_number) }));
     res.setHeader('Content-Disposition', 'attachment; filename=voxbharat-export.json');
-    res.json(await exportCallsJson());
+    res.json(masked);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -920,8 +1038,9 @@ app.get('/api/projects/:name/survey-config', requireAuth, requireDb, async (req,
 app.get('/api/projects/:name/export/json', requireAuth, requireDb, async (req, res) => {
   try {
     const data = await exportProjectCallsJson(req.params.name);
+    const masked = data.map(row => ({ ...row, phone_number: maskPhone(row.phone_number) }));
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(req.params.name)}-export.json"`);
-    res.json(data);
+    res.json(masked);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1996,6 +2115,17 @@ async function handleCallEnd(callId, reason) {
       await saveCallToFile(getCall(callId));
       updateCall(callId, { status: 'saved' });
       console.log(`[Call:${callId}] Survey saved to Postgres`);
+
+      // Send email notification for demo leads
+      if (call.customSurvey?.type === 'demo' && mailTransport) {
+        const lead = data?.lead || {};
+        mailTransport.sendMail({
+          from: `VoxBharat <${GMAIL_USER}>`,
+          to: NOTIFY_EMAIL,
+          subject: `New demo lead: ${lead.name || call.phoneNumber}`,
+          text: `New VoxBharat demo call lead:\n\nPhone: ${call.phoneNumber}\nName: ${lead.name || '(not provided)'}\nOrganization: ${lead.organization || '(not provided)'}\nUse Case: ${lead.use_case || '(not provided)'}\nIndustry: ${lead.industry || '(not provided)'}\nInterest: ${lead.interest_level || '(not provided)'}\nLanguage: ${data?.language_used || '(unknown)'}\nSummary: ${data?.summary || '(no summary)'}\nTime: ${new Date().toISOString()}`,
+        }).catch(e => console.error('Demo lead notification email failed:', e.message));
+      }
     } catch (error) {
       console.error(`[Call:${callId}] Extraction/save error:`, error.message);
     }
