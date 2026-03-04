@@ -1610,16 +1610,16 @@ async function processUserSpeech(callId, text) {
   // Always skip on the very first response (consent turn — greeting just played).
   const fillerLang = session.currentLanguage || session.call.language;
   const fillers = {
-    hi: ['Achha', 'Haan', 'Theek hai'],
-    bn: ['Achha', 'Haan'],
-    en: ['Right', 'Okay', 'I see'],
-    ta: ['Sari', 'Aama'],
-    te: ['Sare', 'Avunu'],
-    mr: ['Barobar', 'Haan'],
-    gu: ['Saru', 'Haa'],
-    kn: ['Sari', 'Howdu'],
-    ml: ['Sheri', 'Athe'],
-    pa: ['Achha', 'Haanji'],
+    hi: ['Hmm', 'Umm', 'Achha', 'Haan', 'Theek hai'],
+    bn: ['Hmm', 'Umm', 'Achha', 'Haan'],
+    en: ['Hmm', 'Umm', 'Right', 'Okay', 'I see'],
+    ta: ['Hmm', 'Umm', 'Sari', 'Aama'],
+    te: ['Hmm', 'Umm', 'Sare', 'Avunu'],
+    mr: ['Hmm', 'Umm', 'Barobar', 'Haan'],
+    gu: ['Hmm', 'Umm', 'Saru', 'Haa'],
+    kn: ['Hmm', 'Umm', 'Sari', 'Howdu'],
+    ml: ['Hmm', 'Umm', 'Sheri', 'Athe'],
+    pa: ['Hmm', 'Umm', 'Achha', 'Haanji'],
   };
   const assistantTurns = session.conversation.messages.filter(m => m.role === 'assistant').length;
   const isFirstResponse = assistantTurns <= 1;
