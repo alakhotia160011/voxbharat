@@ -49,7 +49,12 @@ function NebulaOrb({ state = 'idle', size = 96 }) {
   ], [fast, err]);
 
   return (
-    <div className="relative mx-auto" style={{ width: size, height: size }}>
+    <motion.div
+      className="relative mx-auto"
+      style={{ width: size, height: size }}
+      whileHover={{ y: -10, scale: 1.07 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 14 }}
+    >
       {layers.map((layer, i) => (
         <motion.div
           key={i}
@@ -89,7 +94,7 @@ function NebulaOrb({ state = 'idle', size = 96 }) {
           borderRadius: '50%',
         }}
       />
-    </div>
+    </motion.div>
   );
 }
 
