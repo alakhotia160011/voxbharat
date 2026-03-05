@@ -1179,7 +1179,14 @@ wss.on('connection', (ws) => {
 
           // Convert mulaw 8kHz -> PCM s16le 16kHz and send to STT
           const pcmAudio = mulawToPcm16k(msg.media.payload);
-          session.stt.sendAudio(pcmAudio);
+          if (!session.stt.isConnected) {
+            // STT not connected yet — buffer audio so we don't lose early speech (e.g., "hello" on pickup)
+            // Will be flushed into STT once connection establishes (see sttConnectPromise handler)
+            session.preConnectAudioBuffer.push(pcmAudio);
+            if (session.preConnectAudioBuffer.length > 250) session.preConnectAudioBuffer.shift(); // cap at ~5s
+          } else {
+            session.stt.sendAudio(pcmAudio);
+          }
 
           // VAD-based flush: detect silence after speech and flush STT
           // Deepgram has native endpointing so skip local VAD for it
@@ -1314,6 +1321,8 @@ async function initSession(callId, call, ws, streamSid) {
     partialFallbackTimer: null,
     // Buffer for speech received before greeting completes (e.g., user says "hello" on pickup)
     earlyUserSpeech: '',
+    // Buffer audio packets that arrive before STT WebSocket connects (~first 200ms after pickup)
+    preConnectAudioBuffer: [],
   };
 
   // Select STT provider — default to cartesia, fallback for unsupported Deepgram languages
@@ -1589,6 +1598,12 @@ async function initSession(callId, call, ws, streamSid) {
   const sttConnectPromise = stt.connect().then(() => {
     sessionObj.stt = stt;
     console.log(`[STT:${callId}] Connected`);
+    // Flush any audio that arrived before STT connected (e.g., user said "hello" right on pickup)
+    if (sessionObj.preConnectAudioBuffer.length > 0) {
+      console.log(`[STT:${callId}] Flushing ${sessionObj.preConnectAudioBuffer.length} pre-connect audio frames`);
+      for (const frame of sessionObj.preConnectAudioBuffer) stt.sendAudio(frame);
+      sessionObj.preConnectAudioBuffer = [];
+    }
   }).catch(err => {
     console.error(`[STT:${callId}] Connection failed:`, err.message);
   });
@@ -1677,12 +1692,19 @@ async function sendGreeting(session) {
 
   session.greetingDone = true;
 
-  // If user spoke before greeting completed, respond to them now
+  // If user spoke before greeting completed, respond — unless it was just a greeting word
+  // (e.g., "hello" on pickup is phone etiquette, not a question; AI greeting already covers the intro)
   if (session.earlyUserSpeech) {
     const buffered = session.earlyUserSpeech;
     session.earlyUserSpeech = '';
-    console.log(`[Call:${callId}] Replaying early user speech: "${buffered}"`);
-    processUserSpeech(callId, buffered);
+    const normalized = buffered.toLowerCase().replace(/[^a-z\u0900-\u097f\s]/g, '').trim();
+    const PICKUP_GREETINGS = /^(hello|hi|hey|helo|hallo|namaste|namaskar|haan|ha|hanji|ji|okay|ok|yes|yeah|yep|hmm|hm)(\s+(hello|hi|hey|haan|ji|yes|ok))?$/;
+    if (PICKUP_GREETINGS.test(normalized)) {
+      console.log(`[Call:${callId}] Early speech was just a greeting ("${buffered}") — skipping replay, AI greeting is sufficient`);
+    } else {
+      console.log(`[Call:${callId}] Replaying early user speech: "${buffered}"`);
+      processUserSpeech(callId, buffered);
+    }
   }
 }
 
