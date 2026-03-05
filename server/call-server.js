@@ -500,7 +500,7 @@ app.post('/call/demo', demoLimiter, async (req, res) => {
         name: 'VoxBharat Demo',
         type: 'demo',
         companyName: 'VoxBharat',
-        sttProvider: 'cartesia',
+        sttProvider: 'deepgram',
         questions: [],
       },
     });
