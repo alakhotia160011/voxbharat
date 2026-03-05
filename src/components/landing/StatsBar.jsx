@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import AnimatedCounter from '../shared/AnimatedCounter';
 
 const stats = [
-  { value: 12, suffix: '', label: 'Languages' },
+  { value: 10, suffix: '', label: 'Languages' },
   { value: 73, suffix: '%', label: 'Rural Reach' },
   { value: 10, suffix: 'x', label: 'Cheaper' },
   { value: 48, suffix: 'hr', label: 'Turnaround' },

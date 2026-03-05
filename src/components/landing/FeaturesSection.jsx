@@ -17,7 +17,7 @@ const pairs = [
   },
   {
     problem: 'Weeks to collect and process survey data',
-    solution: 'Results delivered in 24-48 hours, from call to report',
+    solution: 'Results delivered in 48 hours, from call to report',
   },
   {
     problem: '\u20B9400 per interview with human surveyors',
