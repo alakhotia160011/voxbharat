@@ -1405,7 +1405,9 @@ async function initSession(callId, call, ws, streamSid) {
       }
 
       // --- BARGE-IN: Detect user speech during AI playback (partial + final) ---
-      if (sessionObj.isAiSpeaking && sessionObj.greetingDone) {
+      // Don't allow barge-in during the first/intro response — let the AI finish its introduction
+      // before accepting interruptions. Interrupting mid-intro causes the AI to skip context.
+      if (sessionObj.isAiSpeaking && sessionObj.greetingDone && sessionObj.firstResponseDone) {
         const bargeText = (text || '').trim();
         if (bargeText.length < 3) return; // Too short, noise
 
