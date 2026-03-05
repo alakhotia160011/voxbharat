@@ -134,28 +134,29 @@ function RingPulse() {
 }
 
 // ─────────────────────────────────────────────
-// Audio bars — organic, staggered, beautiful
+// Audio bars — reacts to actual speaking state
 // ─────────────────────────────────────────────
-function AudioBars() {
+function AudioBars({ speaking = false }) {
   const barCount = 16;
-  const [heights, setHeights] = useState(() => Array(barCount).fill(4));
+  const [heights, setHeights] = useState(() => Array(barCount).fill(3));
 
   useEffect(() => {
     const interval = setInterval(() => {
       setHeights(prev => prev.map((_, i) => {
+        if (!speaking) return 3; // flat when silent
         const center = Math.abs(i - (barCount - 1) / 2) / ((barCount - 1) / 2);
         const maxH = 38 * (1 - center * 0.5);
         return Math.random() * maxH + 4;
       }));
     }, 70);
     return () => clearInterval(interval);
-  }, []);
+  }, [speaking]);
 
   return (
     <div className="flex items-center justify-center h-14 mx-auto" style={{ gap: 2.5 }}>
       {heights.map((h, i) => {
         const center = Math.abs(i - (barCount - 1) / 2) / ((barCount - 1) / 2);
-        const opacity = 0.4 + (1 - center) * 0.4 + (h / 42) * 0.2;
+        const opacity = speaking ? 0.4 + (1 - center) * 0.4 + (h / 42) * 0.2 : 0.15;
         return (
           <div
             key={i}
@@ -165,7 +166,7 @@ function AudioBars() {
               height: h,
               background: `linear-gradient(180deg, #fbbf6c ${Math.max(0, 100 - h * 2)}%, #e8550f 100%)`,
               opacity,
-              transition: 'height 65ms ease-out, opacity 65ms ease-out',
+              transition: 'height 80ms ease-out, opacity 200ms ease-out',
             }}
           />
         );
@@ -318,6 +319,7 @@ export default function CallMeWidget() {
   const [callState, setCallState] = useState('idle');
   const [error, setError] = useState(null);
   const [callDuration, setCallDuration] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const pollRef = useRef(null);
   const timerRef = useRef(null);
@@ -356,6 +358,7 @@ export default function CallMeWidget() {
     setCountryCode('+91');
     setError(null);
     setCallDuration(0);
+    setIsSpeaking(false);
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   };
 
@@ -378,13 +381,34 @@ export default function CallMeWidget() {
       if (!response.ok) throw new Error(data.error || 'Failed to start call');
       setCallState('ringing');
       if (pollRef.current) clearInterval(pollRef.current);
+      let isConnected = false;
       pollRef.current = setInterval(async () => {
         try {
           const res = await fetch(`${CALL_SERVER}/call/demo/${data.callId}`);
           if (!res.ok) return;
           const callData = await res.json();
           if (callData.status === 'in-progress' || callData.status === 'surveying') {
-            setCallState('connected');
+            if (!isConnected) {
+              isConnected = true;
+              setCallState('connected');
+              // Switch to fast polling once connected
+              clearInterval(pollRef.current);
+              pollRef.current = setInterval(async () => {
+                try {
+                  const r = await fetch(`${CALL_SERVER}/call/demo/${data.callId}`);
+                  if (!r.ok) return;
+                  const d = await r.json();
+                  setIsSpeaking(d.isAiSpeaking || d.isHumanSpeaking || false);
+                  if (['completed', 'saved', 'extracting'].includes(d.status)) {
+                    setCallState('completed'); setIsSpeaking(false);
+                    clearInterval(pollRef.current); pollRef.current = null;
+                  } else if (d.status === 'failed') {
+                    setCallState('error'); setError('Call failed. Please try again.'); setIsSpeaking(false);
+                    clearInterval(pollRef.current); pollRef.current = null;
+                  }
+                } catch { /* ignore */ }
+              }, 500);
+            }
           } else if (['completed', 'saved', 'extracting'].includes(callData.status)) {
             setCallState('completed');
             clearInterval(pollRef.current); pollRef.current = null;
@@ -612,7 +636,7 @@ export default function CallMeWidget() {
                   className="py-4 w-full"
                 >
                   <div className="py-2">
-                    <AudioBars />
+                    <AudioBars speaking={isSpeaking} />
                   </div>
                   <p className="mt-5 text-[16px] text-white font-display font-semibold tracking-tight">
                     You're connected
