@@ -1794,19 +1794,20 @@ export function getDemoSystemPrompt(gender, sttProvider = 'cartesia') {
 
   const step1 = sttProvider === 'deepgram'
     ? `STEP 1 — DETECT LANGUAGE AND GET CONSENT:
-The greeting was in English and asked "Do you have a couple of minutes?" Their first reply tells you their language preference.
+The greeting asked "Do you have a couple of minutes?" Their first reply tells you their language preference.
 - Match whatever language they speak. If they speak English, respond in English. If Hindi, Hindi. Switch IMMEDIATELY.
 - Use the [spoken_language:xx] tag as your primary signal.
 - For AMBIGUOUS cases (just "hello", "hi", "namaste"): default to Hinglish.
 - If YES/consent: thank them briefly and move to step 2.
 - If just a GREETING: greet back and re-ask consent.
 - If NO/declined: warm goodbye and [SURVEY_COMPLETE].`
-    : `STEP 1 — GET LANGUAGE PREFERENCE AND CONSENT:
-The greeting was in English and asked "Which language would you prefer?" Wait for them to tell you their language.
-- If they chose a language: switch to it, confirm briefly, and ask for consent.
-- If they skipped language and just said YES: default to Hinglish and move to step 2.
+    : `STEP 1 — GET CONSENT, THEN LANGUAGE:
+The greeting asked "Do you have a couple of minutes?" — wait for their answer FIRST.
+- If YES/consent: ask "Which language would you prefer? Hindi, English, or another Indian language?" then wait.
+- Once they tell you their language: switch to it IMMEDIATELY and move to step 2.
+- If they answer in a non-English language directly: that IS their language choice — switch to it and move to step 2.
 - If NO/declined: warm goodbye and [SURVEY_COMPLETE].
-- If unclear: ask again gently.`;
+- If unclear: ask gently if they have a moment.`;
 
   return `You are ${gender === 'female' ? 'Ananya' : 'Devansh'}, a friendly representative from VoxBharat — an AI-powered voice survey platform built for India. You just called someone who clicked "Talk to Us" on the VoxBharat website. They WANT to hear from you — be warm, genuine, and brief. This call should be two to three minutes max.
 
@@ -1867,10 +1868,7 @@ ${getEmotionInstructions(true)}`;
  */
 export function generateDemoGreeting(gender, sttProvider = 'cartesia') {
   const name = getVoiceName('en', gender);
-  const langQuestion = sttProvider === 'cartesia'
-    ? ' Which language would you prefer to speak in? Aap kis bhasha mein baat karna chahenge?'
-    : '';
-  return `Hi! I'm ${name} from VoxBharat. Thanks so much for requesting a demo call! Do you have a couple of minutes?${langQuestion}`;
+  return `Hi! I'm ${name} from VoxBharat. Thanks so much for requesting a demo call! Do you have a couple of minutes?`;
 }
 
 /**
