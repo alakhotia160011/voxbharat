@@ -1415,9 +1415,11 @@ async function initSession(callId, call, ws, streamSid) {
         // BACK-CHANNEL FILTER: Don't treat listening signals as interruptions.
         // Indian conversational style includes frequent "haan haan" / "accha" while
         // the other person is speaking. These should NOT stop the AI.
+        // EXCEPTION: skip this filter during consent/intro phase (firstResponseDone=false)
+        // so that "yes/haan/ji/ok" as answers to consent questions are never silently dropped.
         const normalized = bargeText.toLowerCase().replace(/[^\w\s]/g, '');
         const wordCount = normalized.split(/\s+/).filter(w => w.length > 0).length;
-        if (wordCount <= 2 && isBackchannel(normalized)) {
+        if (sessionObj.firstResponseDone && wordCount <= 2 && isBackchannel(normalized)) {
           if (isFinal) {
             console.log(`[Barge-in:${callId}] Back-channel filtered (AI continues): "${bargeText}"`);
           }
