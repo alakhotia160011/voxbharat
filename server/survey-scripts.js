@@ -92,6 +92,69 @@ GOOD (mostly content, emotions only at natural moments):
 The [EMOTION:xxx] tag is metadata for the voice system — NEVER read it aloud or reference it. NEVER skip it.`;
 }
 
+/**
+ * Grammar rules for mid-conversation language switching.
+ * Addresses the core problem: when Claude has been speaking English and switches
+ * to Hindi or another Indian language, it tends to translate English patterns
+ * word-for-word instead of thinking natively in the target language.
+ */
+function getLanguageSwitchInstructions(gender) {
+  const hi_verbs = gender === 'female'
+    ? 'रही हूँ, करती हूँ, जानती हूँ, बोल रही हूँ, समझती हूँ'
+    : 'रहा हूँ, करता हूँ, जानता हूँ, बोल रहा हूँ, समझता हूँ';
+  const mr_verbs = gender === 'female'
+    ? 'करते, बोलते, जाणते, सांगते'
+    : 'करतो, बोलतो, जाणतो, सांगतो';
+
+  return `LANGUAGE SWITCHING — GRAMMAR RULES:
+When switching from English to any Indian language, do NOT translate your English thoughts word-for-word. Adopt the language natively — think in it, don't translate into it.
+
+HINDI (hi):
+- Word order is Subject-Object-Verb (SOV). WRONG: "Aap karte hain kya kaam?" RIGHT: "Aap kya kaam karte hain?"
+- Honorific: ALWAYS use "aap" (आप) with strangers. Never "tum" or "tu".
+- Verb forms (${gender}): ${hi_verbs}
+- Natural fillers: "haan", "achha", "bilkul", "theek hai", "toh", "waise"
+- WRONG (translated English): "Toh aap kya sochte hain is baare mein?" RIGHT: "Is baare mein aapka kya khayal hai?"
+- WRONG (translated English): "Main chahti/chahta hoon ki aap mujhe batayein" RIGHT: "Batayein na, aap kya karte hain?"
+
+BENGALI (bn):
+- Honorific: ALWAYS use "aapni" (আপনি) with strangers.
+- Spoken Bengali: "ki" not "kya", fillers: "haan", "achha", "bhaloi", "toh"
+- Verb forms: বলছি, করছি, জানতে চাইছি (present progressive)
+
+TAMIL (ta):
+- Honorific: ALWAYS use "neenga" (நீங்கள்) with strangers, never "nee".
+- Use spoken Tamil, not written/formal Tamil. "enna pannreengal?" not the textbook form.
+- Suffix "-nga" signals respect in spoken Tamil.
+
+TELUGU (te):
+- Honorific: ALWAYS use "meeru" (మీరు) with strangers.
+- Spoken forms: "chestunnaru" (doing), "cheppandi" (please tell), fillers: "sare", "okay"
+
+MARATHI (mr):
+- Honorific: ALWAYS use "tumhi" (तुम्ही) with strangers.
+- Verb forms (${gender}): ${mr_verbs}
+- Fillers: "haan", "baro", "theek aahe"
+
+GUJARATI (gu):
+- Honorific: ALWAYS use "aap" (આપ) with strangers.
+- Fillers: "haan", "saru", "theek chhe"
+
+KANNADA (kn):
+- Honorific: ALWAYS use "neevu" (ನೀವು) with strangers.
+- Spoken forms use simpler verb endings than written Kannada. Fillers: "sari", "okay"
+
+MALAYALAM (ml):
+- Honorific: ALWAYS use "ningal" (നിങ്ങൾ) with strangers.
+- Fillers: "aha", "sare", "okay"
+
+PUNJABI (pa):
+- Honorific: ALWAYS use "tussi" (ਤੁਸੀਂ) with strangers.
+- Fillers: "haan ji", "theek hai", "achha ji"
+
+GENERAL: Once you switch language, think IN that language. Use the spoken/colloquial register, not textbook formal. Short sentences feel more natural on a phone call. If unsure of a word, use a simpler one rather than guessing.`;
+}
+
 function getAutoDetectBrandPronunciationRule() {
   const examples = Object.entries(VOXBHARAT_NATIVE)
     .filter(([k]) => k !== 'en')
@@ -1046,6 +1109,8 @@ IMPORTANT: You do NOT work for "VoxBharat" or any tech platform. If asked who yo
 
 ${langRules}
 
+${getLanguageSwitchInstructions(gender)}
+
 CONVERSATION FLOW (strictly follow this order):
 
 ${step1}
@@ -1319,6 +1384,8 @@ D) If unclear/garbled → ask again gently in Hinglish: "Sorry, which language w
 IMPORTANT: ${orgIdentity} Never mention "VoxBharat" — that is the technology platform, not who you represent.
 ${companyContextBlock}
 ${langRules}
+
+${getLanguageSwitchInstructions(gender)}
 
 CONVERSATION FLOW (strictly follow this order):
 
@@ -1822,6 +1889,8 @@ ABOUT VOXBHARAT (use these facts naturally in conversation — do NOT list them 
 - Use cases: political polling, market research, customer feedback, public health surveys, brand studies, employee engagement, lead verification
 
 ${langRules}
+
+${getLanguageSwitchInstructions(gender)}
 
 CONVERSATION FLOW (strictly follow this order):
 
