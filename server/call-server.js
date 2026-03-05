@@ -122,15 +122,6 @@ const authLimiter = rateLimit({
   message: { error: 'Too many attempts, please try again later' },
 });
 
-// Rate limiter for demo calls — IP-based
-const demoLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 demo calls per IP per hour
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many demo requests. Please try again later.' },
-});
-
 // General API rate limiter — 100 requests per minute per user/IP
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -143,20 +134,6 @@ const apiLimiter = rateLimit({
 
 // Apply general rate limiter to all /api/ routes
 app.use('/api/', apiLimiter);
-
-// Per-phone rate limit for demo calls: 1 call per phone number per 24 hours
-const demoCallLog = new Map(); // phone -> timestamp
-const DEMO_RATE_LIMIT_MS = 24 * 60 * 60 * 1000;
-
-// Clean up old demo rate limit entries every hour
-setInterval(() => {
-  const now = Date.now();
-  for (const [phone, timestamp] of demoCallLog) {
-    if (now - timestamp > DEMO_RATE_LIMIT_MS) {
-      demoCallLog.delete(phone);
-    }
-  }
-}, 60 * 60 * 1000);
 
 // Twilio webhook signature validation (Finding #4)
 const validateTwilioSignature = (req, res, next) => {
@@ -459,8 +436,8 @@ app.post('/call/initiate', requireAuth, async (req, res) => {
   }
 });
 
-// Demo call — no auth required, rate-limited (for "Talk to Us" widget)
-app.post('/call/demo', demoLimiter, async (req, res) => {
+// Demo call — no auth required (for "Talk to Us" widget)
+app.post('/call/demo', async (req, res) => {
   const { phoneNumber } = req.body;
 
   if (!phoneNumber) {
@@ -474,23 +451,12 @@ app.post('/call/demo', demoLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Please enter a valid phone number' });
   }
 
-  // Per-phone rate limit check
-  const lastCall = demoCallLog.get(cleaned);
-  if (lastCall && Date.now() - lastCall < DEMO_RATE_LIMIT_MS) {
-    const hoursLeft = Math.ceil((DEMO_RATE_LIMIT_MS - (Date.now() - lastCall)) / (60 * 60 * 1000));
-    return res.status(429).json({
-      error: `You've already received a demo call. Try again in ${hoursLeft} hour${hoursLeft > 1 ? 's' : ''}.`,
-    });
-  }
-
   // Capacity check
   if (getActiveCalls().length >= 2) {
     return res.status(503).json({ error: 'All demo lines are currently busy. Please try again in a few minutes.' });
   }
 
   try {
-    demoCallLog.set(cleaned, Date.now());
-
     const result = await initiateCall({
       phoneNumber: cleaned,
       language: 'en',
@@ -507,7 +473,6 @@ app.post('/call/demo', demoLimiter, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    demoCallLog.delete(cleaned); // rollback rate limit on failure
     console.error('[Demo] Call initiation failed:', error.message);
     res.status(500).json({ error: 'Failed to initiate demo call. Please try again.' });
   }
@@ -1201,9 +1166,16 @@ wss.on('connection', (ws) => {
             console.log(`[WS] Media packets: ${mediaPackets}, isAiSpeaking: ${session.isAiSpeaking}, STT connected: ${session.stt.isConnected}`);
           }
 
-          // Skip STT during greeting to avoid echo (AI voice picked up by mic)
-          // After greeting, keep STT active during AI speech for barge-in detection
-          if (session.isAiSpeaking && !session.greetingDone) break;
+          // During greeting: forward audio to STT so early user speech (e.g., "hello" on pickup)
+          // is captured and buffered in earlyUserSpeech for replay after greetingDone.
+          // onTranscript will buffer finals in earlyUserSpeech and skip processing until then.
+          if (session.isAiSpeaking && !session.greetingDone) {
+            if (session.stt?.isConnected) {
+              const pcmAudio = mulawToPcm16k(msg.media.payload);
+              session.stt.sendAudio(pcmAudio);
+            }
+            break; // Skip VAD and response processing — we're still in greeting
+          }
 
           // Convert mulaw 8kHz -> PCM s16le 16kHz and send to STT
           const pcmAudio = mulawToPcm16k(msg.media.payload);
@@ -1340,6 +1312,8 @@ async function initSession(callId, call, ws, streamSid) {
     // Partial transcript fallback
     lastPartialText: null,
     partialFallbackTimer: null,
+    // Buffer for speech received before greeting completes (e.g., user says "hello" on pickup)
+    earlyUserSpeech: '',
   };
 
   // Select STT provider — default to cartesia, fallback for unsupported Deepgram languages
@@ -1364,6 +1338,18 @@ async function initSession(callId, call, ws, streamSid) {
     },
     onTranscript: ({ text, isFinal, language: detectedLang, speechFinal }) => {
       if (sessionObj.isEnding || sessionObj.isVoicemail) return;
+
+      // Buffer early speech received before greeting completes — replay it after greeting
+      // This handles the case where a user says "hello" on pickup before the AI introduces itself
+      if (!sessionObj.greetingDone && isFinal && text.trim()) {
+        const trimmed = text.trim().replace(/(.{2,6}?)\1{4,}/g, '$1');
+        if (trimmed.length >= 2) {
+          sessionObj.earlyUserSpeech = (sessionObj.earlyUserSpeech ? sessionObj.earlyUserSpeech + ' ' : '') + trimmed;
+          if (sessionObj.earlyUserSpeech.length > 500) sessionObj.earlyUserSpeech = sessionObj.earlyUserSpeech.slice(-500);
+          console.log(`[STT:${callId}] Early speech buffered (pre-greeting): "${trimmed}"`);
+        }
+        return;
+      }
 
       // Track STT-detected language for auto-detect mode
       if (detectedLang && sessionObj.call.autoDetectLanguage) {
@@ -1598,8 +1584,8 @@ async function initSession(callId, call, ws, streamSid) {
     onError: (msg) => console.error(`[STT:${callId}]`, msg),
   });
 
-  // Start STT connection in background — not needed until greeting finishes
-  // (media events during greeting are already skipped)
+  // Start STT connection in background — audio during greeting is forwarded to STT
+  // so early user speech (e.g., "hello" on pickup) is captured in earlyUserSpeech for replay
   const sttConnectPromise = stt.connect().then(() => {
     sessionObj.stt = stt;
     console.log(`[STT:${callId}] Connected`);
@@ -1676,9 +1662,12 @@ async function sendGreeting(session) {
     session.sttConnectPromise = null;
   }
 
-  // Discard any STT that arrived during the greeting — it's not an answer to any question
+  // Save any STT that arrived before greeting completed — replay after greetingDone
+  // (e.g., user said "hello" on pickup while greeting was still playing)
   if (session.accumulatedText.length > 0) {
-    console.log(`[Call] Discarding pre-greeting speech: "${session.accumulatedText.join(' ')}"`);
+    const earlyText = session.accumulatedText.join(' ');
+    console.log(`[Call:${callId}] Saving pre-greeting speech for replay: "${earlyText}"`);
+    session.earlyUserSpeech = (session.earlyUserSpeech ? session.earlyUserSpeech + ' ' : '') + earlyText;
     session.accumulatedText = [];
   }
   if (session.silenceTimer) {
@@ -1687,6 +1676,14 @@ async function sendGreeting(session) {
   }
 
   session.greetingDone = true;
+
+  // If user spoke before greeting completed, respond to them now
+  if (session.earlyUserSpeech) {
+    const buffered = session.earlyUserSpeech;
+    session.earlyUserSpeech = '';
+    console.log(`[Call:${callId}] Replaying early user speech: "${buffered}"`);
+    processUserSpeech(callId, buffered);
+  }
 }
 
 async function processUserSpeech(callId, text) {
