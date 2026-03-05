@@ -518,11 +518,14 @@ app.get('/call/demo/:id', (req, res) => {
   const call = getCall(req.params.id);
   if (!call) return res.status(404).json({ error: 'Call not found' });
 
+  const session = callSessions.get(call.id);
   res.json({
     id: call.id,
     status: call.status,
     connectedAt: call.connectedAt,
     endedAt: call.endedAt,
+    isAiSpeaking: session?.isAiSpeaking || false,
+    isHumanSpeaking: !!(session?.lastPartialText),
   });
 });
 
