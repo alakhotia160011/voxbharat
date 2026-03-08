@@ -9,17 +9,19 @@ const SectionHeading = ({
   light = false,
   className = '',
 }) => {
-  const numeral = devanagariNumerals[number - 1] || String(number);
+  const numeral = number != null ? (devanagariNumerals[number - 1] || String(number)) : null;
 
   return (
     <div className={className}>
       {/* Numeral row with extending line */}
-      <div className="flex items-center gap-4 mb-4">
-        <span className="text-gold font-serif-indic text-lg leading-none">
-          {numeral}
-        </span>
-        <div className="flex-1 h-px bg-gold/30" />
-      </div>
+      {numeral && (
+        <div className="flex items-center gap-4 mb-4">
+          <span className="text-gold font-serif-indic text-lg leading-none">
+            {numeral}
+          </span>
+          <div className="flex-1 h-px bg-gold/30" />
+        </div>
+      )}
 
       {/* Title */}
       <h2
