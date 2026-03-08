@@ -146,7 +146,7 @@ export default function AboutPage({ navigateTo }) {
                     <h3 className="font-display text-xl md:text-2xl font-bold text-cream mb-1">
                       {item.title}
                     </h3>
-                    <p className="text-cream/70 leading-relaxed">{item.desc}</p>
+                    <p className="text-cream/70 text-lg leading-relaxed">{item.desc}</p>
                   </div>
                 </motion.div>
               ))}
@@ -314,7 +314,7 @@ export function FaqsPage({ navigateTo }) {
             variants={fadeInUp}
           >
             <h3 className="font-display text-xl md:text-2xl font-bold text-earth mb-2">Still have questions?</h3>
-            <p className="font-body text-earth-mid mb-6">We're happy to help with anything else.</p>
+            <p className="font-body text-earth-mid text-lg mb-6">We're happy to help with anything else.</p>
             <motion.a
               href="mailto:ary.lakhotia@gmail.com"
               className="inline-block px-8 py-3 bg-saffron text-white rounded-full font-body font-medium hover:bg-saffron-deep transition-colors"

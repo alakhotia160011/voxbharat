@@ -142,7 +142,7 @@ const FeaturesSection = () => {
               </div>
 
               {/* Heading */}
-              <h3 className="font-display text-[1.5rem] md:text-[2.25rem] text-earth font-bold leading-tight">
+              <h3 className="font-display text-xl md:text-2xl text-earth font-bold leading-tight">
                 {item.title}
               </h3>
 

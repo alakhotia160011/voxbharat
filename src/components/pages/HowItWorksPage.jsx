@@ -168,7 +168,7 @@ export default function HowItWorksPage({ navigateTo, setShowBuilder }) {
                 {step.detail.map((para, j) => (
                   <motion.p
                     key={j}
-                    className="text-cream/70 leading-relaxed mb-4 last:mb-0"
+                    className="text-cream/70 text-lg leading-relaxed mb-4 last:mb-0"
                     variants={fadeInUp}
                   >
                     {para}

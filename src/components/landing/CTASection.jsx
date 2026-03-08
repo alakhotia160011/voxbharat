@@ -11,7 +11,7 @@ const CTASection = ({ onCreateSurvey }) => {
         viewport={{ once: true, margin: '-100px' }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
       >
-        <h2 className="font-display text-[2rem] md:text-[2.5rem] lg:text-[3.5rem] text-white font-bold leading-tight">
+        <h2 className="font-display text-[1.75rem] md:text-[2.5rem] lg:text-[3.5rem] text-white font-bold leading-tight">
           Ready to Hear Bharat?
         </h2>
         <p className="text-white/80 text-lg mt-4">

@@ -75,7 +75,7 @@ const HowItWorksSection = () => {
             </div>
 
             {/* Heading */}
-            <h3 className="font-display text-[1.5rem] md:text-[2.25rem] text-[#3d2314] font-bold leading-tight">
+            <h3 className="font-display text-xl md:text-2xl text-[#3d2314] font-bold leading-tight">
               {step.heading}
             </h3>
 

@@ -118,7 +118,7 @@ export default function DataPolicyPage({ navigateTo }) {
                 <div className="w-12 h-12 rounded-xl bg-indigo-light flex items-center justify-center mb-4 text-indigo">
                   {item.icon}
                 </div>
-                <h3 className="font-display text-lg font-bold text-earth mb-2">{item.title}</h3>
+                <h3 className="font-display text-xl md:text-2xl font-bold text-earth mb-2">{item.title}</h3>
                 <p className="font-body text-earth-mid leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
@@ -167,7 +167,7 @@ export default function DataPolicyPage({ navigateTo }) {
                 >
                   {section.title}
                 </motion.h3>
-                <motion.p className="text-cream/70 leading-relaxed" variants={fadeInUp}>
+                <motion.p className="text-cream/70 text-lg leading-relaxed" variants={fadeInUp}>
                   {section.body}
                 </motion.p>
               </motion.div>
@@ -187,7 +187,7 @@ export default function DataPolicyPage({ navigateTo }) {
               <h3 className="font-display text-xl md:text-2xl text-cream font-bold mb-4">
                 Contact
               </h3>
-              <p className="text-cream/70 leading-relaxed">
+              <p className="text-cream/70 text-lg leading-relaxed">
                 For any data-related inquiries, deletion requests, or privacy concerns, reach us at{' '}
                 <a href="mailto:ary.lakhotia@gmail.com" className="text-saffron hover:underline">
                   ary.lakhotia@gmail.com
