@@ -90,7 +90,7 @@ export default function HowItWorksPage({ navigateTo, setShowBuilder }) {
       <SectionDivider />
 
       {/* Steps — vertical editorial layout matching landing HowItWorksSection */}
-      <section className="py-20 lg:py-40 px-6">
+      <section className="py-20 lg:py-32 px-6">
         <div className="max-w-4xl mx-auto">
           {steps.map((step, i) => (
             <motion.div
@@ -104,7 +104,7 @@ export default function HowItWorksPage({ navigateTo, setShowBuilder }) {
             >
               {/* Numeral row */}
               <div className="flex items-center gap-4 mb-4">
-                <span className="text-[2.5rem] font-serif-indic text-gold leading-none">
+                <span className="text-2xl font-serif-indic text-gold leading-none">
                   {step.numeral}
                 </span>
                 <div className="flex-1 h-px bg-gold/30 self-center" />
@@ -114,12 +114,12 @@ export default function HowItWorksPage({ navigateTo, setShowBuilder }) {
               </div>
 
               {/* Heading */}
-              <h3 className="font-display text-[1.5rem] md:text-[2.25rem] text-earth font-bold leading-tight">
+              <h3 className="font-display text-xl md:text-2xl text-earth font-bold leading-tight">
                 {step.heading}
               </h3>
 
               {/* Short description */}
-              <p className="mt-4 text-earth-mid text-lg leading-relaxed max-w-2xl">
+              <p className="mt-4 text-earth-mid text-lg leading-relaxed">
                 {step.description}
               </p>
             </motion.div>
@@ -131,7 +131,7 @@ export default function HowItWorksPage({ navigateTo, setShowBuilder }) {
 
       {/* Deep-dive prose sections */}
       <section className="bg-ink py-20 lg:py-32 px-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -161,7 +161,7 @@ export default function HowItWorksPage({ navigateTo, setShowBuilder }) {
                   <span className="text-2xl font-serif-indic text-gold leading-none">
                     {step.numeral}
                   </span>
-                  <h3 className="font-display text-2xl md:text-3xl text-cream font-bold">
+                  <h3 className="font-display text-xl md:text-2xl text-cream font-bold">
                     {step.heading}
                   </h3>
                 </motion.div>
@@ -185,13 +185,13 @@ export default function HowItWorksPage({ navigateTo, setShowBuilder }) {
       {/* CTA — mirrors landing CTASection */}
       <section className="bg-gradient-to-r from-saffron to-saffron-deep w-full py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-3xl mx-auto text-center"
+          className="max-w-4xl mx-auto text-center"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
-          <h2 className="font-display text-[2rem] md:text-[2.5rem] lg:text-[3.5rem] text-white font-bold leading-tight">
+          <h2 className="font-display text-[1.75rem] md:text-[2.5rem] lg:text-[3.5rem] text-white font-bold leading-tight">
             Ready to Get Started?
           </h2>
           <p className="text-white/80 text-lg mt-4">

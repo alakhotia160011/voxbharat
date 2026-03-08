@@ -101,7 +101,7 @@ export default function DataPolicyPage({ navigateTo }) {
 
       {/* Commitment cards */}
       <section className="py-20 lg:py-32 px-6">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
             initial="hidden"
@@ -119,7 +119,7 @@ export default function DataPolicyPage({ navigateTo }) {
                   {item.icon}
                 </div>
                 <h3 className="font-display text-lg font-bold text-earth mb-2">{item.title}</h3>
-                <p className="font-body text-sm text-earth-mid leading-relaxed">{item.desc}</p>
+                <p className="font-body text-earth-mid leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -130,7 +130,7 @@ export default function DataPolicyPage({ navigateTo }) {
 
       {/* Detailed policy — dark section */}
       <section className="bg-ink py-20 lg:py-32 px-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -162,7 +162,7 @@ export default function DataPolicyPage({ navigateTo }) {
                   <div className="flex-1 h-px bg-gold/30" />
                 </motion.div>
                 <motion.h3
-                  className="font-display text-2xl md:text-3xl text-cream font-bold mb-4"
+                  className="font-display text-xl md:text-2xl text-cream font-bold mb-4"
                   variants={fadeInUp}
                 >
                   {section.title}
@@ -184,7 +184,7 @@ export default function DataPolicyPage({ navigateTo }) {
                 <span className="text-2xl font-serif-indic text-gold leading-none">४</span>
                 <div className="flex-1 h-px bg-gold/30" />
               </div>
-              <h3 className="font-display text-2xl md:text-3xl text-cream font-bold mb-4">
+              <h3 className="font-display text-xl md:text-2xl text-cream font-bold mb-4">
                 Contact
               </h3>
               <p className="text-cream/70 leading-relaxed">

@@ -12,13 +12,13 @@ export default function AboutPage({ navigateTo }) {
       {/* Hero */}
       <section className="py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-5xl mx-auto"
+          className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
           variants={staggerContainer}
         >
-          <motion.div variants={fadeInUp} className="max-w-3xl">
+          <motion.div variants={fadeInUp}>
             <SectionHeading
               number={1}
               title="About VoxBharat"
@@ -39,9 +39,9 @@ export default function AboutPage({ navigateTo }) {
       <SectionDivider />
 
       {/* Stats — dark band with AnimatedCounter */}
-      <section className="bg-ink py-16 lg:py-24 px-6">
+      <section className="bg-ink py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
+          className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
@@ -68,7 +68,7 @@ export default function AboutPage({ navigateTo }) {
 
       {/* Mission prose */}
       <section className="py-20 lg:py-32 px-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -104,7 +104,7 @@ export default function AboutPage({ navigateTo }) {
 
       {/* What Sets Us Apart */}
       <section className="bg-ink py-20 lg:py-32 px-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -143,7 +143,7 @@ export default function AboutPage({ navigateTo }) {
                     <div className="w-2.5 h-2.5 rounded-full bg-saffron" />
                   </div>
                   <div>
-                    <h3 className="font-display text-xl font-bold text-cream mb-1">
+                    <h3 className="font-display text-xl md:text-2xl font-bold text-cream mb-1">
                       {item.title}
                     </h3>
                     <p className="text-cream/70 leading-relaxed">{item.desc}</p>
@@ -236,7 +236,7 @@ export function FaqsPage({ navigateTo }) {
       {/* Hero */}
       <section className="py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-3xl mx-auto"
+          className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
@@ -256,7 +256,7 @@ export function FaqsPage({ navigateTo }) {
 
       {/* FAQ accordion */}
       <section className="py-20 lg:py-32 px-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             className="space-y-4"
             initial="hidden"
@@ -295,7 +295,7 @@ export function FaqsPage({ navigateTo }) {
                       transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                       className="overflow-hidden"
                     >
-                      <div className="px-5 pb-5 font-body text-sm text-earth-mid leading-relaxed border-t border-cream-warm pt-4">
+                      <div className="px-5 pb-5 font-body text-earth-mid leading-relaxed border-t border-cream-warm pt-4">
                         {item.a}
                       </div>
                     </motion.div>
@@ -313,7 +313,7 @@ export function FaqsPage({ navigateTo }) {
             viewport={{ once: true, margin: '-50px' }}
             variants={fadeInUp}
           >
-            <h3 className="font-display text-2xl font-bold text-earth mb-2">Still have questions?</h3>
+            <h3 className="font-display text-xl md:text-2xl font-bold text-earth mb-2">Still have questions?</h3>
             <p className="font-body text-earth-mid mb-6">We're happy to help with anything else.</p>
             <motion.a
               href="mailto:ary.lakhotia@gmail.com"

@@ -56,7 +56,7 @@ export default function MemoPage({ navigateTo }) {
       {/* ── Hero ── */}
       <section className="py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-5xl mx-auto"
+          className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
@@ -68,14 +68,10 @@ export default function MemoPage({ navigateTo }) {
             </span>
           </motion.div>
           <motion.div variants={fadeInUp}>
-            <h1 className="font-display font-bold text-earth text-4xl md:text-6xl lg:text-7xl leading-tight">
-              AI Voice Surveys for Customer Research in India
-            </h1>
-          </motion.div>
-          <motion.div variants={fadeInUp}>
-            <p className="mt-6 font-body text-xl md:text-2xl text-earth-mid leading-relaxed max-w-3xl">
-              Every Language. Every Citizen.
-            </p>
+            <SectionHeading
+              title="AI Voice Surveys for Customer Research in India"
+              subtitle="Every Language. Every Citizen."
+            />
           </motion.div>
         </motion.div>
       </section>
@@ -85,7 +81,7 @@ export default function MemoPage({ navigateTo }) {
       {/* ── The Problem ── */}
       <section className="py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-5xl mx-auto"
+          className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
@@ -118,7 +114,7 @@ export default function MemoPage({ navigateTo }) {
       {/* ── The Solution ── */}
       <section className="py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-5xl mx-auto"
+          className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
@@ -170,7 +166,7 @@ export default function MemoPage({ navigateTo }) {
       {/* ── Why VoxBharat ── */}
       <section className="py-20 lg:py-32 px-6 bg-earth">
         <motion.div
-          className="max-w-5xl mx-auto"
+          className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
@@ -182,29 +178,29 @@ export default function MemoPage({ navigateTo }) {
 
           <div className="mt-12 grid md:grid-cols-2 gap-8 max-w-4xl">
             <motion.div variants={fadeInUp} className="bg-white/5 border border-white/10 rounded-2xl p-8">
-              <h3 className="font-display font-bold text-cream text-lg mb-3">Voice AI Is Production Ready</h3>
-              <p className="font-body text-cream/70 text-sm leading-relaxed">
+              <h3 className="font-display font-bold text-cream text-xl md:text-2xl mb-3">Voice AI Is Production Ready</h3>
+              <p className="font-body text-cream/70 leading-relaxed">
                 TTS, STT, and LLMs now work in Indian languages. Each 5-minute AI voice survey costs $0.15 to $0.20 in compute and telephony, vs. $3.50+ for a human CATI call.
               </p>
             </motion.div>
 
             <motion.div variants={fadeInUp} className="bg-white/5 border border-white/10 rounded-2xl p-8">
-              <h3 className="font-display font-bold text-cream text-lg mb-3">The Category Is Proven</h3>
-              <p className="font-body text-cream/70 text-sm leading-relaxed">
+              <h3 className="font-display font-bold text-cream text-xl md:text-2xl mb-3">The Category Is Proven</h3>
+              <p className="font-body text-cream/70 leading-relaxed">
                 Listen Labs (SF) raised $100M total ($69M Series B, Jan 2026) at a $500M valuation. Sequoia backed. 1M+ interviews. 15x revenue growth in 9 months. Clients include Microsoft, Robinhood, Canva. But Listen Labs builds for the West. India is wide open.
               </p>
             </motion.div>
 
             <motion.div variants={fadeInUp} className="bg-white/5 border border-white/10 rounded-2xl p-8">
-              <h3 className="font-display font-bold text-cream text-lg mb-3">The Data Is Actually Better</h3>
-              <p className="font-body text-cream/70 text-sm leading-relaxed">
+              <h3 className="font-display font-bold text-cream text-xl md:text-2xl mb-3">The Data Is Actually Better</h3>
+              <p className="font-body text-cream/70 leading-relaxed">
                 Human interviewers introduce social desirability bias. AI interviewers sidestep this. Respondents feel less judged talking to a machine and give more honest answers, especially on sensitive topics like income, caste, political preference, and health.
               </p>
             </motion.div>
 
             <motion.div variants={fadeInUp} className="bg-white/5 border border-white/10 rounded-2xl p-8">
-              <h3 className="font-display font-bold text-cream text-lg mb-3">Distribution Infrastructure Exists</h3>
-              <p className="font-body text-cream/70 text-sm leading-relaxed">
+              <h3 className="font-display font-bold text-cream text-xl md:text-2xl mb-3">Distribution Infrastructure Exists</h3>
+              <p className="font-body text-cream/70 leading-relaxed">
                 140M Indians use voice search in native languages. 57% of internet users prefer regional language content. The rails to reach anyone, anywhere in India, by phone, are already laid.
               </p>
             </motion.div>
@@ -217,7 +213,7 @@ export default function MemoPage({ navigateTo }) {
       {/* ── Who Needs This ── */}
       <section className="py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-5xl mx-auto"
+          className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
@@ -234,7 +230,7 @@ export default function MemoPage({ navigateTo }) {
           <div className="mt-12 grid md:grid-cols-2 gap-6 max-w-4xl">
             {customers.map((c, i) => (
               <motion.div key={i} variants={fadeInUp} className="border border-gold/20 rounded-2xl p-7 hover:border-saffron/40 transition-colors">
-                <h3 className="font-display font-bold text-earth text-lg mb-2">{c.title}</h3>
+                <h3 className="font-display font-bold text-earth text-xl mb-2">{c.title}</h3>
                 <p className="font-body text-earth-mid text-sm leading-relaxed">{c.desc}</p>
               </motion.div>
             ))}
@@ -247,7 +243,7 @@ export default function MemoPage({ navigateTo }) {
       {/* ── Competitive Landscape ── */}
       <section className="py-20 lg:py-32 px-6">
         <motion.div
-          className="max-w-5xl mx-auto"
+          className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
@@ -270,7 +266,7 @@ export default function MemoPage({ navigateTo }) {
           <div className="mt-12 space-y-6 max-w-4xl">
             {competitors.map((c, i) => (
               <motion.div key={i} variants={fadeInUp} className="border-l-4 border-gold/40 pl-6 py-2">
-                <h3 className="font-display font-bold text-earth text-lg">{c.name}</h3>
+                <h3 className="font-display font-bold text-earth text-xl">{c.name}</h3>
                 <p className="font-body text-saffron text-sm mt-1">{c.examples}</p>
                 <p className="font-body text-earth-mid text-sm leading-relaxed mt-2">{c.desc}</p>
               </motion.div>
@@ -292,7 +288,7 @@ export default function MemoPage({ navigateTo }) {
       {/* ── a16z Market Context ── */}
       <section className="py-20 lg:py-28 px-6 bg-earth">
         <motion.div
-          className="max-w-5xl mx-auto text-center"
+          className="max-w-4xl mx-auto text-center"
           initial="hidden"
           whileInView="visible"
           viewport={sectionViewport}
