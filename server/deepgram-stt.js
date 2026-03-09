@@ -201,7 +201,8 @@ export class DeepgramSTT {
    */
   async switchLanguage(newLanguage) {
     if (newLanguage === this.language) return;
-    console.log(`[DG-STT] Switching language: ${this.language} → ${newLanguage}`);
+    const prevLanguage = this.language;
+    console.log(`[DG-STT] Switching language: ${prevLanguage} → ${newLanguage}`);
     this.language = newLanguage;
 
     // Start buffering audio so we don't lose speech during reconnect
@@ -220,9 +221,12 @@ export class DeepgramSTT {
       this.isConnected = false;
       this._stopKeepAlive();
 
-      // Reconnect with new language
+      // Reconnect with new language — timeout after 5 seconds
       this.maxReconnects = prevMaxReconnects;
-      await this.connect();
+      await Promise.race([
+        this.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('STT reconnect timeout (5s)')), 5000)),
+      ]);
 
       // Replay buffered audio so the user's speech isn't lost
       const buffered = this.switchBuffer;
@@ -230,6 +234,24 @@ export class DeepgramSTT {
       console.log(`[DG-STT] Language switched to ${newLanguage}, replaying ${buffered.length} buffered frames`);
       for (const frame of buffered) {
         this.sendAudio(frame);
+      }
+    } catch (err) {
+      console.error(`[DG-STT] Language switch failed: ${err.message}, falling back to ${prevLanguage}`);
+      this.language = prevLanguage;
+      // Try to reconnect with previous language so STT doesn't stay dead
+      try {
+        await Promise.race([
+          this.connect(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Fallback reconnect timeout')), 5000)),
+        ]);
+        const buffered = this.switchBuffer;
+        this.switchBuffer = [];
+        console.log(`[DG-STT] Fallback reconnect OK (${prevLanguage}), replaying ${buffered.length} frames`);
+        for (const frame of buffered) {
+          this.sendAudio(frame);
+        }
+      } catch (fbErr) {
+        console.error(`[DG-STT] Fallback reconnect also failed: ${fbErr.message}`);
       }
     } finally {
       this.isSwitching = false;
