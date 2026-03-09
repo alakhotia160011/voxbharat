@@ -256,6 +256,14 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     setDemoStep(0);
     setIsSpeaking(false);
 
+    // Unlock audio playback immediately on user gesture (before any async work)
+    // Browsers require audio.play() within the user-gesture context
+    const audio = new Audio();
+    audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    try { await audio.play(); } catch (_) {}
+    audio.pause();
+    audioRef.current = audio;
+
     const conversation = getConversation();
     const aiVoiceId = selectedVoice;
     const respondentVoiceId = getRespondentVoice();
@@ -287,7 +295,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
 
         const url = URL.createObjectURL(blob);
 
-        // Play audio and wait for it to finish
+        // Play audio using the already-unlocked element
         await new Promise((resolve, reject) => {
           if (abortRef.current.signal.aborted) {
             URL.revokeObjectURL(url);
@@ -295,8 +303,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
             return;
           }
 
-          const audio = new Audio(url);
-          audioRef.current = audio;
+          audio.src = url;
 
           audio.onended = () => {
             URL.revokeObjectURL(url);
@@ -371,7 +378,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     }
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      audioRef.current.removeAttribute('src');
       audioRef.current = null;
     }
     setDemoActive(false);
