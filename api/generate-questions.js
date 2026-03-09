@@ -64,7 +64,8 @@ SURVEY CONFIGURATION:
 - Sensitivity Level: ${config.sensitivity || 'low'}
 - Target Duration: ${config.duration || 10} minutes
 - Analysis Goals: ${config.analysisGoals || 'Not specified'}
-- Brand Names (if market research): ${config.brandNames || 'None'}
+- Brand Names (if market research): ${config.brandNames || 'None'}${config.companyContext ? `
+- Company/Organization Context: ${config.companyContext.slice(0, 1500)}` : ''}
 
 INSTRUCTIONS:
 1. Generate the right number of questions based on the target duration above. A voice conversation covers roughly 2-3 questions per minute. So: 1 min → 2-3 questions, 2 min → 3-5 questions, 4 min → 6-8 questions, 5 min → 8-10 questions, 10 min → 12-15 questions. Tailor to the survey's purpose, audience, and goals.

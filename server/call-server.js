@@ -37,6 +37,7 @@ import {
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
 import { scrapeWebsite } from './website-scraper.js';
+import pdfParse from 'pdf-parse';
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName, generateVerificationGreeting, generateDemoGreeting } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
@@ -1086,6 +1087,44 @@ app.post('/api/scrape-website', requireAuth, async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Upload a PDF/TXT document for company context
+app.post('/api/upload-context-doc', requireAuth, express.raw({ type: ['application/pdf', 'text/plain'], limit: '5mb' }), async (req, res) => {
+  try {
+    if (!req.body || req.body.length === 0) return res.status(400).json({ error: 'No file uploaded' });
+
+    const contentType = req.headers['content-type'] || '';
+    let text = '';
+    let pageCount = 0;
+    let title = '';
+
+    if (contentType.includes('application/pdf')) {
+      const data = await pdfParse(req.body);
+      text = data.text || '';
+      pageCount = data.numpages || 0;
+      title = data.info?.Title || '';
+    } else {
+      // Plain text file
+      text = req.body.toString('utf-8');
+    }
+
+    // Clean up: collapse whitespace, trim
+    text = text.replace(/\s+/g, ' ').trim();
+
+    // Truncate to 3000 chars (same limit as website scraper)
+    const MAX_CONTEXT = 3000;
+    if (text.length > MAX_CONTEXT) {
+      text = text.slice(0, MAX_CONTEXT);
+    }
+
+    if (!text) return res.status(400).json({ error: 'Could not extract text from document' });
+
+    res.json({ content: text, pageCount, title });
+  } catch (error) {
+    console.error('[Upload] PDF parse error:', error.message);
+    res.status(400).json({ error: 'Failed to parse document: ' + error.message });
   }
 });
 

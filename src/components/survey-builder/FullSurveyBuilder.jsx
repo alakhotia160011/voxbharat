@@ -673,10 +673,10 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 />
               </div>
 
-              {/* Company Website Context */}
+              {/* Company Context - Website or Document */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
-                <label className="block text-sm font-medium text-earth mb-1">Company Website</label>
-                <p className="text-xs text-earth-mid/60 font-body mb-3">Share a website so the AI agent can answer questions about your company during calls.</p>
+                <label className="block text-sm font-medium text-earth mb-1">Company Context</label>
+                <p className="text-xs text-earth-mid/60 font-body mb-3">Share a website or upload a document so the AI agent can answer questions about your company during calls.</p>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -702,7 +702,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                         });
                         const data = await res.json();
                         if (data.error) throw new Error(data.error);
-                        setConfig(prev => ({ ...prev, companyContext: data.content, companyUrl: data.url }));
+                        setConfig(prev => ({ ...prev, companyContext: data.content, companyUrl: data.url, contextSource: 'website' }));
                       } catch (err) {
                         setConfig(prev => ({ ...prev, companyContext: `Error: ${err.message}` }));
                       }
@@ -713,6 +713,45 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   >
                     {scanningWebsite ? 'Scanning...' : 'Scan Website'}
                   </button>
+                </div>
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="text-xs text-earth-mid/50 font-body">or</span>
+                  <label className="flex items-center gap-2 px-4 py-2 border border-cream-warm rounded-xl cursor-pointer hover:border-saffron/40 transition-colors">
+                    <svg className="w-4 h-4 text-earth-mid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                    <span className="text-sm font-body text-earth-mid">Upload PDF or TXT</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.txt"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setScanningWebsite(true);
+                        try {
+                          const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || 'http://localhost:3002';
+                          const token = localStorage.getItem('voxbharat_token');
+                          const res = await fetch(`${CALL_SERVER}/api/upload-context-doc`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': file.type || 'application/octet-stream',
+                              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                            },
+                            body: file,
+                          });
+                          const data = await res.json();
+                          if (data.error) throw new Error(data.error);
+                          setConfig(prev => ({ ...prev, companyContext: data.content, contextSource: `file: ${file.name}` }));
+                        } catch (err) {
+                          setConfig(prev => ({ ...prev, companyContext: `Error: ${err.message}` }));
+                        }
+                        setScanningWebsite(false);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  {config.contextSource?.startsWith('file:') && (
+                    <span className="text-xs text-saffron-deep font-body bg-saffron/10 px-2 py-1 rounded-lg">{config.contextSource.replace('file: ', '')}</span>
+                  )}
                 </div>
                 {config.companyContext && (
                   <div className="mt-3">
