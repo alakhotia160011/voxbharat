@@ -1325,6 +1325,9 @@ async function initSession(callId, call, ws, streamSid) {
     preConnectAudioBuffer: [],
     // Track previous spoken_language hint to detect mid-conversation language switches
     previousSpokenLanguage: null,
+    // Consent-phase disengagement timer
+    callStartedAt: Date.now(),
+    consentObtained: false,
   };
 
   // Select STT provider — default to cartesia, fallback for unsupported Deepgram languages
@@ -1785,6 +1788,21 @@ async function processUserSpeech(callId, text) {
   if (session.repeatCount >= 2) {
     textForClaude = `[SYSTEM: You have repeated the same question ${session.repeatCount} times. The respondent HAS answered but speech recognition may have garbled it. Accept their response as-is and move to the NEXT question immediately. Do NOT repeat this question again.] ${textForClaude}`;
     console.log(`[Call:${callId}] Injecting move-on hint (${session.repeatCount} repeats)`);
+  }
+
+  // Consent-phase time cap: if 30+ seconds have passed and we're still in the first
+  // few exchanges (consent not clearly obtained), hint Claude to wrap up
+  if (!session.consentObtained) {
+    const elapsedSec = (Date.now() - session.callStartedAt) / 1000;
+    const userMsgCount = session.conversation.messages.filter(m => m.role === 'user').length;
+    if (elapsedSec >= 30 && userMsgCount <= 3) {
+      textForClaude = `[SYSTEM: The respondent seems disengaged — wrap up the call politely.] ${textForClaude}`;
+      console.log(`[Call:${callId}] Consent phase timeout (${Math.round(elapsedSec)}s, ${userMsgCount} user msgs) — injecting wrap-up hint`);
+    }
+    // Mark consent obtained after 3 user messages (past intro/consent phase)
+    if (userMsgCount >= 3) {
+      session.consentObtained = true;
+    }
   }
 
   // No filler words — go straight to Claude's response for crisp delivery
