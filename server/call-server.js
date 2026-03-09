@@ -37,7 +37,9 @@ import {
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
 import { scrapeWebsite } from './website-scraper.js';
-import pdfParse from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName, generateVerificationGreeting, generateDemoGreeting } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
