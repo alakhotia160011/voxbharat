@@ -1762,7 +1762,11 @@ async function processUserSpeech(callId, text) {
     if (session.previousSpokenLanguage && langHint !== session.previousSpokenLanguage) {
       const langNames = { hi: 'Hindi', bn: 'Bengali', ta: 'Tamil', te: 'Telugu', mr: 'Marathi', gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam', pa: 'Punjabi', en: 'English' };
       const langName = langNames[langHint] || langHint;
-      textForClaude = `[SYSTEM: The respondent just switched to ${langName}. You MUST respond entirely in ${langName} from this point. Use natural ${langName} grammar and vocabulary, not translated English. Prefix your response with [LANG:${langHint}].] ${textForClaude}`;
+      const genderForm = session.call.gender === 'female' ? 'feminine' : 'masculine';
+      const genderHint = ['hi', 'mr', 'pa', 'gu', 'bn'].includes(langHint)
+        ? ` You are ${genderForm} — use ${genderForm} verb forms (e.g. ${langHint === 'hi' ? (session.call.gender === 'female' ? 'रही हूँ, करती हूँ, बोल रही हूँ' : 'रहा हूँ, करता हूँ, बोल रहा हूँ') : `${genderForm} conjugations`}).`
+        : '';
+      textForClaude = `[SYSTEM: The respondent just switched to ${langName}. You MUST respond entirely in ${langName} from this point. Use natural ${langName} grammar and vocabulary, not translated English.${genderHint} Prefix your response with [LANG:${langHint}].] ${textForClaude}`;
       console.log(`[Call:${callId}] Language switch detected: ${session.previousSpokenLanguage} → ${langHint}, injecting strong hint`);
     }
     session.previousSpokenLanguage = langHint;

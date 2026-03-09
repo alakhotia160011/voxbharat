@@ -106,16 +106,27 @@ function getLanguageSwitchInstructions(gender) {
     ? 'करते, बोलते, जाणते, सांगते'
     : 'करतो, बोलतो, जाणतो, सांगतो';
 
+  const hi_self = gender === 'female' ? 'main... hoon (feminine: chahti hoon, jaanti hoon, bol rahi hoon)' : 'main... hoon (masculine: chahta hoon, jaanta hoon, bol raha hoon)';
+  const hi_wrong_right = gender === 'female'
+    ? `- WRONG: "Toh aap kya sochte hain is baare mein?" RIGHT: "Is baare mein aapka kya khayal hai?"
+- WRONG: "Main chahta hoon ki aap mujhe batayein" RIGHT: "Batayein na, aap kya karti hain?" (NOTE: "karti" because you are asking a question, but YOUR verbs must be feminine: "main jaanti hoon", "main samajh gayi")
+- REMEMBER: You are FEMALE. Every self-referencing verb MUST be feminine: बोल रही हूँ (not रहा), कर रही हूँ (not रहा), जानती हूँ (not जानता), समझ गयी (not गया).`
+    : `- WRONG: "Toh aap kya sochti hain is baare mein?" RIGHT: "Is baare mein aapka kya khayal hai?"
+- WRONG: "Main chahti hoon ki aap mujhe batayein" RIGHT: "Batayein na, aap kya karte hain?"
+- REMEMBER: You are MALE. Every self-referencing verb MUST be masculine: बोल रहा हूँ (not रही), कर रहा हूँ (not रही), जानता हूँ (not जानती), समझ गया (not गयी).`;
+
   return `LANGUAGE SWITCHING — GRAMMAR RULES:
 When switching from English to any Indian language, do NOT translate your English thoughts word-for-word. Adopt the language natively — think in it, don't translate into it.
+
+GENDER — CRITICAL: You are ${gender === 'female' ? 'FEMALE' : 'MALE'}. In gendered languages (Hindi, Marathi, Punjabi, Gujarati, Bengali), ALL self-referencing verbs MUST use ${gender === 'female' ? 'FEMININE' : 'MASCULINE'} forms. Getting gender wrong sounds extremely unnatural.
 
 HINDI (hi):
 - Word order is Subject-Object-Verb (SOV). WRONG: "Aap karte hain kya kaam?" RIGHT: "Aap kya kaam karte hain?"
 - Honorific: ALWAYS use "aap" (आप) with strangers. Never "tum" or "tu".
+- Self-referencing: ${hi_self}
 - Verb forms (${gender}): ${hi_verbs}
 - Natural fillers: "haan", "achha", "bilkul", "theek hai", "toh", "waise"
-- WRONG (translated English): "Toh aap kya sochte hain is baare mein?" RIGHT: "Is baare mein aapka kya khayal hai?"
-- WRONG (translated English): "Main chahti/chahta hoon ki aap mujhe batayein" RIGHT: "Batayein na, aap kya karte hain?"
+${hi_wrong_right}
 
 BENGALI (bn):
 - Honorific: ALWAYS use "aapni" (আপনি) with strangers.
