@@ -1325,8 +1325,6 @@ async function initSession(callId, call, ws, streamSid) {
     preConnectAudioBuffer: [],
     // Track previous spoken_language hint to detect mid-conversation language switches
     previousSpokenLanguage: null,
-    // Safety timer: prompt user if no speech arrives after AI finishes
-    noResponseTimer: null,
   };
 
   // Select STT provider — default to cartesia, fallback for unsupported Deepgram languages
@@ -1723,7 +1721,6 @@ async function processUserSpeech(callId, text) {
   session.isProcessing = true;
   session.interrupted = false;
   if (session.maxWaitTimer) { clearTimeout(session.maxWaitTimer); session.maxWaitTimer = null; }
-  if (session.noResponseTimer) { clearTimeout(session.noResponseTimer); session.noResponseTimer = null; }
 
   // In auto-detect mode, prepend STT-detected language hint for Claude
   const sttLang = session.sttDetectedLanguage;
@@ -1996,31 +1993,6 @@ async function processUserSpeech(callId, text) {
     const queuedText = session.accumulatedText.join(' ');
     session.accumulatedText = [];
     setTimeout(() => processUserSpeech(callId, queuedText), 200);
-  } else {
-    // Safety timer: if no user speech arrives within 10 seconds after AI finishes,
-    // prompt the user. This catches cases where STT reconnect failed during a
-    // language switch, leaving the call in dead silence.
-    if (session.noResponseTimer) clearTimeout(session.noResponseTimer);
-    session.noResponseTimer = setTimeout(async () => {
-      session.noResponseTimer = null;
-      if (session.isEnding || session.isProcessing || session.conversation.isComplete) return;
-      if (session.accumulatedText.length > 0) return; // speech arrived, just not processed yet
-      const lang = session.currentLanguage || session.call.language;
-      const prompts = {
-        hi: 'Hello? Aap sun rahe hain?',
-        bn: 'Hello? Aapni shunchhen?',
-        ta: 'Hello? Neenga ketkireergala?',
-        te: 'Hello? Meeru vintunnara?',
-        mr: 'Hello? Tumhi aikta aahat ka?',
-        en: 'Hello? Are you still there?',
-      };
-      const prompt = prompts[lang] || prompts.en;
-      console.log(`[Call:${callId}] No user speech for 10s after AI response — prompting: "${prompt}"`);
-      session.isAiSpeaking = true;
-      await speakSentence(session, prompt, lang);
-      session.isAiSpeaking = false;
-      session.lastAiSpeechEnd = Date.now();
-    }, 10000);
   }
 }
 
@@ -2237,7 +2209,6 @@ function cleanupSession(callId) {
   if (session.maxWaitTimer) clearTimeout(session.maxWaitTimer);
   if (session.flushTimer) clearTimeout(session.flushTimer);
   if (session.partialFallbackTimer) clearTimeout(session.partialFallbackTimer);
-  if (session.noResponseTimer) clearTimeout(session.noResponseTimer);
   session.isProcessing = false;
   session.isEnding = true;
 
