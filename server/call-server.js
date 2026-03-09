@@ -1369,20 +1369,20 @@ async function initSession(callId, call, ws, streamSid) {
         sessionObj.sttDetectedLanguage = detectedLang;
         console.log(`[STT:${callId}] Detected language: "${detectedLang}"`);
 
-        // On first detection of a language different from our starting language (hi),
-        // reconnect STT with that specific language for better transcription
-        if (detectedLang !== 'hi' && !sessionObj.sttLanguageLocked) {
-          sessionObj.sttLanguageLocked = true;
-          console.log(`[STT:${callId}] Detected ${detectedLang} from audio — reconnecting STT for better transcription...`);
+        // Multi mode (en/hi/es/fr/de/ru/pt/ja/it/nl) handles code-switching natively.
+        // For languages NOT in multi (bn, ta, te, gu, kn, ml, pa, mr), reconnect STT
+        // to that specific language for accurate transcription.
+        const MULTI_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
+        if (!MULTI_LANGUAGES.has(detectedLang) && sessionObj.stt.language !== detectedLang) {
+          console.log(`[STT:${callId}] Language ${detectedLang} not in multi set — reconnecting STT...`);
           sessionObj.stt.switchLanguage(detectedLang).catch(err => {
             console.error(`[STT:${callId}] Language switch failed:`, err.message);
-            sessionObj.sttLanguageLocked = false; // Allow retry
           });
         }
       }
 
-      // Fallback: if no language field from Cartesia, detect Indic scripts in the text
-      if (!detectedLang && sessionObj.call.autoDetectLanguage && !sessionObj.sttLanguageLocked && isFinal && text) {
+      // Fallback: if no language field from STT, detect Indic scripts in the text
+      if (!detectedLang && sessionObj.call.autoDetectLanguage && isFinal && text) {
         const scriptLangMap = [
           { pattern: /[\u0980-\u09FF]/, lang: 'bn' }, // Bengali
           { pattern: /[\u0A80-\u0AFF]/, lang: 'gu' }, // Gujarati
@@ -1398,11 +1398,13 @@ async function initSession(callId, call, ws, streamSid) {
           if (pattern.test(text)) {
             console.log(`[STT:${callId}] No language field — detected ${lang} from script in text`);
             sessionObj.sttDetectedLanguage = lang;
-            sessionObj.sttLanguageLocked = true;
-            sessionObj.stt.switchLanguage(lang).catch(err => {
-              console.error(`[STT:${callId}] Script-based language switch failed:`, err.message);
-              sessionObj.sttLanguageLocked = false;
-            });
+            // Reconnect if not in multi set
+            const MULTI_LANGS = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
+            if (!MULTI_LANGS.has(lang) && sessionObj.stt.language !== lang) {
+              sessionObj.stt.switchLanguage(lang).catch(err => {
+                console.error(`[STT:${callId}] Script-based language switch failed:`, err.message);
+              });
+            }
             break;
           }
         }
@@ -1769,7 +1771,13 @@ async function processUserSpeech(callId, text) {
       const genderHint = ['hi', 'mr', 'pa', 'gu', 'bn'].includes(langHint)
         ? ` You are ${genderForm} — use ${genderForm} verb forms (e.g. ${langHint === 'hi' ? (session.call.gender === 'female' ? 'रही हूँ, करती हूँ, बोल रही हूँ' : 'रहा हूँ, करता हूँ, बोल रहा हूँ') : `${genderForm} conjugations`}).`
         : '';
-      textForClaude = `[SYSTEM: The respondent just switched to ${langName}. You MUST respond entirely in ${langName} from this point. Use natural ${langName} grammar and vocabulary, not translated English.${genderHint} Prefix your response with [LANG:${langHint}].] ${textForClaude}`;
+      // For languages in Deepgram multi set (en/hi), transcription is accurate.
+      // For others (bn/ta/te/etc.), first turn may be garbled since STT is reconnecting.
+      const MULTI_LANGS = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
+      const garbledNote = !MULTI_LANGS.has(langHint)
+        ? ' The text below may be garbled because speech recognition is switching languages — do NOT try to interpret the literal words, just switch language and continue naturally.'
+        : '';
+      textForClaude = `[SYSTEM: The respondent just switched to ${langName}. You MUST respond entirely in ${langName} from this point. Use natural ${langName} grammar and vocabulary, not translated English.${genderHint}${garbledNote} Prefix your response with [LANG:${langHint}].] ${textForClaude}`;
       console.log(`[Call:${callId}] Language switch detected: ${session.previousSpokenLanguage} → ${langHint}, injecting strong hint`);
     }
     session.previousSpokenLanguage = langHint;
@@ -1850,15 +1858,13 @@ async function processUserSpeech(callId, text) {
             updateCall(callId, { detectedLanguage: ttsLanguage });
 
             // Switch STT to match Claude's detected language.
-            // Handles: first auto-detect lock, mid-call code-switching, and
-            // fixed-language calls where the user speaks a different language.
-            if (session.stt.language !== ttsLanguage) {
+            // Multi mode handles en/hi natively — only reconnect for other languages.
+            const MULTI_LANGS = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
+            if (session.stt.language !== ttsLanguage && !MULTI_LANGS.has(ttsLanguage)) {
               session.sttDetectedLanguage = ttsLanguage;
-              console.log(`[STT:${callId}] Switching STT ${session.stt.language} → ${ttsLanguage} (Claude language change)`);
-              session.sttLanguageLocked = false;
+              console.log(`[STT:${callId}] Switching STT ${session.stt.language} → ${ttsLanguage} (Claude language change, not in multi)`);
               session.stt.switchLanguage(ttsLanguage).then(() => {
-                session.sttLanguageLocked = true;
-                console.log(`[STT:${callId}] STT now locked to ${ttsLanguage}`);
+                console.log(`[STT:${callId}] STT now set to ${ttsLanguage}`);
               }).catch(err => {
                 console.error(`[STT:${callId}] STT language switch failed:`, err.message);
               });

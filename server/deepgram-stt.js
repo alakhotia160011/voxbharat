@@ -52,11 +52,12 @@ export class DeepgramSTT {
       url.searchParams.set('vad_events', 'true');
       // utterance_end_ms removed — causes 400 on free tier / Nova-3
 
-      // Language: 'auto' → start with 'hi' (greeting is Hindi).
-      // Deepgram's 'multi' code-switching mode returns 400 on some plans.
-      // Language switch happens via switchLanguage() when non-English/non-Hindi is detected.
+      // Language: 'auto' → use 'multi' for native English/Hindi code-switching.
+      // Nova-3 multi supports: en, hi, es, fr, de, ru, pt, ja, it, nl.
+      // For languages not in multi (bn, ta, te, etc.), switchLanguage() reconnects.
       if (this.language === 'auto') {
-        url.searchParams.set('language', 'hi');
+        url.searchParams.set('language', 'multi');
+        url.searchParams.set('endpointing', '100'); // Deepgram recommends 100ms for code-switching
       } else {
         url.searchParams.set('language', this.language);
       }
