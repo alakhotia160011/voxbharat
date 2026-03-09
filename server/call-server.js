@@ -1323,6 +1323,8 @@ async function initSession(callId, call, ws, streamSid) {
     earlyUserSpeech: '',
     // Buffer audio packets that arrive before STT WebSocket connects (~first 200ms after pickup)
     preConnectAudioBuffer: [],
+    // Track previous spoken_language hint to detect mid-conversation language switches
+    previousSpokenLanguage: null,
   };
 
   // Select STT provider — default to cartesia, fallback for unsupported Deepgram languages
@@ -1755,6 +1757,15 @@ async function processUserSpeech(callId, text) {
   // Add language hint for auto-detect mode
   if (langHint) {
     textForClaude = `[spoken_language:${langHint}] ${textForClaude}`;
+
+    // Detect mid-conversation language switch and inject a strong signal
+    if (session.previousSpokenLanguage && langHint !== session.previousSpokenLanguage) {
+      const langNames = { hi: 'Hindi', bn: 'Bengali', ta: 'Tamil', te: 'Telugu', mr: 'Marathi', gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam', pa: 'Punjabi', en: 'English' };
+      const langName = langNames[langHint] || langHint;
+      textForClaude = `[SYSTEM: The respondent just switched to ${langName}. You MUST respond entirely in ${langName} from this point. Use natural ${langName} grammar and vocabulary, not translated English. Prefix your response with [LANG:${langHint}].] ${textForClaude}`;
+      console.log(`[Call:${callId}] Language switch detected: ${session.previousSpokenLanguage} → ${langHint}, injecting strong hint`);
+    }
+    session.previousSpokenLanguage = langHint;
   }
 
   // Prevent infinite question loops: if Claude has repeated the same question 2+ times,
