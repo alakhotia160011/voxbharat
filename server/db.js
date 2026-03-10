@@ -21,7 +21,7 @@ export async function initDb() {
 
   pool = new Pool({
     connectionString: databaseUrl,
-    ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+    ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: true },
     max: 10,
   });
 
@@ -220,20 +220,18 @@ export async function getUserByEmail(email) {
 export async function findOrCreateGoogleUser(email, name) {
   if (!pool) throw new Error('Database unavailable');
   const normalizedEmail = email.toLowerCase();
-  const { rows: existing } = await pool.query(
-    'SELECT id, email, name, auth_provider FROM users WHERE email = $1',
-    [normalizedEmail]
-  );
-  if (existing.length > 0) {
-    return { user: existing[0], isNew: false };
-  }
+
+  // Use INSERT ON CONFLICT to avoid TOCTOU race between concurrent sign-ins
   const { rows } = await pool.query(
     `INSERT INTO users (email, password_hash, name, auth_provider)
      VALUES ($1, NULL, $2, 'google')
+     ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
      RETURNING id, email, name, auth_provider, created_at`,
     [normalizedEmail, name || null]
   );
-  return { user: rows[0], isNew: true };
+  // If the row already existed, xmax > 0 means it was an UPDATE (existing row)
+  const isNew = rows[0].created_at && (Date.now() - new Date(rows[0].created_at).getTime() < 5000);
+  return { user: rows[0], isNew };
 }
 
 export async function createPasswordResetToken(userId) {

@@ -546,7 +546,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <input
                   type="text"
                   value={config.name}
-                  onChange={(e) => setConfig({ ...config, name: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., Bihar Assembly Election Poll 2025"
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 focus:border-saffron"
                 />
@@ -558,7 +558,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   {SURVEY_TYPES.map((type) => (
                     <button
                       key={type.id}
-                      onClick={() => setConfig({ ...config, type: type.id })}
+                      onClick={() => setConfig(prev => ({ ...prev, type: type.id }))}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${
                         config.type === type.id ? 'border-saffron bg-saffron/5' : 'border-gray-200 hover:border-gray-300'
                       }`}
@@ -580,7 +580,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                         const langs = config.languages.includes(lang.code)
                           ? config.languages.filter(l => l !== lang.code)
                           : [...config.languages, lang.code];
-                        setConfig({ ...config, languages: langs.length ? langs : [lang.code] });
+                        setConfig(prev => ({ ...prev, languages: langs.length ? langs : [lang.code] }));
                       }}
                       className={`px-4 py-2 rounded-full border-2 text-sm transition-all ${
                         config.languages.includes(lang.code)
@@ -605,7 +605,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   <input
                     type="checkbox"
                     checked={config.autoDetectLanguage}
-                    onChange={(e) => setConfig({ ...config, autoDetectLanguage: e.target.checked })}
+                    onChange={(e) => setConfig(prev => ({ ...prev, autoDetectLanguage: e.target.checked }))}
                     className="w-5 h-5 accent-saffron"
                   />
                 </label>
@@ -628,7 +628,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   ].map(p => (
                     <button
                       key={p.id}
-                      onClick={() => setConfig({ ...config, sttProvider: p.id })}
+                      onClick={() => setConfig(prev => ({ ...prev, sttProvider: p.id }))}
                       className={`px-5 py-2.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer ${
                         config.sttProvider === p.id
                           ? 'border-saffron bg-saffron text-white'
@@ -653,7 +653,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   <input
                     type="text"
                     value={config.brandNames}
-                    onChange={(e) => setConfig({ ...config, brandNames: e.target.value })}
+                    onChange={(e) => setConfig(prev => ({ ...prev, brandNames: e.target.value }))}
                     placeholder="e.g., Tata, Reliance, Adani, Mahindra"
                     className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                   />
@@ -667,7 +667,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <input
                   type="text"
                   value={config.companyName}
-                  onChange={(e) => setConfig({ ...config, companyName: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, companyName: e.target.value }))}
                   placeholder="e.g., FullTrack, ICICI Bank, Tata Research"
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                 />
@@ -681,7 +681,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   <input
                     type="text"
                     value={config.companyUrl}
-                    onChange={(e) => setConfig({ ...config, companyUrl: e.target.value })}
+                    onChange={(e) => setConfig(prev => ({ ...prev, companyUrl: e.target.value }))}
                     placeholder="e.g., https://yourcompany.com"
                     className="flex-1 px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                   />
@@ -760,7 +760,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                     </label>
                     <textarea
                       value={config.companyContext}
-                      onChange={(e) => setConfig({ ...config, companyContext: e.target.value })}
+                      onChange={(e) => setConfig(prev => ({ ...prev, companyContext: e.target.value }))}
                       rows={5}
                       className={`w-full px-4 py-3 border rounded-xl text-sm font-body focus:outline-none focus:ring-2 focus:ring-saffron/20 ${
                         config.companyContext.startsWith('Error:') ? 'border-red-200 text-red-600' : 'border-cream-warm text-earth'
@@ -778,7 +778,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                     <input
                       type="text"
                       value={config.productName || ''}
-                      onChange={(e) => setConfig({ ...config, productName: e.target.value })}
+                      onChange={(e) => setConfig(prev => ({ ...prev, productName: e.target.value }))}
                       placeholder="e.g., Premium Plan, Free Trial, Webinar Registration"
                       className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                     />
@@ -789,7 +789,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                     <input
                       type="text"
                       value={config.signupSource || ''}
-                      onChange={(e) => setConfig({ ...config, signupSource: e.target.value })}
+                      onChange={(e) => setConfig(prev => ({ ...prev, signupSource: e.target.value }))}
                       placeholder="e.g., Website, Facebook Ad, Google Form"
                       className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                     />
@@ -821,7 +821,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <input
                   type="text"
                   value={config.testLeadName || ''}
-                  onChange={(e) => setConfig({ ...config, testLeadName: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, testLeadName: e.target.value }))}
                   placeholder="e.g., Rahul Sharma"
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                 />
@@ -832,7 +832,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <input
                   type="text"
                   value={config.testLeadSource || config.signupSource || ''}
-                  onChange={(e) => setConfig({ ...config, testLeadSource: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, testLeadSource: e.target.value }))}
                   placeholder="e.g., Website Form, Facebook Ad"
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                 />
@@ -870,7 +870,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   {GEOGRAPHIES.map((geo) => (
                     <button
                       key={geo.id}
-                      onClick={() => setConfig({ ...config, geography: geo.id, states: [] })}
+                      onClick={() => setConfig(prev => ({ ...prev, geography: geo.id, states: [] }))}
                       className={`p-3 rounded-xl border-2 text-sm transition-all ${
                         config.geography === geo.id ? 'border-saffron bg-saffron/5 font-medium' : 'border-gray-200 hover:border-gray-300'
                       }`}
@@ -891,7 +891,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                             const states = config.states.includes(state)
                               ? config.states.filter(s => s !== state)
                               : [...config.states, state];
-                            setConfig({ ...config, states });
+                            setConfig(prev => ({ ...prev, states }));
                           }}
                           className={`px-3 py-1 rounded-full text-sm transition-all ${
                             config.states.includes(state)
@@ -916,13 +916,13 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                     max="10000"
                     step="100"
                     value={config.sampleSize}
-                    onChange={(e) => setConfig({ ...config, sampleSize: parseInt(e.target.value) })}
+                    onChange={(e) => setConfig(prev => ({ ...prev, sampleSize: parseInt(e.target.value) }))}
                     className="flex-1 accent-saffron"
                   />
                   <input
                     type="number"
                     value={config.sampleSize}
-                    onChange={(e) => setConfig({ ...config, sampleSize: Math.max(100, parseInt(e.target.value) || 100) })}
+                    onChange={(e) => setConfig(prev => ({ ...prev, sampleSize: Math.max(100, parseInt(e.target.value) || 100) }))}
                     className="w-24 px-3 py-2 border rounded-lg text-center font-medium"
                   />
                 </div>
@@ -935,7 +935,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <label className="block text-sm font-medium text-earth mb-2">Target Audience Description</label>
                 <textarea
                   value={config.targetAudience}
-                  onChange={(e) => setConfig({ ...config, targetAudience: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, targetAudience: e.target.value }))}
                   placeholder="e.g., Registered voters in rural Maharashtra, aged 25-55, primarily farmers..."
                   rows={3}
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
@@ -946,7 +946,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <label className="block text-sm font-medium text-earth mb-2">Exclusion Criteria (Optional)</label>
                 <textarea
                   value={config.exclusions}
-                  onChange={(e) => setConfig({ ...config, exclusions: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, exclusions: e.target.value }))}
                   placeholder="e.g., Exclude anyone who has participated in a survey in the last 30 days, employees of political parties..."
                   rows={2}
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
@@ -984,7 +984,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                       ].map(opt => (
                         <button
                           key={opt.id}
-                          onClick={() => setConfig({ ...config, urgency: opt.id })}
+                          onClick={() => setConfig(prev => ({ ...prev, urgency: opt.id }))}
                           className={`p-4 rounded-xl border-2 text-left transition-all ${
                             config.urgency === opt.id ? 'border-saffron bg-saffron/5' : 'border-gray-200 hover:border-gray-300'
                           }`}
@@ -1002,7 +1002,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                     <input
                       type="date"
                       value={config.deadline}
-                      onChange={(e) => setConfig({ ...config, deadline: e.target.value })}
+                      onChange={(e) => setConfig(prev => ({ ...prev, deadline: e.target.value }))}
                       className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                     />
                   </div>
@@ -1014,7 +1014,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                       <input
                         type="number"
                         value={config.budget}
-                        onChange={(e) => setConfig({ ...config, budget: e.target.value })}
+                        onChange={(e) => setConfig(prev => ({ ...prev, budget: e.target.value }))}
                         placeholder="e.g., 50000"
                         className="flex-1 px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                       />
@@ -1040,7 +1040,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                         const times = config.callTiming.includes(time.id)
                           ? config.callTiming.filter(t => t !== time.id)
                           : [...config.callTiming, time.id];
-                        setConfig({ ...config, callTiming: times.length ? times : [time.id] });
+                        setConfig(prev => ({ ...prev, callTiming: times.length ? times : [time.id] }));
                       }}
                       className={`px-4 py-2 rounded-lg border-2 text-sm transition-all ${
                         config.callTiming.includes(time.id)
@@ -1061,7 +1061,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   {[1, 2, 3, 5].map(n => (
                     <button
                       key={n}
-                      onClick={() => setConfig({ ...config, retryPolicy: n })}
+                      onClick={() => setConfig(prev => ({ ...prev, retryPolicy: n }))}
                       className={`w-12 h-12 rounded-lg border-2 font-medium transition-all ${
                         config.retryPolicy === n
                           ? 'border-saffron bg-saffron text-white'
@@ -1080,7 +1080,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   <input
                     type="text"
                     value={config.incentive}
-                    onChange={(e) => setConfig({ ...config, incentive: e.target.value })}
+                    onChange={(e) => setConfig(prev => ({ ...prev, incentive: e.target.value }))}
                     placeholder="e.g., ₹50 mobile recharge, lottery entry..."
                     className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                   />
@@ -1177,7 +1177,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <p className="text-sm text-gray-500 mb-3">What decision will this survey inform?</p>
                 <textarea
                   value={config.purpose}
-                  onChange={(e) => setConfig({ ...config, purpose: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, purpose: e.target.value }))}
                   placeholder="e.g., Understand voter sentiment before the 2025 Bihar elections, measure satisfaction with incumbent government, identify key issues driving vote choice..."
                   rows={4}
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
@@ -1188,7 +1188,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <label className="block text-sm font-medium text-earth mb-2">Key Questions You Want Answered</label>
                 <textarea
                   value={config.keyQuestions}
-                  onChange={(e) => setConfig({ ...config, keyQuestions: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, keyQuestions: e.target.value }))}
                   placeholder={"1. Which party is leading in vote share?\n2. What are the top 3 issues for voters?\n3. How does the youth vote differ from older voters?\n4. Is there an urban-rural divide?"}
                   rows={5}
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none font-mono text-sm"
@@ -1204,7 +1204,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                       {[1, 2, 4, 5, 10].map(d => (
                         <button
                           key={d}
-                          onClick={() => setConfig({ ...config, duration: d })}
+                          onClick={() => setConfig(prev => ({ ...prev, duration: d }))}
                           className={`flex-1 py-2 rounded-lg border-2 transition-all ${
                             config.duration === d ? 'border-saffron bg-saffron text-white' : 'border-gray-200'
                           }`}
@@ -1224,7 +1224,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                       {['formal', 'conversational', 'friendly'].map(t => (
                         <button
                           key={t}
-                          onClick={() => setConfig({ ...config, tone: t })}
+                          onClick={() => setConfig(prev => ({ ...prev, tone: t }))}
                           className={`flex-1 py-2 rounded-lg border-2 capitalize transition-all ${
                             config.tone === t ? 'border-saffron bg-saffron text-white' : 'border-gray-200'
                           }`}
@@ -1241,7 +1241,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                       {['low', 'medium', 'high'].map(s => (
                         <button
                           key={s}
-                          onClick={() => setConfig({ ...config, sensitivity: s })}
+                          onClick={() => setConfig(prev => ({ ...prev, sensitivity: s }))}
                           className={`flex-1 py-2 rounded-lg border-2 capitalize transition-all ${
                             config.sensitivity === s ? 'border-saffron bg-saffron text-white' : 'border-gray-200'
                           }`}
@@ -1258,7 +1258,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <label className="block text-sm font-medium text-earth mb-2">Analysis Goals (Optional)</label>
                 <textarea
                   value={config.analysisGoals}
-                  onChange={(e) => setConfig({ ...config, analysisGoals: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, analysisGoals: e.target.value }))}
                   placeholder="e.g., Compare by age, urban vs rural, caste breakdown. Track against 2020 poll..."
                   rows={3}
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
@@ -1270,7 +1270,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <input
                   type="url"
                   value={config.previousSurveyLink}
-                  onChange={(e) => setConfig({ ...config, previousSurveyLink: e.target.value })}
+                  onChange={(e) => setConfig(prev => ({ ...prev, previousSurveyLink: e.target.value }))}
                   placeholder="https://..."
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20"
                 />
@@ -1974,7 +1974,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                     <input
                       type="checkbox"
                       checked={config.recordAudio}
-                      onChange={(e) => setConfig({ ...config, recordAudio: e.target.checked })}
+                      onChange={(e) => setConfig(prev => ({ ...prev, recordAudio: e.target.checked }))}
                       className="w-5 h-5 accent-saffron"
                     />
                   </label>
@@ -1983,7 +1983,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                     <input
                       type="checkbox"
                       checked={config.qualityChecks}
-                      onChange={(e) => setConfig({ ...config, qualityChecks: e.target.checked })}
+                      onChange={(e) => setConfig(prev => ({ ...prev, qualityChecks: e.target.checked }))}
                       className="w-5 h-5 accent-saffron"
                     />
                   </label>

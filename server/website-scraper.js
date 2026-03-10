@@ -57,16 +57,39 @@ export async function scrapeWebsite(url) {
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
   try {
-    const response = await fetch(normalizedUrl, {
+    let response = await fetch(normalizedUrl, {
       signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; VoxBharat/1.0; +https://voxbharat.com)',
         'Accept': 'text/html,application/xhtml+xml',
       },
-      redirect: 'follow',
+      redirect: 'manual',
     });
 
-    if (!response.ok) {
+    // Follow redirects manually — validate each redirect target against private IPs
+    let redirects = 0;
+    while (response.status >= 300 && response.status < 400 && redirects < 5) {
+      const location = response.headers.get('location');
+      if (!location) break;
+      const redirectUrl = new URL(location, normalizedUrl);
+      try {
+        const addrs = await resolve(redirectUrl.hostname);
+        if (addrs.some(isPrivateIP)) throw new Error('Internal URLs are not allowed');
+      } catch (err) {
+        if (err.message === 'Internal URLs are not allowed') throw err;
+      }
+      response = await fetch(redirectUrl.href, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; VoxBharat/1.0; +https://voxbharat.com)',
+          'Accept': 'text/html,application/xhtml+xml',
+        },
+        redirect: 'manual',
+      });
+      redirects++;
+    }
+
+    if (!response.ok && !(response.status >= 300 && response.status < 400)) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 

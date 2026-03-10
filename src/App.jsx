@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
 import PageShell from './components/layout/PageShell';
@@ -66,9 +67,9 @@ export default function VoxBharat() {
   // ── Survey Builder (full-screen overlay) ──
   if (showBuilder) {
     return (
-      <Suspense fallback={<PageLoader />}>
+      <ErrorBoundary><Suspense fallback={<PageLoader />}>
         <FullSurveyBuilder onClose={() => setShowBuilder(false)} onLaunch={handleLaunch} />
-      </Suspense>
+      </Suspense></ErrorBoundary>
     );
   }
 
@@ -76,11 +77,11 @@ export default function VoxBharat() {
   if (currentPage === 'how-it-works') {
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary><Suspense fallback={<PageLoader />}>
           <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
             <HowItWorksPage navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
           </PageShell>
-        </Suspense>
+        </Suspense></ErrorBoundary>
         <CallMeWidget />
       </>
     );
@@ -89,11 +90,11 @@ export default function VoxBharat() {
   if (currentPage === 'about') {
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary><Suspense fallback={<PageLoader />}>
           <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
             <AboutPage navigateTo={navigateTo} />
           </PageShell>
-        </Suspense>
+        </Suspense></ErrorBoundary>
         <CallMeWidget />
       </>
     );
@@ -102,11 +103,11 @@ export default function VoxBharat() {
   if (currentPage === 'faqs') {
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary><Suspense fallback={<PageLoader />}>
           <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
             <FaqsPage navigateTo={navigateTo} />
           </PageShell>
-        </Suspense>
+        </Suspense></ErrorBoundary>
         <CallMeWidget />
       </>
     );
@@ -115,11 +116,11 @@ export default function VoxBharat() {
   if (currentPage === 'memo') {
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary><Suspense fallback={<PageLoader />}>
           <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
             <MemoPage navigateTo={navigateTo} />
           </PageShell>
-        </Suspense>
+        </Suspense></ErrorBoundary>
         <CallMeWidget />
       </>
     );
@@ -128,11 +129,11 @@ export default function VoxBharat() {
   if (currentPage === 'dashboard') {
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary><Suspense fallback={<PageLoader />}>
           <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
             <DashboardPage setShowBuilder={setShowBuilder} />
           </PageShell>
-        </Suspense>
+        </Suspense></ErrorBoundary>
         <CallMeWidget />
       </>
     );
@@ -141,11 +142,11 @@ export default function VoxBharat() {
   if (currentPage.startsWith('reset-password')) {
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary><Suspense fallback={<PageLoader />}>
           <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
             <ResetPasswordPage navigateTo={navigateTo} />
           </PageShell>
-        </Suspense>
+        </Suspense></ErrorBoundary>
         <CallMeWidget />
       </>
     );
@@ -154,11 +155,11 @@ export default function VoxBharat() {
   if (currentPage === 'data-policy') {
     return (
       <>
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary><Suspense fallback={<PageLoader />}>
           <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
             <DataPolicyPage navigateTo={navigateTo} />
           </PageShell>
-        </Suspense>
+        </Suspense></ErrorBoundary>
         <CallMeWidget />
       </>
     );
