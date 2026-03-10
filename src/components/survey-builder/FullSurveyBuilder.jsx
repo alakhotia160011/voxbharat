@@ -1117,7 +1117,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
                 <label className="block text-sm font-medium text-earth mb-3">Your Qualifying Questions</label>
-                <p className="text-xs text-earth-mid/60 mb-4">These are asked after identity + signup confirmation. Keep them short — one sentence each.</p>
+                <p className="text-xs text-earth-mid/60 mb-4">These are asked after identity + signup confirmation. Keep them short, one sentence each.</p>
                 {questions.map((q, i) => (
                   <div key={q.id} className="flex items-center gap-2 mb-3">
                     <span className="text-sm text-gray-400 w-6">{i + 1}.</span>
@@ -1323,7 +1323,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                     <span className="w-7 h-7 rounded-full bg-saffron text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
                     <div>
                       <div className="font-medium text-sm text-earth">Signup Intent</div>
-                      <div className="text-xs text-gray-500 mt-1">"You recently signed up for {config.productName || '[Product]'}. Just wanted to confirm — was that you?"</div>
+                      <div className="text-xs text-gray-500 mt-1">"You recently signed up for {config.productName || '[Product]'}. Just wanted to confirm, was that you?"</div>
                     </div>
                   </div>
                   {questions.length > 0 && (
@@ -1919,8 +1919,8 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                 <div className="bg-white rounded-2xl p-6 shadow-sm border">
                   <h3 className="font-semibold text-earth mb-3">Verification Flow</h3>
                   <div className="space-y-2">
-                    <div className="p-2 bg-cream-warm rounded-lg text-sm">1. Identity confirmation — "Am I speaking with [name]?"</div>
-                    <div className="p-2 bg-cream-warm rounded-lg text-sm">2. Signup intent — "You signed up for {config.productName}. Was that you?"</div>
+                    <div className="p-2 bg-cream-warm rounded-lg text-sm">1. Identity confirmation: "Am I speaking with [name]?"</div>
+                    <div className="p-2 bg-cream-warm rounded-lg text-sm">2. Signup intent: "You signed up for {config.productName}. Was that you?"</div>
                     {questions.map((q, i) => (
                       <div key={q.id} className="p-2 bg-cream-warm rounded-lg text-sm">{i + 3}. {q.textEn || q.text}</div>
                     ))}

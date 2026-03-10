@@ -9,7 +9,7 @@ const quickstart = [
   {
     numeral: '१',
     title: 'Get your API key',
-    description: 'Log into the dashboard and create an API key. The full key is shown once — save it.',
+    description: 'Log into the dashboard and create an API key. The full key is shown once, so save it.',
     code: `curl -X POST https://voxbharat-production.up.railway.app/api/v1/api-keys \\
   -H "Authorization: Bearer <your-jwt-token>" \\
   -H "Content-Type: application/json" \\
@@ -73,7 +73,7 @@ curl -X POST https://voxbharat-production.up.railway.app/api/v1/campaigns \\
   {
     numeral: '४',
     title: 'Get results',
-    description: 'Retrieve transcripts, structured responses, sentiment, and demographics — all in real-time.',
+    description: 'Retrieve transcripts, structured responses, sentiment, and demographics, all in real-time.',
     code: `# Get call results
 curl https://voxbharat-production.up.railway.app/api/v1/calls/<call-id> \\
   -H "Authorization: Bearer vxb_live_a1b2c3d4..."
