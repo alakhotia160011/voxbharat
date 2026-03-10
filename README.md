@@ -20,33 +20,33 @@ VoxBharat conducts voice surveys that feel like a conversation with a real perso
 ### The Call Flow
 
 ```
-┌──────────────┐     ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │  Survey      │────▶│  Campaign    │────▶│  Twilio      │────▶│  Respondent  │
 │  Designer    │     │  Runner      │     │  Voice API   │     │  Phone       │
-└──────────────┘     └─────────────┘     └──────────────┘     └──────┬───────┘
+└──────────────┘     └──────────────┘     └──────────────┘     └──────┬───────┘
                                                                       │
                                               ┌───────────────────────┘
                                               │ Audio (mu-law)
                                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Real-time Audio Pipeline                             │
-│                                                                             │
-│  Phone Audio ──▶ STT (Deepgram/Cartesia) ──▶ Claude LLM ──▶ TTS (Cartesia)│
-│       ▲              transcription              response         speech     │
-│       │                                                             │       │
-│       └─────────────────────────────────────────────────────────────┘       │
-│                              WebSocket (low-latency)                        │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         Real-time Audio Pipeline                               │
+│                                                                                │
+│  Phone Audio ──▶ STT (Deepgram/Cartesia) ──▶ Claude LLM ──▶ TTS (Cartesia)   │
+│       ▲              transcription              response         speech        │
+│       │                                                            │           │
+│       └────────────────────────────────────────────────────────────┘           │
+│                              WebSocket (low-latency)                           │
+└─────────────────────────────────────────────────────────────────────────────────┘
                                               │
                                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Real-time Data Extraction                           │
-│                                                                             │
-│  Transcript ──▶ Translation ──▶ Sentiment ──▶ Demographics ──▶ Structured  │
-│  (verbatim)     (to English)    (per turn)     (age, gender)    Responses   │
-│                                                                             │
-│                          All stored in PostgreSQL                            │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                          Real-time Data Extraction                             │
+│                                                                                │
+│  Transcript ──▶ Translation ──▶ Sentiment ──▶ Demographics ──▶ Structured     │
+│  (verbatim)     (to English)    (per turn)     (age, gender)    Responses      │
+│                                                                                │
+│                           All stored in PostgreSQL                             │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Step by step:**
@@ -69,42 +69,42 @@ VoxBharat conducts voice surveys that feel like a conversation with a real perso
 ## Architecture
 
 ```
-                    ┌─────────────────────────────┐
-                    │        Vercel (Frontend)      │
-                    │                               │
-                    │  React + Vite + Tailwind v4   │
-                    │  ├── Landing page             │
-                    │  ├── Survey builder            │
-                    │  ├── Campaign manager           │
-                    │  ├── Dashboard + analytics      │
-                    │  └── Auth (JWT + Google OAuth)  │
-                    │                               │
-                    │  Serverless Functions:          │
-                    │  ├── /api/generate-questions   │
-                    │  └── /api/tts (voice preview)  │
-                    └──────────────┬────────────────┘
-                                   │ HTTPS
-                    ┌──────────────▼────────────────┐
-                    │     Railway (Call Server)       │
-                    │                                │
-                    │  Express + WebSocket            │
-                    │  ├── Twilio voice webhooks      │
-                    │  ├── Real-time audio pipeline   │
-                    │  ├── Campaign orchestration     │
-                    │  ├── Inbound call handling      │
-                    │  ├── Auth + user APIs           │
-                    │  └── Data export (CSV/JSON)     │
-                    └───┬──────────┬─────────┬──────┘
-                        │          │         │
-              ┌─────────▼┐   ┌────▼────┐  ┌─▼───────────┐
-              │  Twilio   │   │Postgres │  │ AI Services  │
-              │  (Voice)  │   │  (Data) │  │              │
-              │           │   │         │  │ Claude (LLM) │
-              │ Calls     │   │ Users   │  │ Cartesia TTS │
-              │ Webhooks  │   │ Calls   │  │ Deepgram STT │
-              │ Recording │   │ Surveys │  │ Cartesia STT │
-              └───────────┘   │Campaigns│  └──────────────┘
-                              └─────────┘
+                    ┌──────────────────────────────────────┐
+                    │         Vercel (Frontend)            │
+                    │                                      │
+                    │  React + Vite + Tailwind v4          │
+                    │  - Landing page                      │
+                    │  - Survey builder                    │
+                    │  - Campaign manager                  │
+                    │  - Dashboard + analytics             │
+                    │  - Auth (JWT + Google OAuth)         │
+                    │                                      │
+                    │  Serverless Functions:                │
+                    │  - /api/generate-questions            │
+                    │  - /api/tts (voice preview)          │
+                    └──────────────────┬───────────────────┘
+                                       │ HTTPS
+                    ┌──────────────────▼───────────────────┐
+                    │       Railway (Call Server)           │
+                    │                                      │
+                    │  Express + WebSocket                 │
+                    │  - Twilio voice webhooks             │
+                    │  - Real-time audio pipeline          │
+                    │  - Campaign orchestration            │
+                    │  - Inbound call handling             │
+                    │  - Auth + user APIs                  │
+                    │  - Data export (CSV/JSON)            │
+                    └──┬───────────┬───────────┬───────────┘
+                       │           │           │
+              ┌────────▼───┐  ┌────▼──────┐  ┌─▼──────────────┐
+              │  Twilio     │  │ Postgres  │  │  AI Services   │
+              │  (Voice)    │  │ (Data)    │  │                │
+              │             │  │           │  │  Claude (LLM)  │
+              │  Calls      │  │  Users    │  │  Cartesia TTS  │
+              │  Webhooks   │  │  Calls    │  │  Deepgram STT  │
+              │  Recording  │  │  Surveys  │  │  Cartesia STT  │
+              └─────────────┘  │  Campaigns│  └────────────────┘
+                               └───────────┘
 ```
 
 ### Tech Stack
