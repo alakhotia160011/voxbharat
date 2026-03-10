@@ -59,7 +59,6 @@ export default function VoxBharat() {
   }, []);
 
   const handleLaunch = (config, questions) => {
-    console.log('Launching survey:', config, questions);
     alert(`Survey "${config.name}" launched!\n${questions.length} questions\n${config.sampleSize} target responses`);
     setShowBuilder(false);
   };
@@ -160,6 +159,28 @@ export default function VoxBharat() {
             <DataPolicyPage navigateTo={navigateTo} />
           </PageShell>
         </Suspense></ErrorBoundary>
+        <CallMeWidget />
+      </>
+    );
+  }
+
+  // ── 404 — unknown routes ──
+  const knownPages = ['home', 'how-it-works', 'about', 'faqs', 'memo', 'dashboard', 'data-policy'];
+  if (currentPage !== 'home' && !knownPages.includes(currentPage) && !currentPage.startsWith('reset-password')) {
+    return (
+      <>
+        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+          <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-8">
+            <p className="font-display text-6xl font-bold text-earth mb-4">404</p>
+            <p className="font-body text-earth-mid text-lg mb-6">Page not found</p>
+            <button
+              onClick={() => navigateTo('home')}
+              className="px-6 py-3 bg-saffron text-white rounded-full font-body hover:bg-saffron/90 transition-colors"
+            >
+              Go Home
+            </button>
+          </div>
+        </PageShell>
         <CallMeWidget />
       </>
     );

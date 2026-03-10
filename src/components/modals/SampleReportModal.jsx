@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarChart from '../shared/BarChart';
 import { modalBackdrop, modalContainer } from '../../styles/animations';
@@ -6,6 +6,13 @@ import { modalBackdrop, modalContainer } from '../../styles/animations';
 const sectionNumerals = ['१', '२', '३', '४', '५'];
 
 export default function SampleReportModal({ show, onClose, data, onCreateSurvey }) {
+  useEffect(() => {
+    if (!show) return;
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [show, onClose]);
+
   return (
     <AnimatePresence>
       {show && (

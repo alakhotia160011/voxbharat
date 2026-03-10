@@ -4,22 +4,32 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'https://voxbharat.com';
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-5-20250929';
+
+const VALID_TYPES = new Set(['political', 'market', 'customer', 'employee', 'social', 'custom', 'verification']);
+const VALID_GEOGRAPHIES = new Set(['national', 'state', 'urban', 'rural', 'metro']);
+const INDIAN_STATES = new Set([
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Delhi', 'Jammu & Kashmir', 'Ladakh',
+]);
 
 export default async function handler(req, res) {
   // CORS — restrict to frontend origin
   res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // API key check — prevents unauthorized usage (fails closed if not configured)
-  const API_SECRET = process.env.API_SECRET;
-  if (!API_SECRET) {
-    return res.status(500).json({ error: 'API secret not configured' });
-  }
-  if (req.headers['x-api-key'] !== API_SECRET) {
+  // Origin check — only allow requests from the frontend
+  const origin = req.headers.origin || req.headers.referer || '';
+  if (!origin.startsWith(ALLOWED_ORIGIN)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
@@ -34,9 +44,24 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields: config.type, config.purpose' });
     }
 
+    // Validate survey type against allowlist
+    if (!VALID_TYPES.has(config.type)) {
+      return res.status(400).json({ error: 'Invalid survey type' });
+    }
+
+    // Validate states against allowlist
+    if (config.states?.length) {
+      config.states = config.states.filter(s => typeof s === 'string' && INDIAN_STATES.has(s));
+    }
+
+    // Validate geography
+    if (config.geography && !VALID_GEOGRAPHIES.has(config.geography)) {
+      config.geography = 'national';
+    }
+
     // Input length validation
     const MAX_FIELD_LENGTH = 5000;
-    for (const field of ['purpose', 'keyQuestions', 'targetAudience', 'analysisGoals', 'brandNames']) {
+    for (const field of ['purpose', 'keyQuestions', 'targetAudience', 'analysisGoals', 'brandNames', 'companyContext', 'name', 'exclusions']) {
       if (config[field] && typeof config[field] === 'string' && config[field].length > MAX_FIELD_LENGTH) {
         return res.status(400).json({ error: `Field ${field} exceeds maximum length` });
       }
@@ -57,17 +82,17 @@ export default async function handler(req, res) {
 
 SURVEY CONFIGURATION:
 - Type: ${config.type}
-- Name: ${config.name || 'Untitled Survey'}
+- Name: ${(config.name || 'Untitled Survey').slice(0, 200)}
 - Primary Language: ${langName} (${primaryLanguage})
-- Purpose: ${config.purpose}
-- Key Questions to Answer: ${config.keyQuestions || 'Not specified'}
-- Target Audience: ${config.targetAudience || 'General population'}
+- Purpose: ${config.purpose.slice(0, MAX_FIELD_LENGTH)}
+- Key Questions to Answer: ${(config.keyQuestions || 'Not specified').slice(0, MAX_FIELD_LENGTH)}
+- Target Audience: ${(config.targetAudience || 'General population').slice(0, MAX_FIELD_LENGTH)}
 - Geography: ${config.geography || 'National'}${config.states?.length ? ` (${config.states.join(', ')})` : ''}
 - Tone: ${config.tone || 'conversational'}
 - Sensitivity Level: ${config.sensitivity || 'low'}
 - Target Duration: ${config.duration || 10} minutes
-- Analysis Goals: ${config.analysisGoals || 'Not specified'}
-- Brand Names (if market research): ${config.brandNames || 'None'}${config.companyContext ? `
+- Analysis Goals: ${(config.analysisGoals || 'Not specified').slice(0, MAX_FIELD_LENGTH)}
+- Brand Names (if market research): ${(config.brandNames || 'None').slice(0, MAX_FIELD_LENGTH)}${config.companyContext ? `
 - Company/Organization Context: ${config.companyContext.slice(0, 1500)}` : ''}
 
 INSTRUCTIONS:
@@ -120,7 +145,7 @@ Call the generate_survey_questions tool with all the questions and the greetingT
     };
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 4096,
       tools: [questionTool],
       tool_choice: { type: 'tool', name: 'generate_survey_questions' },

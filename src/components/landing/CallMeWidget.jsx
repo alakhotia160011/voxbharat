@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
+import { CALL_SERVER } from '../../utils/config';
 const formatPhoneInput = (value) => value.replace(/\D/g, '').slice(0, 12);
 
 const COUNTRIES = [
@@ -138,35 +137,23 @@ function RingPulse() {
 // ─────────────────────────────────────────────
 function AudioBars({ speaking = false }) {
   const barCount = 16;
-  const [heights, setHeights] = useState(() => Array(barCount).fill(3));
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setHeights(prev => prev.map((_, i) => {
-        if (!speaking) return 3; // flat when silent
-        const center = Math.abs(i - (barCount - 1) / 2) / ((barCount - 1) / 2);
-        const maxH = 38 * (1 - center * 0.5);
-        return Math.random() * maxH + 4;
-      }));
-    }, 70);
-    return () => clearInterval(interval);
-  }, [speaking]);
-
   return (
     <div className="flex items-center justify-center h-14 mx-auto" style={{ gap: 2.5 }}>
-      {heights.map((h, i) => {
+      {Array.from({ length: barCount }, (_, i) => {
         const center = Math.abs(i - (barCount - 1) / 2) / ((barCount - 1) / 2);
-        const opacity = speaking ? 0.4 + (1 - center) * 0.4 + (h / 42) * 0.2 : 0.15;
+        const maxH = 38 * (1 - center * 0.5);
         return (
           <div
             key={i}
             className="rounded-full"
             style={{
               width: 3,
-              height: h,
-              background: `linear-gradient(180deg, #fbbf6c ${Math.max(0, 100 - h * 2)}%, #e8550f 100%)`,
-              opacity,
-              transition: 'height 80ms ease-out, opacity 200ms ease-out',
+              height: speaking ? maxH : 3,
+              background: 'linear-gradient(180deg, #fbbf6c 20%, #e8550f 100%)',
+              opacity: speaking ? 0.4 + (1 - center) * 0.5 : 0.15,
+              transition: speaking ? 'none' : 'height 200ms ease-out, opacity 200ms ease-out',
+              animation: speaking ? `cmwAudioBar ${0.3 + i * 0.05}s ease-in-out infinite alternate` : 'none',
+              transformOrigin: 'center',
             }}
           />
         );
@@ -215,23 +202,11 @@ function AnimatedCheck() {
 // ─────────────────────────────────────────────
 // Floating button — always alive, even at rest
 // ─────────────────────────────────────────────
+const FLOAT_BARS = [0.3, 0.55, 0.8, 1, 0.8, 0.55, 0.3];
+
 function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave }) {
-  const [tick, setTick] = useState(0);
-  // Always animate — faster when hovered/active, lively even at rest
-  const speed = isHovered || isActive ? 55 : 130;
-
-  useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), speed);
-    return () => clearInterval(interval);
-  }, [speed]);
-
-  const bars = [0.3, 0.55, 0.8, 1, 0.8, 0.55, 0.3].map((base, i) => {
-    const phase = (tick * (isHovered || isActive ? 0.45 : 0.28)) + i * 1.2;
-    const wave = Math.sin(phase) * 0.42 + 0.58;
-    return base * wave * 20;
-  });
-
   const glowIntensity = isHovered || isActive;
+  const fast = isHovered || isActive;
 
   return (
     <motion.button
@@ -287,16 +262,17 @@ function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave
               className="flex items-center justify-center"
               style={{ gap: 2.5, height: 22 }}
             >
-              {bars.map((h, i) => (
+              {FLOAT_BARS.map((base, i) => (
                 <div
                   key={i}
                   className="rounded-full"
                   style={{
                     width: 2.5,
-                    height: Math.max(3, h),
+                    height: Math.max(3, base * 20),
                     background: 'linear-gradient(180deg, #fbbf6c, #e8550f)',
-                    opacity: 0.6 + (h / 20) * 0.4,
-                    transition: `height ${speed < 100 ? 50 : 110}ms ease-out`,
+                    opacity: 0.7,
+                    transformOrigin: 'center',
+                    animation: `cmwFloatBar ${fast ? 0.3 + i * 0.06 : 0.8 + i * 0.12}s ease-in-out infinite alternate`,
                   }}
                 />
               ))}
@@ -323,12 +299,14 @@ export default function CallMeWidget() {
   const [isHovered, setIsHovered] = useState(false);
   const pollRef = useRef(null);
   const timerRef = useRef(null);
+  const timeoutRef = useRef(null);
   const countryRef = useRef(null);
 
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
@@ -418,7 +396,7 @@ export default function CallMeWidget() {
           }
         } catch { /* ignore */ }
       }, 2000);
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         if (pollRef.current) {
           clearInterval(pollRef.current); pollRef.current = null;
           setCallState(prev => prev === 'ringing' ? 'error' : prev);
@@ -711,6 +689,16 @@ export default function CallMeWidget() {
         onHover={() => setIsHovered(true)}
         onLeave={() => setIsHovered(false)}
       />
+      <style>{`
+        @keyframes cmwAudioBar {
+          0% { transform: scaleY(0.3); }
+          100% { transform: scaleY(1); }
+        }
+        @keyframes cmwFloatBar {
+          0% { transform: scaleY(0.4); }
+          100% { transform: scaleY(1); }
+        }
+      `}</style>
     </div>
   );
 }

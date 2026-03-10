@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-
-const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
-const TOKEN_KEY = 'voxbharat_token';
-function getToken() { return localStorage.getItem(TOKEN_KEY); }
-function authFetch(url, opts = {}) {
-  const token = getToken();
-  return fetch(url, { ...opts, headers: { ...opts.headers, ...(token ? { Authorization: `Bearer ${token}` } : {}), 'Content-Type': 'application/json' } });
-}
+import { authFetch } from '../../utils/auth';
+import { CALL_SERVER } from '../../utils/config';
 
 const LANGUAGES = [
   { code: 'hi', label: 'Hindi' },
@@ -53,6 +47,7 @@ export default function InboundConfigForm({ onBack, onCreated }) {
     try {
       const res = await authFetch(`${CALL_SERVER}/api/inbound-configs`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
           surveyConfig: selectedProject,

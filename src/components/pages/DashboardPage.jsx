@@ -11,8 +11,8 @@ import InboundConfigForm from '../inbound/InboundConfigForm';
 import FullSurveyBuilder from '../survey-builder/FullSurveyBuilder';
 import { generateCallPDF, generateProjectPDF } from '../../utils/pdfExport';
 
-const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
-const TOKEN_KEY = 'voxbharat_token';
+import { getToken, setToken, clearToken, authFetch } from '../../utils/auth';
+import { CALL_SERVER } from '../../utils/config';
 const sectionNumerals = ['१', '२', '३', '४'];
 
 // Built-in survey question map (snake_case field → camelCase key in `structured`)
@@ -57,37 +57,6 @@ function buildQuestionAnswerPairs(callData) {
 function formatAnswer(val) {
   if (val == null || val === '') return null;
   return String(val).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
-
-// ─── Auth helpers ───────────────────────────────────────────
-
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-function authFetch(url, options = {}) {
-  const token = getToken();
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  }).then(r => {
-    if (r.status === 401) {
-      clearToken();
-      window.dispatchEvent(new Event('voxbharat-logout'));
-    }
-    return r;
-  });
 }
 
 // ─── Shared UI ──────────────────────────────────────────────

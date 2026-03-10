@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { modalBackdrop, modalContainer } from '../../styles/animations';
 
 const sectionNumerals = ['१', '२', '३'];
+
+function useEscapeKey(show, onClose) {
+  useEffect(() => {
+    if (!show) return;
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [show, onClose]);
+}
 
 const bubbleVariants = {
   hidden: (role) => ({
@@ -17,6 +26,8 @@ const bubbleVariants = {
 };
 
 export default function SampleCallLogModal({ show, onClose, data }) {
+  useEscapeKey(show, onClose);
+
   return (
     <AnimatePresence>
       {show && (

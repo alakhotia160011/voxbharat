@@ -2,10 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { LANGUAGES } from '../../data/languages';
 import { SURVEY_TYPES, QUESTION_TYPES, GEOGRAPHIES, INDIAN_STATES } from '../../data/surveyTypes';
 import VoiceWave from '../shared/VoiceWave';
+import { CALL_SERVER } from '../../utils/config';
 
 // ============================================
 // FULL SURVEY BUILDER COMPONENT
 // ============================================
+
+const PREVIEW_VOICES = [
+  { id: '86d3b948-5a63-49e4-98c5-b67da63aba50', name: 'Hindi Female', lang: 'hi' },
+  { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', lang: 'hi' },
+  { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', lang: 'bn' },
+  { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', lang: 'bn' },
+  { id: '07bc462a-c644-49f1-baf7-82d5599131be', name: 'Telugu Female', lang: 'te' },
+  { id: '5c32dce6-936a-4892-b131-bafe474afe5f', name: 'Marathi Female', lang: 'mr' },
+  { id: 'f227bc18-3704-47fe-b759-8c78a450fdfa', name: 'Marathi Male', lang: 'mr' },
+  { id: '25d2c432-139c-4035-bfd6-9baaabcdd006', name: 'Tamil Female', lang: 'ta' },
+  { id: '4590a461-bc68-4a50-8d14-ac04f5923d22', name: 'Gujarati Female', lang: 'gu' },
+  { id: '91925fe5-42ee-4ebe-96c1-c84b12a85a32', name: 'Gujarati Male', lang: 'gu' },
+  { id: '7c6219d2-e8d2-462c-89d8-7ecba7c75d65', name: 'Kannada Female', lang: 'kn' },
+  { id: '6baae46d-1226-45b5-a976-c7f9b797aae2', name: 'Kannada Male', lang: 'kn' },
+  { id: 'b426013c-002b-4e89-8874-8cd20b68373a', name: 'Malayalam Female', lang: 'ml' },
+  { id: '374b80da-e622-4dfc-90f6-1eeb13d331c9', name: 'Malayalam Male', lang: 'ml' },
+  { id: '991c62ce-631f-48b0-8060-2a0ebecbd15b', name: 'Punjabi Female', lang: 'pa' },
+  { id: '8bacd442-a107-4ec1-b6f1-2fcb3f6f4d56', name: 'Punjabi Male', lang: 'pa' },
+  { id: 'f8f5f1b2-f02d-4d8e-a40d-fd850a487b3d', name: 'English Female', lang: 'en' },
+  { id: '1259b7e3-cb8a-43df-9446-30971a46b8b0', name: 'English Male', lang: 'en' },
+];
 
 const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
   const [step, setStep] = useState(initialSurvey ? 3 : 1);
@@ -26,12 +48,14 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
   const [draftSaved, setDraftSaved] = useState(false);
   const [scanningWebsite, setScanningWebsite] = useState(false);
   const testCallPollRef = useRef(null);
+  const testCallTimeoutRef = useRef(null);
   const audioPreviewRef = useRef(null);
 
   // Clean up polling on unmount
   useEffect(() => {
     return () => {
       if (testCallPollRef.current) clearInterval(testCallPollRef.current);
+      if (testCallTimeoutRef.current) clearTimeout(testCallTimeoutRef.current);
     };
   }, []);
 
@@ -66,27 +90,6 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
     }
   }, [testCallStatus]);
 
-  const PREVIEW_VOICES = [
-    { id: '86d3b948-5a63-49e4-98c5-b67da63aba50', name: 'Hindi Female', lang: 'hi' },
-    { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', lang: 'hi' },
-    { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', lang: 'bn' },
-    { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', lang: 'bn' },
-    { id: '07bc462a-c644-49f1-baf7-82d5599131be', name: 'Telugu Female', lang: 'te' },
-    { id: '5c32dce6-936a-4892-b131-bafe474afe5f', name: 'Marathi Female', lang: 'mr' },
-    { id: 'f227bc18-3704-47fe-b759-8c78a450fdfa', name: 'Marathi Male', lang: 'mr' },
-    { id: '25d2c432-139c-4035-bfd6-9baaabcdd006', name: 'Tamil Female', lang: 'ta' },
-    { id: '4590a461-bc68-4a50-8d14-ac04f5923d22', name: 'Gujarati Female', lang: 'gu' },
-    { id: '91925fe5-42ee-4ebe-96c1-c84b12a85a32', name: 'Gujarati Male', lang: 'gu' },
-    { id: '7c6219d2-e8d2-462c-89d8-7ecba7c75d65', name: 'Kannada Female', lang: 'kn' },
-    { id: '6baae46d-1226-45b5-a976-c7f9b797aae2', name: 'Kannada Male', lang: 'kn' },
-    { id: 'b426013c-002b-4e89-8874-8cd20b68373a', name: 'Malayalam Female', lang: 'ml' },
-    { id: '374b80da-e622-4dfc-90f6-1eeb13d331c9', name: 'Malayalam Male', lang: 'ml' },
-    { id: '991c62ce-631f-48b0-8060-2a0ebecbd15b', name: 'Punjabi Female', lang: 'pa' },
-    { id: '8bacd442-a107-4ec1-b6f1-2fcb3f6f4d56', name: 'Punjabi Male', lang: 'pa' },
-    { id: 'f8f5f1b2-f02d-4d8e-a40d-fd850a487b3d', name: 'English Female', lang: 'en' },
-    { id: '1259b7e3-cb8a-43df-9446-30971a46b8b0', name: 'English Male', lang: 'en' },
-  ];
-
   // Play text using Cartesia TTS via server proxy (API key kept server-side)
   const playVoice = async (text, questionId = null) => {
     if (isPlayingVoice) {
@@ -107,7 +110,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       const voice = PREVIEW_VOICES.find(v => v.id === selectedPreviewVoice);
       const resp = await fetch('/api/tts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_SECRET || '' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text,
           voiceId: selectedPreviewVoice,
@@ -257,7 +260,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
     try {
       const response = await fetch('/api/generate-questions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': import.meta.env.VITE_API_SECRET || '' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config }),
         signal: AbortSignal.timeout(90000),
       });
@@ -324,8 +327,6 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
     setQuestions([...questions, newQ]);
     setEditingQuestion(newQ.id);
   };
-
-  const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || 'http://localhost:3002';
 
   const initiateTestCall = async () => {
     if (!testPhoneNumber.trim()) return;
@@ -446,7 +447,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       }, 2000);
 
       // Stop polling after 10 minutes
-      setTimeout(() => {
+      testCallTimeoutRef.current = setTimeout(() => {
         if (testCallPollRef.current) {
           clearInterval(testCallPollRef.current);
           testCallPollRef.current = null;
@@ -690,7 +691,6 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                       if (!config.companyUrl) return;
                       setScanningWebsite(true);
                       try {
-                        const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || 'http://localhost:3002';
                         const token = localStorage.getItem('voxbharat_token');
                         const res = await fetch(`${CALL_SERVER}/api/scrape-website`, {
                           method: 'POST',
@@ -728,7 +728,6 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                         if (!file) return;
                         setScanningWebsite(true);
                         try {
-                          const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || 'http://localhost:3002';
                           const token = localStorage.getItem('voxbharat_token');
                           const res = await fetch(`${CALL_SERVER}/api/upload-context-doc`, {
                             method: 'POST',
