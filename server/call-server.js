@@ -41,6 +41,7 @@ import {
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
 import { createApiV1Router } from './routes/api-v1.js';
+import { startIdempotencyCleanup } from './middleware/idempotency.js';
 import { dispatchWebhook } from './webhook-dispatcher.js';
 import { scrapeWebsite } from './website-scraper.js';
 import { createRequire } from 'module';
@@ -103,22 +104,6 @@ async function notifySignup(email, name) {
     console.error('Signup notification email failed:', e.message);
   }
 }
-
-// Temporary email test endpoint — remove after confirming email works
-app.get('/api/test-email', requireAuth, async (req, res) => {
-  if (!mailTransport) return res.status(500).json({ error: 'Mail transport not configured', GMAIL_USER: !!GMAIL_USER, GMAIL_APP_PASSWORD: !!GMAIL_APP_PASSWORD });
-  try {
-    const info = await mailTransport.sendMail({
-      from: `VoxBharat <${GMAIL_USER}>`,
-      to: GMAIL_USER,
-      subject: 'VoxBharat Email Test',
-      text: `Email test at ${new Date().toISOString()}. If you see this, email is working.`,
-    });
-    res.json({ success: true, messageId: info.messageId, response: info.response });
-  } catch (err) {
-    res.status(500).json({ error: err.message, code: err.code, command: err.command });
-  }
-});
 
 // Languages supported natively by Deepgram multi-language mode (no STT reconnect needed)
 const MULTI_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
@@ -228,6 +213,22 @@ const requireAuth = (req, res, next) => {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
+
+// Temporary email test endpoint — remove after confirming email works
+app.get('/api/test-email', requireAuth, async (req, res) => {
+  if (!mailTransport) return res.status(500).json({ error: 'Mail transport not configured', GMAIL_USER: !!GMAIL_USER, GMAIL_APP_PASSWORD: !!GMAIL_APP_PASSWORD });
+  try {
+    const info = await mailTransport.sendMail({
+      from: `VoxBharat <${GMAIL_USER}>`,
+      to: GMAIL_USER,
+      subject: 'VoxBharat Email Test',
+      text: `Email test at ${new Date().toISOString()}. If you see this, email is working.`,
+    });
+    res.json({ success: true, messageId: info.messageId, response: info.response });
+  } catch (err) {
+    res.status(500).json({ error: err.message, code: err.code, command: err.command });
+  }
+});
 
 // Per-call state: conversation instances, STT sessions, timers
 const callSessions = new Map();
@@ -2601,6 +2602,9 @@ initDb().then(async () => {
     },
   });
   await campaignRunner.init();
+
+  // Clean up expired idempotency keys every hour
+  startIdempotencyCleanup();
 
   // Auto-configure Twilio number to point inbound calls to our webhook
   if (TWILIO_PHONE && PUBLIC_URL && !PUBLIC_URL.includes('localhost')) {

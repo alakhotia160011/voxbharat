@@ -38,12 +38,15 @@ function requireDb(req, res, next) {
 }
 
 function requireJwt(req, res, next) {
+  if (!JWT_SECRET) {
+    return res.status(503).json({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Authentication not configured' } });
+  }
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Authentication required' } });
   }
   try {
-    const decoded = jwt.verify(header.slice(7), JWT_SECRET);
+    const decoded = jwt.verify(header.slice(7), JWT_SECRET, { algorithms: ['HS256'] });
     req.user = decoded;
     next();
   } catch {
@@ -56,7 +59,9 @@ function wrap(fn) {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch((err) => {
       console.error(`[API v1] ${req.method} ${req.path} error (${req.requestId}):`, err.message);
-      res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error', requestId: req.requestId } });
+      if (!res.headersSent) {
+        res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error', requestId: req.requestId } });
+      }
     });
   };
 }
@@ -145,16 +150,31 @@ async function validateWebhookUrl(url) {
   const hostname = parsed.hostname;
 
   // Block localhost variants
-  if (hostname === 'localhost' || hostname === '0.0.0.0') return false;
+  if (['localhost', '0.0.0.0', '127.0.0.1', '[::1]', '[::]'].includes(hostname)) return false;
+  // Block raw IPv6 in brackets
+  if (hostname.startsWith('[')) return false;
+  // Block raw IPv4 addresses (must use real hostnames)
+  if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    return !isPrivateIp(hostname);
+  }
 
-  // Resolve hostname and check all IPs
+  // Resolve hostname — check both IPv4 and IPv6
   try {
-    const addresses = await dns.resolve4(hostname);
+    const [v4, v6] = await Promise.allSettled([
+      dns.resolve4(hostname),
+      dns.resolve6(hostname),
+    ]);
+    const addresses = [
+      ...(v4.status === 'fulfilled' ? v4.value : []),
+      ...(v6.status === 'fulfilled' ? v6.value : []),
+    ];
+    // If DNS resolves to nothing, block it
+    if (addresses.length === 0) return false;
+    // Check all resolved IPs — IPv6 are blocked by isPrivateIp (non-4-part → true)
     return addresses.every(ip => !isPrivateIp(ip));
   } catch {
-    // DNS resolution failed — might be valid but unreachable, allow it
-    // (delivery will fail and webhook will be disabled after retries)
-    return true;
+    // DNS resolution failed entirely — block (don't allow unresolvable hosts)
+    return false;
   }
 }
 
@@ -522,7 +542,6 @@ Call the generate_survey_questions tool with all the questions and the greetingT
     if (!call.recording_url) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'No recording available' } });
 
     // Proxy the recording from Twilio
-    const twilio = await import('twilio');
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
 
@@ -566,7 +585,16 @@ Call the generate_survey_questions tool with all the questions and the greetingT
       }
       surveyConfig = survey.config;
     } else if (req.body.surveyConfig) {
-      surveyConfig = req.body.surveyConfig;
+      // Validate inline config has required fields
+      const sc = req.body.surveyConfig;
+      if (!sc || typeof sc !== 'object' || !sc.name || !sc.questions) {
+        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'surveyConfig must include name and questions' } });
+      }
+      const qErr = validateQuestions(sc.questions);
+      if (qErr) {
+        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: `surveyConfig.questions: ${qErr}` } });
+      }
+      surveyConfig = sc;
     } else {
       return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'surveyName or surveyConfig is required' } });
     }
@@ -578,7 +606,7 @@ Call the generate_survey_questions tool with all the questions and the greetingT
       gender: ['male', 'female'].includes(gender) ? gender : 'female',
       autoDetectLanguage: autoDetectLanguage || false,
       concurrency: Math.min(Math.max(1, concurrency || 2), 2),
-      maxRetries: maxRetries ?? 3,
+      maxRetries: Math.min(Math.max(0, maxRetries ?? 3), 10),
       callTiming: callTiming || ['morning', 'afternoon', 'evening'],
     });
 
@@ -801,6 +829,10 @@ Call the generate_survey_questions tool with all the questions and the greetingT
   }));
 
   router.get('/webhooks/:id/deliveries', wrap(async (req, res) => {
+    // Verify webhook belongs to this user before returning deliveries
+    const webhook = await getWebhookById(req.user.id, req.params.id);
+    if (!webhook) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Webhook not found' } });
+
     const limit = parseInt(req.query.limit, 10) || 20;
     const deliveries = await getDeliveries(req.params.id, { limit });
     res.json({ data: deliveries });

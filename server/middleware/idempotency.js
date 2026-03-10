@@ -19,7 +19,7 @@ export function idempotency(req, res, next) {
   const userId = req.user?.id;
   if (!userId) return next();
 
-  pool.query('SELECT response_status, response_body FROM idempotency_keys WHERE key = $1 AND user_id = $2', [key, userId])
+  pool.query('SELECT response_status, response_body FROM idempotency_keys WHERE key = $1 AND user_id = $2 AND created_at > NOW() - INTERVAL \'24 hours\'', [key, userId])
     .then(({ rows }) => {
       if (rows.length > 0) {
         // Return cached response
@@ -43,4 +43,18 @@ export function idempotency(req, res, next) {
       next();
     })
     .catch(() => next());
+}
+
+/**
+ * Periodically clean up expired idempotency keys (older than 24 hours).
+ * Call once at server startup.
+ */
+export function startIdempotencyCleanup() {
+  const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+  setInterval(() => {
+    const pool = getPool();
+    if (!pool) return;
+    pool.query("DELETE FROM idempotency_keys WHERE created_at < NOW() - INTERVAL '24 hours'")
+      .catch(() => {});
+  }, CLEANUP_INTERVAL);
 }
