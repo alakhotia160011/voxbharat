@@ -1,6 +1,10 @@
 // VoxBharat Call Server - Twilio + Cartesia STT/TTS + Claude
 // Handles real phone calls with AI voice surveys
 
+// Force IPv4 DNS resolution — Railway doesn't support IPv6 outbound
+import dns from 'dns';
+dns.setDefaultResultOrder('ipv4first');
+
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
@@ -68,7 +72,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
-  ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD }, dnsOptions: { family: 4 } })
+  ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } })
   : null;
 console.log(`[Email] Mail transport: ${mailTransport ? `configured (user: ${GMAIL_USER})` : 'NOT configured — GMAIL_USER or GMAIL_APP_PASSWORD missing'}`);
 
