@@ -40,6 +40,8 @@ import {
   getBucketMappings, saveBucketMappingsBatch, deleteBucketMapping,
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
+import { createApiV1Router } from './routes/api-v1.js';
+import { dispatchWebhook } from './webhook-dispatcher.js';
 import { scrapeWebsite } from './website-scraper.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -72,9 +74,21 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
-  ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } })
+  ? nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    })
   : null;
-console.log(`[Email] Mail transport: ${mailTransport ? `configured (user: ${GMAIL_USER})` : 'NOT configured — GMAIL_USER or GMAIL_APP_PASSWORD missing'}`);
+console.log(`[Email] Mail transport: ${mailTransport ? `configured (user: ${GMAIL_USER}, password length: ${GMAIL_APP_PASSWORD.length})` : 'NOT configured — GMAIL_USER or GMAIL_APP_PASSWORD missing'}`);
+
+// Verify email credentials at startup so bad config is caught early
+if (mailTransport) {
+  mailTransport.verify()
+    .then(() => console.log('[Email] SMTP credentials verified — email sending is working'))
+    .catch(err => console.error(`[Email] SMTP verification FAILED — emails will NOT send. Error: ${err.message}`));
+}
 
 async function notifySignup(email, name) {
   if (!mailTransport || !NOTIFY_EMAIL) return;
@@ -89,6 +103,22 @@ async function notifySignup(email, name) {
     console.error('Signup notification email failed:', e.message);
   }
 }
+
+// Temporary email test endpoint — remove after confirming email works
+app.get('/api/test-email', requireAuth, async (req, res) => {
+  if (!mailTransport) return res.status(500).json({ error: 'Mail transport not configured', GMAIL_USER: !!GMAIL_USER, GMAIL_APP_PASSWORD: !!GMAIL_APP_PASSWORD });
+  try {
+    const info = await mailTransport.sendMail({
+      from: `VoxBharat <${GMAIL_USER}>`,
+      to: GMAIL_USER,
+      subject: 'VoxBharat Email Test',
+      text: `Email test at ${new Date().toISOString()}. If you see this, email is working.`,
+    });
+    res.json({ success: true, messageId: info.messageId, response: info.response });
+  } catch (err) {
+    res.status(500).json({ error: err.message, code: err.code, command: err.command });
+  }
+});
 
 // Languages supported natively by Deepgram multi-language mode (no STT reconnect needed)
 const MULTI_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
@@ -153,8 +183,19 @@ const demoLimiter = rateLimit({
   message: { error: 'Too many demo calls. Please try again later.' },
 });
 
-// Apply general rate limiter to all /api/ routes
-app.use('/api/', apiLimiter);
+// Apply general rate limiter to all /api/ routes (except /api/v1/ which has its own)
+app.use('/api/', (req, res, next) => {
+  if (req.path.startsWith('/v1/')) return next();
+  return apiLimiter(req, res, next);
+});
+
+// Mount public API v1 router
+const apiV1Router = createApiV1Router({
+  initiateCallFn: (...args) => initiateCall(...args),
+  campaignRunnerRef: () => campaignRunner,
+  getActiveCallsFn: getActiveCalls,
+});
+app.use('/api/v1', apiV1Router);
 
 // Twilio webhook signature validation (Finding #4)
 const validateTwilioSignature = (req, res, next) => {
@@ -360,11 +401,9 @@ function isValidCallId(id) {
 
 // Health check
 app.get('/call/health', (req, res) => {
-  const calls = getActiveCalls();
   res.json({
     status: 'ok',
-    activeCalls: calls.length,
-    calls: calls.map(c => ({ id: c.id, status: c.status, started: c.createdAt })),
+    activeCalls: getActiveCalls().length,
   });
 });
 
@@ -464,7 +503,7 @@ app.post('/call/initiate', requireAuth, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('[Call] Initiation failed:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Call initiation failed' });
   }
 });
 
@@ -814,7 +853,7 @@ app.post('/call/:id/end', requireAuth, async (req, res) => {
     await handleCallEnd(call.id, 'force-ended');
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -909,9 +948,12 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
     const token = await createPasswordResetToken(user.id);
     const frontendBase = FRONTEND_URL ? FRONTEND_URL.split(',')[0].trim() : 'https://voxbharat.ai';
     const resetLink = `${frontendBase}/#reset-password?token=${token}`;
-    // Send email in background so the response isn't blocked by Gmail timeouts
-    if (mailTransport) {
-      mailTransport.sendMail({
+    if (!mailTransport) {
+      console.error('Password reset email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not configured');
+      return res.status(500).json({ error: 'Email service not configured. Contact support.' });
+    }
+    try {
+      await mailTransport.sendMail({
         from: `VoxBharat <${GMAIL_USER}>`,
         to: email,
         subject: 'Reset your VoxBharat password',
@@ -924,10 +966,11 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
             <p style="color: #888; font-size: 13px;">If you did not request this, you can safely ignore this email.</p>
           </div>
         `,
-      }).then(() => console.log(`Password reset email sent to ${email}`))
-        .catch(err => console.error(`Password reset email failed for ${email}:`, err.message));
-    } else {
-      console.warn('Password reset email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not configured');
+      });
+      console.log(`[Email] Password reset email sent to ${email}`);
+    } catch (emailErr) {
+      console.error(`[Email] Password reset email failed for ${email}:`, emailErr.message);
+      return res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });
     }
     res.json({ message: 'If an account exists with that email, a reset link has been sent.' });
   } catch (e) {
@@ -1062,32 +1105,39 @@ app.get('/api/projects/:name/export/csv', requireAuth, requireDb, async (req, re
 // ─── Bucket Mappings ─────────────────────────────────
 app.get('/api/projects/:name/bucket-mappings', requireAuth, requireDb, async (req, res) => {
   try {
+    // Verify user owns this project
+    const projects = await getProjects(req.user.id);
+    if (!projects.some(p => p.project_name === req.params.name)) return res.status(403).json({ error: 'Forbidden' });
     const mappings = await getBucketMappings(req.params.name);
     res.json(mappings);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: 'Failed to load mappings' }); }
 });
 
 app.post('/api/projects/:name/bucket-mappings', requireAuth, requireDb, async (req, res) => {
   try {
+    const projects = await getProjects(req.user.id);
+    if (!projects.some(p => p.project_name === req.params.name)) return res.status(403).json({ error: 'Forbidden' });
     const { mappings } = req.body;
     if (!Array.isArray(mappings)) return res.status(400).json({ error: 'mappings array required' });
     await saveBucketMappingsBatch(req.params.name, mappings);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: 'Failed to save mappings' }); }
 });
 
 app.delete('/api/projects/:name/bucket-mappings', requireAuth, requireDb, async (req, res) => {
   try {
+    const projects = await getProjects(req.user.id);
+    if (!projects.some(p => p.project_name === req.params.name)) return res.status(403).json({ error: 'Forbidden' });
     const { field, rawValue } = req.body;
     if (!field || !rawValue) return res.status(400).json({ error: 'field and rawValue required' });
     await deleteBucketMapping(req.params.name, field, rawValue);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: 'Failed to delete mapping' }); }
 });
 
 app.get('/api/calls/:id/recording', requireAuth, requireDb, async (req, res) => {
   try {
-    const call = await getCallById(req.params.id);
+    const call = await getCallById(req.params.id, req.user.id);
     if (!call) return res.status(404).json({ error: 'Call not found' });
     if (!call.recording_url) return res.status(404).json({ error: 'No recording available' });
 
@@ -1111,7 +1161,7 @@ app.get('/api/calls/:id/recording', requireAuth, requireDb, async (req, res) => 
       res.end();
     };
     await pump();
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: 'Failed to fetch recording' }); }
 });
 
 // Scrape a website for company context
@@ -1122,7 +1172,7 @@ app.post('/api/scrape-website', requireAuth, async (req, res) => {
     const result = await scrapeWebsite(url);
     res.json(result);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: 'Failed to scrape website' });
   }
 });
 
@@ -1137,6 +1187,10 @@ app.post('/api/upload-context-doc', requireAuth, express.raw({ type: ['applicati
     let title = '';
 
     if (contentType.includes('application/pdf')) {
+      // Validate PDF magic bytes (%PDF-)
+      if (req.body.length < 5 || req.body.slice(0, 5).toString() !== '%PDF-') {
+        return res.status(400).json({ error: 'Invalid PDF file' });
+      }
       const data = await pdfParse(req.body);
       text = data.text || '';
       pageCount = data.numpages || 0;
@@ -1160,7 +1214,7 @@ app.post('/api/upload-context-doc', requireAuth, express.raw({ type: ['applicati
     res.json({ content: text, pageCount, title });
   } catch (error) {
     console.error('[Upload] PDF parse error:', error.message);
-    res.status(400).json({ error: 'Failed to parse document: ' + error.message });
+    res.status(400).json({ error: 'Failed to parse document' });
   }
 });
 
@@ -2274,6 +2328,20 @@ async function handleCallEnd(callId, reason) {
     campaignRunner.onCallCompleted(finalCall.id, finalCall.campaignId, numberStatus);
   }
 
+  // Dispatch webhooks for call completion/failure
+  if (finalCall?.userId) {
+    const webhookEvent = (reason === 'completed' || finalCall.status === 'saved') ? 'call.completed' : 'call.failed';
+    dispatchWebhook(finalCall.userId, webhookEvent, {
+      callId: finalCall.id,
+      surveyName: finalCall.customSurvey?.name || null,
+      phoneNumber: finalCall.phoneNumber,
+      duration: finalCall.connectedAt && finalCall.endedAt
+        ? Math.round((new Date(finalCall.endedAt) - new Date(finalCall.connectedAt)) / 1000) : null,
+      status: reason,
+      summary: finalCall.extractedData?.summary || null,
+    }).catch(err => console.error(`[Webhook] Dispatch error for call ${callId}:`, err.message));
+  }
+
   // Inbound campaign callback — mark the campaign number as completed
   if (finalCall?.direction === 'inbound' && finalCall?.campaignId) {
     completeCampaignCallback(finalCall.campaignId, finalCall.phoneNumber, finalCall.id)
@@ -2342,7 +2410,7 @@ app.post('/api/campaigns', requireAuth, requireDb, async (req, res) => {
     res.json({ ...campaign, progress });
   } catch (error) {
     console.error('[Campaign API] Create error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2352,7 +2420,7 @@ app.get('/api/campaigns', requireAuth, requireDb, async (req, res) => {
     const campaigns = await getCampaignsByUser(req.user.id);
     res.json(campaigns);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2368,7 +2436,7 @@ app.get('/api/campaigns/:id', requireAuth, requireDb, async (req, res) => {
 
     res.json({ campaign: { ...campaign, progress }, numbers });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2386,7 +2454,7 @@ app.post('/api/campaigns/:id/start', requireAuth, requireDb, async (req, res) =>
     const updated = await getCampaignById(campaign.id);
     res.json(updated);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: 'Operation failed' });
   }
 });
 
@@ -2403,7 +2471,7 @@ app.post('/api/campaigns/:id/pause', requireAuth, requireDb, async (req, res) =>
     const updated = await getCampaignById(campaign.id);
     res.json(updated);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: 'Operation failed' });
   }
 });
 
@@ -2420,7 +2488,7 @@ app.post('/api/campaigns/:id/cancel', requireAuth, requireDb, async (req, res) =
     const updated = await getCampaignById(campaign.id);
     res.json(updated);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: 'Operation failed' });
   }
 });
 
@@ -2447,7 +2515,7 @@ app.post('/api/inbound-configs', requireAuth, requireDb, async (req, res) => {
     res.json(config);
   } catch (error) {
     console.error('[Inbound API] Create error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2457,7 +2525,7 @@ app.get('/api/inbound-configs', requireAuth, requireDb, async (req, res) => {
     const configs = await getInboundConfigsByUser(req.user.id);
     res.json(configs);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2469,7 +2537,7 @@ app.get('/api/inbound-configs/:id', requireAuth, requireDb, async (req, res) => 
     if (config.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     res.json(config);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2483,7 +2551,7 @@ app.put('/api/inbound-configs/:id', requireAuth, requireDb, async (req, res) => 
     const updated = await updateInboundConfig(req.params.id, req.body);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2497,7 +2565,7 @@ app.delete('/api/inbound-configs/:id', requireAuth, requireDb, async (req, res) 
     await deleteInboundConfig(req.params.id);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2511,7 +2579,7 @@ app.post('/api/inbound-configs/:id/toggle', requireAuth, requireDb, async (req, 
     const updated = await toggleInboundConfig(req.params.id, !config.enabled);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -2525,6 +2593,12 @@ initDb().then(async () => {
   campaignRunner = new CampaignRunner({
     initiateCallFn: initiateCall,
     getActiveCallsFn: getActiveCalls,
+    onCampaignCompleted: (userId, campaignId, counts) => {
+      dispatchWebhook(userId, 'campaign.completed', {
+        campaignId,
+        progress: counts,
+      }).catch(err => console.error(`[Webhook] Campaign dispatch error:`, err.message));
+    },
   });
   await campaignRunner.init();
 

@@ -91,6 +91,11 @@ function formatMinutes(sec) {
   return Math.round(sec / 60).toLocaleString();
 }
 
+function maskPhone(phone) {
+  if (!phone || phone.length < 6) return phone || '-';
+  return phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4);
+}
+
 function EmptyState({ title, subtitle, onAction, actionLabel }) {
   return (
     <div className="bg-white border border-cream-warm rounded-xl py-16 px-8 text-center">
@@ -1013,7 +1018,7 @@ function ProjectDashboard({ projectName, onBack, onSelectCall }) {
                             })}
                           </td>
                           <td className="py-3.5 px-5 text-earth-mid whitespace-nowrap text-xs">
-                            {call.phone_number || '-'}
+                            {maskPhone(call.phone_number)}
                           </td>
                           <td className="py-3.5 px-5">
                             <span className="px-2.5 py-1 rounded-full text-xs bg-saffron/8 text-saffron font-medium border border-saffron/15">
@@ -1192,7 +1197,7 @@ function CallDetail({ callId, onBack, projectName }) {
             </div>
             {data.phone_number && (
               <div>
-                <div className="text-lg font-bold font-display">{data.phone_number}</div>
+                <div className="text-lg font-bold font-display">{maskPhone(data.phone_number)}</div>
                 <div className="text-xs text-white/50 font-body">Phone</div>
               </div>
             )}

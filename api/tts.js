@@ -31,8 +31,8 @@ export default async function handler(req, res) {
   }
 
   // Origin check — only allow requests from the frontend
-  const origin = req.headers.origin || req.headers.referer || '';
-  if (!origin.startsWith(ALLOWED_ORIGIN)) {
+  const origin = (req.headers.origin || req.headers.referer || '').replace(/\/+$/, '');
+  if (origin !== ALLOWED_ORIGIN && !origin.startsWith(ALLOWED_ORIGIN + '/')) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 

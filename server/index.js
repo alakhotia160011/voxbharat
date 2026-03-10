@@ -19,6 +19,13 @@ const PORT = 3001;
 
 const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY;
 
+// ⚠️  LOCAL DEV ONLY — this server is NOT deployed to production.
+// Production uses call-server.js with full auth. Do not expose this to the internet.
+if (process.env.NODE_ENV === 'production') {
+  console.error('index.js is for local development only. Use call-server.js in production.');
+  process.exit(1);
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -65,7 +72,7 @@ app.post('/api/tts', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Cartesia API error:', errorText);
-      return res.status(response.status).json({ error: 'TTS generation failed', details: errorText });
+      return res.status(response.status).json({ error: 'TTS generation failed' });
     }
 
     // Get audio bytes and return as base64
@@ -78,7 +85,7 @@ app.post('/api/tts', async (req, res) => {
     });
   } catch (error) {
     console.error('TTS proxy error:', error);
-    res.status(500).json({ error: 'Internal server error', message: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -184,7 +191,7 @@ Call the generate_survey_questions tool with all the questions.`;
     res.status(200).json({ questions });
   } catch (error) {
     console.error('Question generation error:', error);
-    res.status(500).json({ error: 'Failed to generate questions', message: error.message });
+    res.status(500).json({ error: 'Failed to generate questions' });
   }
 });
 
@@ -201,7 +208,7 @@ app.get('/api/surveys', requireDb, async (req, res) => {
     res.json(surveys);
   } catch (error) {
     console.error('Error fetching surveys:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -215,7 +222,7 @@ app.get('/api/surveys/:id', requireDb, async (req, res) => {
     res.json(survey);
   } catch (error) {
     console.error('Error fetching survey:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -226,7 +233,7 @@ app.get('/api/analytics', requireDb, async (req, res) => {
     res.json(analytics);
   } catch (error) {
     console.error('Error fetching analytics:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -239,7 +246,7 @@ app.get('/api/export/json', requireDb, async (req, res) => {
     res.json(allData);
   } catch (error) {
     console.error('Error exporting data:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -255,7 +262,7 @@ app.get('/api/export/csv', requireDb, async (req, res) => {
     res.send(csv);
   } catch (error) {
     console.error('Error exporting CSV:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -269,7 +276,7 @@ app.delete('/api/surveys/:id', requireDb, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting survey:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

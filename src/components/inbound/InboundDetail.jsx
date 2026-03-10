@@ -3,6 +3,11 @@ import { motion } from 'framer-motion';
 
 const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
 const TOKEN_KEY = 'voxbharat_token';
+
+function maskPhone(phone) {
+  if (!phone || phone.length < 6) return phone || '-';
+  return phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4);
+}
 function getToken() { return localStorage.getItem(TOKEN_KEY); }
 function authFetch(url, opts = {}) {
   const token = getToken();
@@ -202,7 +207,7 @@ export default function InboundDetail({ configId, onBack }) {
                         day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                       })}
                     </td>
-                    <td className="py-2.5 text-earth">{call.phone_number || 'Unknown'}</td>
+                    <td className="py-2.5 text-earth">{maskPhone(call.phone_number)}</td>
                     <td className="py-2.5 text-earth">
                       {call.recording_duration ? `${call.recording_duration}s` : '-'}
                     </td>
