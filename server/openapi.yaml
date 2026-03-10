@@ -1,0 +1,757 @@
+openapi: 3.0.3
+info:
+  title: VoxBharat Public API
+  description: |
+    REST API for programmatic access to VoxBharat's AI voice survey platform.
+    Enables AI agents and developers to create surveys, initiate calls,
+    run campaigns, and retrieve results.
+  version: 1.0.0
+  contact:
+    name: VoxBharat
+    url: https://voxbharat.com
+
+servers:
+  - url: https://voxbharat-production.up.railway.app/api/v1
+    description: Production
+  - url: http://localhost:3002/api/v1
+    description: Local development
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      description: "API key in format: vxb_live_<32 hex chars>"
+    JwtAuth:
+      type: http
+      scheme: bearer
+      description: JWT token from dashboard login
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Missing required field
+
+    Pagination:
+      type: object
+      properties:
+        cursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+
+    Question:
+      type: object
+      required: [id, type, text, textEn, required, category]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [single, multiple, likert, rating, nps, open, yes_no]
+        text:
+          type: string
+          description: Question in target language script
+        textEn:
+          type: string
+          description: English translation
+        options:
+          type: array
+          items:
+            type: string
+        required:
+          type: boolean
+        category:
+          type: string
+        min:
+          type: integer
+        max:
+          type: integer
+
+    Survey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        config:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Call:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phoneNumber:
+          type: string
+        status:
+          type: string
+        duration:
+          type: integer
+        language:
+          type: string
+        direction:
+          type: string
+          enum: [outbound, inbound]
+        transcript:
+          type: array
+          items:
+            type: object
+        extractedData:
+          type: object
+          properties:
+            responses:
+              type: object
+            demographics:
+              type: object
+            sentiment:
+              type: object
+            summary:
+              type: string
+        surveyName:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, paused, completed, cancelled]
+        progress:
+          type: object
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+
+paths:
+  # ─── API Keys (JWT auth) ─────────────────────
+  /api-keys:
+    post:
+      summary: Create API key
+      description: Creates a new API key. The full key is returned only once.
+      security:
+        - JwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                  example: Production
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        example: vxb_live_a1b2c3d4e5f6...
+                      id:
+                        type: integer
+                      name:
+                        type: string
+    get:
+      summary: List API keys
+      security:
+        - JwtAuth: []
+      responses:
+        '200':
+          description: List of API keys (without secrets)
+
+  /api-keys/{id}:
+    delete:
+      summary: Revoke API key
+      security:
+        - JwtAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Key revoked
+
+  # ─── Surveys ─────────────────────────────────
+  /surveys:
+    post:
+      summary: Create survey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, questions]
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [political, market, customer, employee, social, custom, verification]
+                purpose:
+                  type: string
+                languages:
+                  type: array
+                  items:
+                    type: string
+                    enum: [hi, bn, te, mr, ta, gu, kn, ml, pa, en]
+                questions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Question'
+                companyName:
+                  type: string
+                greetingTopic:
+                  type: string
+                tone:
+                  type: string
+                  enum: [conversational, formal, friendly]
+                duration:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+      responses:
+        '201':
+          description: Survey created
+    get:
+      summary: List surveys
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated survey list
+
+  /surveys/generate-questions:
+    post:
+      summary: AI-generate survey questions
+      description: Uses Claude to generate survey questions based on configuration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [config]
+              properties:
+                config:
+                  type: object
+                  required: [type, purpose]
+                  properties:
+                    type:
+                      type: string
+                    purpose:
+                      type: string
+                    languages:
+                      type: array
+                      items:
+                        type: string
+                    targetAudience:
+                      type: string
+                    duration:
+                      type: integer
+      responses:
+        '200':
+          description: Generated questions
+
+  /surveys/{name}:
+    get:
+      summary: Get survey details
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Survey details
+    put:
+      summary: Update survey config
+      description: Merge-updates the survey config. Only provided fields are updated.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                questions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Question'
+                purpose:
+                  type: string
+                tone:
+                  type: string
+                duration:
+                  type: integer
+                greetingTopic:
+                  type: string
+                companyName:
+                  type: string
+      responses:
+        '200':
+          description: Survey updated
+    delete:
+      summary: Delete survey
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Survey deleted
+
+  /surveys/{name}/config:
+    get:
+      summary: Get survey question config
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Survey config
+
+  /surveys/{name}/analytics:
+    get:
+      summary: Get survey analytics
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Aggregate analytics
+
+  /surveys/{name}/responses:
+    get:
+      summary: Get per-question response breakdowns
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Response breakdowns
+
+  /surveys/{name}/export:
+    get:
+      summary: Export survey data
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+      responses:
+        '200':
+          description: Exported data
+
+  # ─── Calls ───────────────────────────────────
+  /calls:
+    post:
+      summary: Initiate outbound call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phoneNumber]
+              properties:
+                phoneNumber:
+                  type: string
+                  description: E.164 format
+                  example: "+919876543210"
+                surveyName:
+                  type: string
+                language:
+                  type: string
+                  enum: [hi, bn, te, mr, ta, gu, kn, ml, pa, en]
+                  default: hi
+                gender:
+                  type: string
+                  enum: [male, female]
+                  default: female
+                autoDetectLanguage:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Call initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      callId:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+    get:
+      summary: List calls
+      parameters:
+        - name: survey
+          in: query
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        '200':
+          description: Paginated call list
+
+  /calls/{id}:
+    get:
+      summary: Get call details with results
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Call details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Call'
+
+  /calls/{id}/recording:
+    get:
+      summary: Download call recording
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audio file
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+
+  # ─── Campaigns ───────────────────────────────
+  /campaigns:
+    post:
+      summary: Create campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phoneNumbers]
+              properties:
+                name:
+                  type: string
+                surveyName:
+                  type: string
+                phoneNumbers:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: string
+                      - type: object
+                        properties:
+                          phoneNumber:
+                            type: string
+                          metadata:
+                            type: object
+                  maxItems: 10000
+                language:
+                  type: string
+                gender:
+                  type: string
+                concurrency:
+                  type: integer
+                  minimum: 1
+                  maximum: 2
+                maxRetries:
+                  type: integer
+                  default: 3
+      responses:
+        '201':
+          description: Campaign created
+    get:
+      summary: List campaigns
+      responses:
+        '200':
+          description: Campaign list
+
+  /campaigns/{id}:
+    get:
+      summary: Get campaign status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Campaign details
+
+  /campaigns/{id}/start:
+    post:
+      summary: Start or resume campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: Skip call timing window
+      responses:
+        '200':
+          description: Campaign started
+
+  /campaigns/{id}/pause:
+    post:
+      summary: Pause campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Campaign paused
+
+  /campaigns/{id}/cancel:
+    post:
+      summary: Cancel campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Campaign cancelled
+
+  /campaigns/{id}/numbers:
+    get:
+      summary: Get per-number status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 500
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Number status list
+
+  /campaigns/{id}/results:
+    get:
+      summary: Get campaign call results
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Campaign results
+
+  # ─── Webhooks ────────────────────────────────
+  /webhooks:
+    post:
+      summary: Register webhook
+      description: Webhook secret is returned once at creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: Must be HTTPS
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: [call.completed, call.failed, campaign.completed]
+      responses:
+        '201':
+          description: Webhook created (includes secret)
+    get:
+      summary: List webhooks
+      responses:
+        '200':
+          description: Webhook list
+
+  /webhooks/{id}:
+    delete:
+      summary: Delete webhook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Webhook deleted
+
+  /webhooks/{id}/deliveries:
+    get:
+      summary: Recent delivery attempts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Delivery list
