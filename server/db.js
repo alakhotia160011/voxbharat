@@ -21,7 +21,7 @@ export async function initDb() {
 
   pool = new Pool({
     connectionString: databaseUrl,
-    ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: true },
+    ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
     max: 10,
   });
 

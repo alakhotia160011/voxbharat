@@ -42,7 +42,7 @@ const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName, generateVerificationGreeting, generateDemoGreeting } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import nodemailer from 'nodemailer';
 import { OAuth2Client } from 'google-auth-library';
 
@@ -134,7 +134,7 @@ const apiLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.id || req.ip,
+  keyGenerator: (req) => req.user?.id || ipKeyGenerator(req),
   message: { error: 'Too many requests, please slow down.' },
 });
 
