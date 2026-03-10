@@ -111,6 +111,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || '';
 if (!FRONTEND_URL) {
   console.warn('[Security] FRONTEND_URL not set — CORS will block all cross-origin requests. Set FRONTEND_URL for production.');
 }
+app.set('trust proxy', 1); // Railway runs behind a reverse proxy
 app.use(helmet());
 app.use(cors({
   origin: FRONTEND_URL ? FRONTEND_URL.split(',').map(u => u.trim()) : false,
