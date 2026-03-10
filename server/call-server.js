@@ -903,8 +903,9 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
     const token = await createPasswordResetToken(user.id);
     const frontendBase = FRONTEND_URL ? FRONTEND_URL.split(',')[0].trim() : 'https://voxbharat.ai';
     const resetLink = `${frontendBase}/#reset-password?token=${token}`;
+    // Send email in background so the response isn't blocked by Gmail timeouts
     if (mailTransport) {
-      await mailTransport.sendMail({
+      mailTransport.sendMail({
         from: `VoxBharat <${GMAIL_USER}>`,
         to: email,
         subject: 'Reset your VoxBharat password',
@@ -917,8 +918,8 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
             <p style="color: #888; font-size: 13px;">If you did not request this, you can safely ignore this email.</p>
           </div>
         `,
-      });
-      console.log(`Password reset email sent to ${email}`);
+      }).then(() => console.log(`Password reset email sent to ${email}`))
+        .catch(err => console.error(`Password reset email failed for ${email}:`, err.message));
     } else {
       console.warn('Password reset email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not configured');
     }
