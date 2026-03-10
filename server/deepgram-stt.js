@@ -64,8 +64,7 @@ export class DeepgramSTT {
 
       const fullUrl = url.toString();
       console.log(`[DG-STT] Connecting to: ${fullUrl.replace(/Token\s+\S+/, 'Token ***')}`);
-      const k = this.apiKey || '';
-      console.log(`[DG-STT] API key present: ${!!this.apiKey}, length: ${k.length}, preview: ${k.slice(0,4)}...${k.slice(-4)}`);
+      console.log(`[DG-STT] API key present: ${!!this.apiKey}`);
 
       this.ws = new WebSocket(fullUrl, ['token', this.apiKey], {
         headers: { Authorization: `Token ${this.apiKey}` },

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Analytics } from '@vercel/analytics/react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import NavBar from './components/layout/NavBar';
 import Footer from './components/layout/Footer';
 import PageShell from './components/layout/PageShell';
@@ -14,15 +13,24 @@ import SectionDivider from './components/layout/SectionDivider';
 import SampleReportModal from './components/modals/SampleReportModal';
 import SampleCallLogModal from './components/modals/SampleCallLogModal';
 import { sampleReportData, sampleCallLog } from './data/sampleData';
-import FullSurveyBuilder from './components/survey-builder/FullSurveyBuilder';
-import HowItWorksPage from './components/pages/HowItWorksPage';
-import DataPolicyPage from './components/pages/DataPolicyPage';
-import AboutPage, { FaqsPage } from './components/pages/AboutPage';
-import DashboardPage from './components/pages/DashboardPage';
-import MemoPage from './components/pages/MemoPage';
-import ResetPasswordPage from './components/pages/ResetPasswordPage';
 import CallMeWidget from './components/landing/CallMeWidget';
 
+// Lazy-loaded pages — split into separate chunks
+const FullSurveyBuilder = lazy(() => import('./components/survey-builder/FullSurveyBuilder'));
+const HowItWorksPage = lazy(() => import('./components/pages/HowItWorksPage'));
+const DataPolicyPage = lazy(() => import('./components/pages/DataPolicyPage'));
+const AboutPage = lazy(() => import('./components/pages/AboutPage'));
+const FaqsPage = lazy(() => import('./components/pages/AboutPage').then(m => ({ default: m.FaqsPage })));
+const DashboardPage = lazy(() => import('./components/pages/DashboardPage'));
+const MemoPage = lazy(() => import('./components/pages/MemoPage'));
+const ResetPasswordPage = lazy(() => import('./components/pages/ResetPasswordPage'));
+
+// Loading fallback
+const PageLoader = () => (
+  <div className="min-h-screen bg-cream flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 export default function VoxBharat() {
   const [showBuilder, setShowBuilder] = useState(false);
@@ -58,7 +66,9 @@ export default function VoxBharat() {
   // ── Survey Builder (full-screen overlay) ──
   if (showBuilder) {
     return (
-      <FullSurveyBuilder onClose={() => setShowBuilder(false)} onLaunch={handleLaunch} />
+      <Suspense fallback={<PageLoader />}>
+        <FullSurveyBuilder onClose={() => setShowBuilder(false)} onLaunch={handleLaunch} />
+      </Suspense>
     );
   }
 
@@ -66,9 +76,11 @@ export default function VoxBharat() {
   if (currentPage === 'how-it-works') {
     return (
       <>
-        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-          <HowItWorksPage navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
-        </PageShell>
+        <Suspense fallback={<PageLoader />}>
+          <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+            <HowItWorksPage navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
+          </PageShell>
+        </Suspense>
         <CallMeWidget />
       </>
     );
@@ -77,9 +89,11 @@ export default function VoxBharat() {
   if (currentPage === 'about') {
     return (
       <>
-        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-          <AboutPage navigateTo={navigateTo} />
-        </PageShell>
+        <Suspense fallback={<PageLoader />}>
+          <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+            <AboutPage navigateTo={navigateTo} />
+          </PageShell>
+        </Suspense>
         <CallMeWidget />
       </>
     );
@@ -88,9 +102,11 @@ export default function VoxBharat() {
   if (currentPage === 'faqs') {
     return (
       <>
-        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-          <FaqsPage navigateTo={navigateTo} />
-        </PageShell>
+        <Suspense fallback={<PageLoader />}>
+          <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+            <FaqsPage navigateTo={navigateTo} />
+          </PageShell>
+        </Suspense>
         <CallMeWidget />
       </>
     );
@@ -99,9 +115,11 @@ export default function VoxBharat() {
   if (currentPage === 'memo') {
     return (
       <>
-        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-          <MemoPage navigateTo={navigateTo} />
-        </PageShell>
+        <Suspense fallback={<PageLoader />}>
+          <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+            <MemoPage navigateTo={navigateTo} />
+          </PageShell>
+        </Suspense>
         <CallMeWidget />
       </>
     );
@@ -110,9 +128,11 @@ export default function VoxBharat() {
   if (currentPage === 'dashboard') {
     return (
       <>
-        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-          <DashboardPage setShowBuilder={setShowBuilder} />
-        </PageShell>
+        <Suspense fallback={<PageLoader />}>
+          <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+            <DashboardPage setShowBuilder={setShowBuilder} />
+          </PageShell>
+        </Suspense>
         <CallMeWidget />
       </>
     );
@@ -121,9 +141,11 @@ export default function VoxBharat() {
   if (currentPage.startsWith('reset-password')) {
     return (
       <>
-        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-          <ResetPasswordPage navigateTo={navigateTo} />
-        </PageShell>
+        <Suspense fallback={<PageLoader />}>
+          <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+            <ResetPasswordPage navigateTo={navigateTo} />
+          </PageShell>
+        </Suspense>
         <CallMeWidget />
       </>
     );
@@ -132,9 +154,11 @@ export default function VoxBharat() {
   if (currentPage === 'data-policy') {
     return (
       <>
-        <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
-          <DataPolicyPage navigateTo={navigateTo} />
-        </PageShell>
+        <Suspense fallback={<PageLoader />}>
+          <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+            <DataPolicyPage navigateTo={navigateTo} />
+          </PageShell>
+        </Suspense>
         <CallMeWidget />
       </>
     );
@@ -184,7 +208,6 @@ export default function VoxBharat() {
         data={sampleCallLog}
       />
       <CallMeWidget />
-      <Analytics />
     </div>
   );
 }

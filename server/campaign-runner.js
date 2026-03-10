@@ -269,6 +269,7 @@ export class CampaignRunner {
           customSurvey: surveyConfig,
           autoDetectLanguage: state.config.auto_detect_language,
           campaignId: campaignId,
+          userId: state.config.user_id,
         });
 
         state.activeCallIds.add(result.callId);

@@ -14,9 +14,12 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // API key check — prevents unauthorized usage
+  // API key check — prevents unauthorized usage (fails closed if not configured)
   const API_SECRET = process.env.API_SECRET;
-  if (API_SECRET && req.headers['x-api-key'] !== API_SECRET) {
+  if (!API_SECRET) {
+    return res.status(500).json({ error: 'API secret not configured' });
+  }
+  if (req.headers['x-api-key'] !== API_SECRET) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 

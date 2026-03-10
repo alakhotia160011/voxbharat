@@ -18,6 +18,7 @@ export function createCall(options = {}) {
     customSurvey: options.customSurvey || null,
     autoDetectLanguage: options.autoDetectLanguage || false,
     campaignId: options.campaignId || null,
+    userId: options.userId || null,
     direction: options.direction || 'outbound',
     detectedLanguage: null,
     answeredBy: null,       // 'human' | 'machine_end_beep' | etc. (from Twilio AMD)

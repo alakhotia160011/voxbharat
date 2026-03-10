@@ -141,6 +141,9 @@ export async function initDb() {
   // Add direction column to calls table
   await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS direction TEXT DEFAULT 'outbound'`);
 
+  // Add user_id to calls for multi-tenant data isolation
+  await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
+
   // Inbound configs table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS inbound_configs (
@@ -296,13 +299,13 @@ export async function saveCall(call) {
       custom_survey, answered_by, voicemail_left, status, duration, summary,
       transcript, demographics, structured, responses, sentiment,
       recording_url, recording_duration, started_at, connected_at, ended_at,
-      campaign_id, direction
+      campaign_id, direction, user_id
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10, $11, $12,
       $13, $14, $15, $16, $17,
       $18, $19, $20, $21, $22,
-      $23, $24
+      $23, $24, $25
     )
     ON CONFLICT (id) DO UPDATE SET
       status = EXCLUDED.status,
@@ -317,7 +320,8 @@ export async function saveCall(call) {
       recording_duration = EXCLUDED.recording_duration,
       ended_at = EXCLUDED.ended_at,
       campaign_id = EXCLUDED.campaign_id,
-      direction = EXCLUDED.direction
+      direction = EXCLUDED.direction,
+      user_id = EXCLUDED.user_id
   `, [
     call.id,
     call.phoneNumber,
@@ -343,6 +347,7 @@ export async function saveCall(call) {
     call.endedAt,
     call.campaignId || null,
     call.direction || 'outbound',
+    call.userId || null,
   ]);
 
   return call.id;
@@ -363,7 +368,7 @@ export async function updateCallRecording(callId, recordingSid, recordingUrl, re
 /**
  * Get all completed calls (summary view for survey list)
  */
-export async function getAllCalls() {
+export async function getAllCalls(userId) {
   if (!pool) return [];
 
   const { rows } = await pool.query(`
@@ -374,9 +379,9 @@ export async function getAllCalls() {
            custom_survey->>'name' as survey_name,
            recording_url, recording_duration
     FROM calls
-    WHERE status = 'completed'
+    WHERE status = 'completed' AND (user_id = $1 OR user_id IS NULL)
     ORDER BY started_at DESC
-  `);
+  `, [userId]);
 
   return rows;
 }
@@ -384,10 +389,10 @@ export async function getAllCalls() {
 /**
  * Get a single call with all details
  */
-export async function getCallById(id) {
+export async function getCallById(id, userId) {
   if (!pool) return null;
 
-  const { rows } = await pool.query('SELECT * FROM calls WHERE id = $1', [id]);
+  const { rows } = await pool.query('SELECT * FROM calls WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)', [id, userId]);
   if (rows.length === 0) return null;
 
   const row = rows[0];
@@ -404,9 +409,10 @@ export async function getCallById(id) {
 /**
  * Get aggregate analytics
  */
-export async function getAnalytics() {
+export async function getAnalytics(userId) {
   if (!pool) return null;
 
+  const userFilter = `(user_id = $1 OR user_id IS NULL)`;
   const [
     totalResult,
     byLanguageResult,
@@ -418,15 +424,15 @@ export async function getAnalytics() {
     interfaithMarriageResult,
     diversityOpinionResult,
   ] = await Promise.all([
-    pool.query(`SELECT COUNT(*) as count FROM calls WHERE status = 'completed'`),
-    pool.query(`SELECT language, COUNT(*) as count FROM calls WHERE status = 'completed' GROUP BY language`),
-    pool.query(`SELECT demographics->>'ageGroup' as age_group, COUNT(*) as count FROM calls WHERE demographics IS NOT NULL GROUP BY demographics->>'ageGroup' ORDER BY age_group`),
-    pool.query(`SELECT demographics->>'religion' as religion, COUNT(*) as count FROM calls WHERE demographics IS NOT NULL GROUP BY demographics->>'religion'`),
-    pool.query(`SELECT AVG((demographics->>'age')::int) as avg_age FROM calls WHERE demographics->>'age' IS NOT NULL`),
-    pool.query(`SELECT sentiment->>'overall' as overall, COUNT(*) as count FROM calls WHERE sentiment IS NOT NULL GROUP BY sentiment->>'overall'`),
-    pool.query(`SELECT structured->>'religionImportance' as religion_importance, COUNT(*) as count FROM calls WHERE structured IS NOT NULL GROUP BY structured->>'religionImportance'`),
-    pool.query(`SELECT structured->>'interfaithMarriage' as interfaith_marriage, COUNT(*) as count FROM calls WHERE structured IS NOT NULL GROUP BY structured->>'interfaithMarriage'`),
-    pool.query(`SELECT structured->>'diversityOpinion' as diversity_opinion, COUNT(*) as count FROM calls WHERE structured IS NOT NULL GROUP BY structured->>'diversityOpinion'`),
+    pool.query(`SELECT COUNT(*) as count FROM calls WHERE status = 'completed' AND ${userFilter}`, [userId]),
+    pool.query(`SELECT language, COUNT(*) as count FROM calls WHERE status = 'completed' AND ${userFilter} GROUP BY language`, [userId]),
+    pool.query(`SELECT demographics->>'ageGroup' as age_group, COUNT(*) as count FROM calls WHERE demographics IS NOT NULL AND ${userFilter} GROUP BY demographics->>'ageGroup' ORDER BY age_group`, [userId]),
+    pool.query(`SELECT demographics->>'religion' as religion, COUNT(*) as count FROM calls WHERE demographics IS NOT NULL AND ${userFilter} GROUP BY demographics->>'religion'`, [userId]),
+    pool.query(`SELECT AVG((demographics->>'age')::int) as avg_age FROM calls WHERE demographics->>'age' IS NOT NULL AND ${userFilter}`, [userId]),
+    pool.query(`SELECT sentiment->>'overall' as overall, COUNT(*) as count FROM calls WHERE sentiment IS NOT NULL AND ${userFilter} GROUP BY sentiment->>'overall'`, [userId]),
+    pool.query(`SELECT structured->>'religionImportance' as religion_importance, COUNT(*) as count FROM calls WHERE structured IS NOT NULL AND ${userFilter} GROUP BY structured->>'religionImportance'`, [userId]),
+    pool.query(`SELECT structured->>'interfaithMarriage' as interfaith_marriage, COUNT(*) as count FROM calls WHERE structured IS NOT NULL AND ${userFilter} GROUP BY structured->>'interfaithMarriage'`, [userId]),
+    pool.query(`SELECT structured->>'diversityOpinion' as diversity_opinion, COUNT(*) as count FROM calls WHERE structured IS NOT NULL AND ${userFilter} GROUP BY structured->>'diversityOpinion'`, [userId]),
   ]);
 
   return {
@@ -451,12 +457,12 @@ function maskPhoneForExport(phone) {
 /**
  * Export all calls as JSON (full data)
  */
-export async function exportCallsJson() {
+export async function exportCallsJson(userId) {
   if (!pool) return [];
 
   const { rows } = await pool.query(`
-    SELECT * FROM calls WHERE status = 'completed' ORDER BY started_at DESC
-  `);
+    SELECT * FROM calls WHERE status = 'completed' AND (user_id = $1 OR user_id IS NULL) ORDER BY started_at DESC
+  `, [userId]);
 
   return rows;
 }
@@ -464,7 +470,7 @@ export async function exportCallsJson() {
 /**
  * Export all calls as CSV (flattened)
  */
-export async function exportCallsCsv() {
+export async function exportCallsCsv(userId) {
   if (!pool) return '';
 
   const { rows } = await pool.query(`
@@ -484,9 +490,9 @@ export async function exportCallsCsv() {
       sentiment->>'religiosity' as religiosity,
       recording_url, recording_duration
     FROM calls
-    WHERE status = 'completed'
+    WHERE status = 'completed' AND (user_id = $1 OR user_id IS NULL)
     ORDER BY started_at DESC
-  `);
+  `, [userId]);
 
   if (rows.length === 0) return '';
 
@@ -502,15 +508,16 @@ export async function exportCallsCsv() {
 /**
  * Export all calls for a specific project as JSON (full data)
  */
-export async function exportProjectCallsJson(projectName) {
+export async function exportProjectCallsJson(projectName, userId) {
   if (!pool) return [];
 
   const { rows } = await pool.query(`
     SELECT * FROM calls
     WHERE status = 'completed'
       AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+      AND (user_id = $2 OR user_id IS NULL)
     ORDER BY started_at DESC
-  `, [projectName]);
+  `, [projectName, userId]);
 
   return rows;
 }
@@ -519,15 +526,16 @@ export async function exportProjectCallsJson(projectName) {
  * Export all calls for a specific project as CSV (flattened).
  * Dynamically builds columns based on survey type (built-in or custom).
  */
-export async function exportProjectCallsCsv(projectName) {
+export async function exportProjectCallsCsv(projectName, userId) {
   if (!pool) return '';
 
   const { rows } = await pool.query(`
     SELECT * FROM calls
     WHERE status = 'completed'
       AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+      AND (user_id = $2 OR user_id IS NULL)
     ORDER BY started_at DESC
-  `, [projectName]);
+  `, [projectName, userId]);
 
   if (rows.length === 0) return '';
 
@@ -602,7 +610,7 @@ export async function exportProjectCallsCsv(projectName) {
 /**
  * Get all survey projects (grouped by survey name) with summary stats
  */
-export async function getProjects() {
+export async function getProjects(userId) {
   if (!pool) return [];
 
   const { rows } = await pool.query(`
@@ -615,10 +623,10 @@ export async function getProjects() {
       MAX(started_at) as last_call,
       array_agg(DISTINCT language) FILTER (WHERE language IS NOT NULL) as languages
     FROM calls
-    WHERE status = 'completed'
+    WHERE status = 'completed' AND (user_id = $1 OR user_id IS NULL)
     GROUP BY COALESCE(custom_survey->>'name', 'Voice Survey')
     ORDER BY MAX(started_at) DESC
-  `);
+  `, [userId]);
 
   return rows;
 }
@@ -626,7 +634,7 @@ export async function getProjects() {
 /**
  * Get all calls for a specific project (by survey name)
  */
-export async function getProjectCalls(projectName) {
+export async function getProjectCalls(projectName, userId) {
   if (!pool) return [];
 
   const { rows } = await pool.query(`
@@ -638,8 +646,9 @@ export async function getProjectCalls(projectName) {
     FROM calls
     WHERE status = 'completed'
       AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+      AND (user_id = $2 OR user_id IS NULL)
     ORDER BY started_at DESC
-  `, [projectName]);
+  `, [projectName, userId]);
 
   return rows;
 }
@@ -647,10 +656,10 @@ export async function getProjectCalls(projectName) {
 /**
  * Get aggregate analytics for a specific project
  */
-export async function getProjectAnalytics(projectName) {
+export async function getProjectAnalytics(projectName, userId) {
   if (!pool) return null;
 
-  const filter = `status = 'completed' AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1`;
+  const filter = `status = 'completed' AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1 AND (user_id = $2 OR user_id IS NULL)`;
 
   const [
     totalResult,
@@ -660,12 +669,12 @@ export async function getProjectAnalytics(projectName) {
     avgDurationResult,
     sentimentResult,
   ] = await Promise.all([
-    pool.query(`SELECT COUNT(*) as count FROM calls WHERE ${filter}`, [projectName]),
-    pool.query(`SELECT language, COUNT(*) as count FROM calls WHERE ${filter} GROUP BY language`, [projectName]),
-    pool.query(`SELECT demographics->>'ageGroup' as age_group, COUNT(*) as count FROM calls WHERE ${filter} AND demographics IS NOT NULL GROUP BY demographics->>'ageGroup' ORDER BY age_group`, [projectName]),
-    pool.query(`SELECT demographics->>'religion' as religion, COUNT(*) as count FROM calls WHERE ${filter} AND demographics IS NOT NULL GROUP BY demographics->>'religion'`, [projectName]),
-    pool.query(`SELECT ROUND(AVG(duration)) as avg_duration, SUM(duration) as total_duration FROM calls WHERE ${filter}`, [projectName]),
-    pool.query(`SELECT sentiment->>'overall' as overall, COUNT(*) as count FROM calls WHERE ${filter} AND sentiment IS NOT NULL GROUP BY sentiment->>'overall'`, [projectName]),
+    pool.query(`SELECT COUNT(*) as count FROM calls WHERE ${filter}`, [projectName, userId]),
+    pool.query(`SELECT language, COUNT(*) as count FROM calls WHERE ${filter} GROUP BY language`, [projectName, userId]),
+    pool.query(`SELECT demographics->>'ageGroup' as age_group, COUNT(*) as count FROM calls WHERE ${filter} AND demographics IS NOT NULL GROUP BY demographics->>'ageGroup' ORDER BY age_group`, [projectName, userId]),
+    pool.query(`SELECT demographics->>'religion' as religion, COUNT(*) as count FROM calls WHERE ${filter} AND demographics IS NOT NULL GROUP BY demographics->>'religion'`, [projectName, userId]),
+    pool.query(`SELECT ROUND(AVG(duration)) as avg_duration, SUM(duration) as total_duration FROM calls WHERE ${filter}`, [projectName, userId]),
+    pool.query(`SELECT sentiment->>'overall' as overall, COUNT(*) as count FROM calls WHERE ${filter} AND sentiment IS NOT NULL GROUP BY sentiment->>'overall'`, [projectName, userId]),
   ]);
 
   return {
@@ -696,14 +705,15 @@ function deriveFieldName(textEn) {
 /**
  * Get the survey config (questions, tone, etc.) for a project from its most recent call.
  */
-export async function getProjectSurveyConfig(projectName) {
+export async function getProjectSurveyConfig(projectName, userId) {
   if (!pool) return null;
   const { rows } = await pool.query(`
     SELECT custom_survey FROM calls
     WHERE COALESCE(custom_survey->>'name', 'Voice Survey') = $1
       AND custom_survey IS NOT NULL
+      AND (user_id = $2 OR user_id IS NULL)
     ORDER BY started_at DESC LIMIT 1
-  `, [projectName]);
+  `, [projectName, userId]);
   return rows[0]?.custom_survey || null;
 }
 
@@ -711,7 +721,7 @@ export async function getProjectSurveyConfig(projectName) {
  * Get per-question response breakdowns for a project.
  * Works for both built-in surveys (SURVEY_SCRIPTS) and custom surveys.
  */
-export async function getProjectResponseBreakdowns(projectName) {
+export async function getProjectResponseBreakdowns(projectName, userId) {
   if (!pool) return null;
 
   const { rows } = await pool.query(`
@@ -719,8 +729,9 @@ export async function getProjectResponseBreakdowns(projectName) {
     FROM calls
     WHERE status = 'completed'
       AND COALESCE(custom_survey->>'name', 'Voice Survey') = $1
+      AND (user_id = $2 OR user_id IS NULL)
     ORDER BY started_at DESC
-  `, [projectName]);
+  `, [projectName, userId]);
 
   if (rows.length === 0) return { totalResponses: 0, questions: [] };
 
@@ -886,10 +897,10 @@ export async function deleteBucketMapping(projectName, field, rawValue) {
 /**
  * Delete a call by ID
  */
-export async function deleteCall(id) {
+export async function deleteCall(id, userId) {
   if (!pool) return false;
 
-  const result = await pool.query('DELETE FROM calls WHERE id = $1', [id]);
+  const result = await pool.query('DELETE FROM calls WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)', [id, userId]);
   return result.rowCount > 0;
 }
 

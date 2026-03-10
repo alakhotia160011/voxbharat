@@ -16,7 +16,7 @@ import { CartesiaSTT } from './cartesia-stt.js';
 import { DeepgramSTT, DEEPGRAM_SUPPORTED_LANGUAGES } from './deepgram-stt.js';
 import { ClaudeConversation } from './claude-conversation.js';
 import {
-  createCall, getCall, getCallByStreamSid, updateCall,
+  createCall, getCall, updateCall,
   getActiveCalls, removeCall, saveCallToFile
 } from './call-store.js';
 import {
@@ -63,7 +63,7 @@ const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replac
 const JWT_SECRET = process.env.JWT_SECRET;
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'ary.lakhoti@gmail.com';
+const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
@@ -72,7 +72,7 @@ const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
   : null;
 
 async function notifySignup(email, name) {
-  if (!mailTransport) return;
+  if (!mailTransport || !NOTIFY_EMAIL) return;
   try {
     await mailTransport.sendMail({
       from: `VoxBharat <${GMAIL_USER}>`,
@@ -84,6 +84,9 @@ async function notifySignup(email, name) {
     console.error('Signup notification email failed:', e.message);
   }
 }
+
+// Languages supported natively by Deepgram multi-language mode (no STT reconnect needed)
+const MULTI_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
 
 // Validate config
 const missing = [];
@@ -113,7 +116,7 @@ app.use(cors({
   origin: FRONTEND_URL ? FRONTEND_URL.split(',').map(u => u.trim()) : false,
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiter for auth endpoints (stricter)
@@ -133,6 +136,15 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => req.user?.id || req.ip,
   message: { error: 'Too many requests, please slow down.' },
+});
+
+// Strict rate limiter for demo calls — 3 per IP per hour
+const demoLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many demo calls. Please try again later.' },
 });
 
 // Apply general rate limiter to all /api/ routes
@@ -329,13 +341,24 @@ function textIteratorFromStream(stream) {
 // HTTP Endpoints
 // ============================================
 
+// Escape XML special characters to prevent TwiML injection
+function escapeXml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
+}
+
+// Validate callId format (UUID only)
+function isValidCallId(id) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 // Health check
 app.get('/call/health', (req, res) => {
   const calls = getActiveCalls();
   res.json({
     status: 'ok',
     activeCalls: calls.length,
-    calls: calls.map(c => ({ id: c.id, status: c.status, phone: c.phoneNumber, started: c.createdAt })),
+    calls: calls.map(c => ({ id: c.id, status: c.status, started: c.createdAt })),
   });
 });
 
@@ -355,8 +378,8 @@ app.post('/call/clear-stale', requireAuth, (req, res) => {
 });
 
 // Core call initiation logic — used by both HTTP endpoint and campaign runner
-async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', customSurvey = null, autoDetectLanguage = false, campaignId = null }) {
-  const call = createCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage, campaignId });
+async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', customSurvey = null, autoDetectLanguage = false, campaignId = null, userId = null }) {
+  const call = createCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage, campaignId, userId });
 
   const twilioCall = await twilioClient.calls.create({
     to: phoneNumber,
@@ -431,7 +454,7 @@ app.post('/call/initiate', requireAuth, async (req, res) => {
   }
 
   try {
-    const result = await initiateCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage });
+    const result = await initiateCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage, userId: req.user.id });
     res.json(result);
   } catch (error) {
     console.error('[Call] Initiation failed:', error.message);
@@ -440,7 +463,7 @@ app.post('/call/initiate', requireAuth, async (req, res) => {
 });
 
 // Demo call — no auth required (for "Talk to Us" widget)
-app.post('/call/demo', async (req, res) => {
+app.post('/call/demo', demoLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
 
   if (!phoneNumber) {
@@ -500,20 +523,23 @@ app.get('/call/demo/:id', (req, res) => {
 // Twilio webhook - returns TwiML to connect media stream
 app.post('/call/twilio-webhook', validateTwilioSignature, (req, res) => {
   const callId = req.query.callId;
+  if (!isValidCallId(callId)) {
+    return res.status(400).type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>');
+  }
   const wsUrl = PUBLIC_URL.replace('http', 'ws');
+  const safeCallId = escapeXml(callId);
 
-  console.log(`[Webhook] callId=${callId}, PUBLIC_URL=${PUBLIC_URL}, wsUrl=${wsUrl}`);
+  console.log(`[Webhook] callId=${callId}, PUBLIC_URL=${PUBLIC_URL}`);
 
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${wsUrl}/call/media-stream" statusCallback="${PUBLIC_URL}/call/twilio-status?callId=${callId}">
-      <Parameter name="callId" value="${callId}" />
+    <Stream url="${wsUrl}/call/media-stream" statusCallback="${PUBLIC_URL}/call/twilio-status?callId=${safeCallId}">
+      <Parameter name="callId" value="${safeCallId}" />
     </Stream>
   </Connect>
 </Response>`;
 
-  console.log(`[Webhook] TwiML: ${twiml}`);
   res.type('text/xml').send(twiml);
 });
 
@@ -627,11 +653,12 @@ app.post('/call/inbound', validateTwilioSignature, async (req, res) => {
 
   // Return TwiML to connect media stream (same as outbound webhook)
   const wsUrl = PUBLIC_URL.replace('http', 'ws');
+  const safeCallId = escapeXml(call.id);
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${wsUrl}/call/media-stream" statusCallback="${PUBLIC_URL}/call/twilio-status?callId=${call.id}">
-      <Parameter name="callId" value="${call.id}" />
+    <Stream url="${wsUrl}/call/media-stream" statusCallback="${PUBLIC_URL}/call/twilio-status?callId=${safeCallId}">
+      <Parameter name="callId" value="${safeCallId}" />
     </Stream>
   </Connect>
 </Response>`;
@@ -922,20 +949,20 @@ app.post('/api/reset-password', authLimiter, requireDb, async (req, res) => {
 });
 
 app.get('/api/surveys', requireAuth, requireDb, async (req, res) => {
-  try { res.json(await getAllCalls()); }
+  try { res.json(await getAllCalls(req.user.id)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/surveys/:id', requireAuth, requireDb, async (req, res) => {
   try {
-    const survey = await getCallById(req.params.id);
+    const survey = await getCallById(req.params.id, req.user.id);
     if (!survey) return res.status(404).json({ error: 'Not found' });
     res.json(survey);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/analytics', requireAuth, requireDb, async (req, res) => {
-  try { res.json(await getAnalytics()); }
+  try { res.json(await getAnalytics(req.user.id)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -947,7 +974,7 @@ function maskPhone(phone) {
 
 app.get('/api/export/json', requireAuth, requireDb, async (req, res) => {
   try {
-    const data = await exportCallsJson();
+    const data = await exportCallsJson(req.user.id);
     const masked = data.map(row => ({ ...row, phone_number: maskPhone(row.phone_number) }));
     res.setHeader('Content-Disposition', 'attachment; filename=voxbharat-export.json');
     res.json(masked);
@@ -956,7 +983,7 @@ app.get('/api/export/json', requireAuth, requireDb, async (req, res) => {
 
 app.get('/api/export/csv', requireAuth, requireDb, async (req, res) => {
   try {
-    const csv = await exportCallsCsv();
+    const csv = await exportCallsCsv(req.user.id);
     if (!csv) return res.status(404).json({ error: 'No data' });
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=voxbharat-export.csv');
@@ -966,25 +993,25 @@ app.get('/api/export/csv', requireAuth, requireDb, async (req, res) => {
 
 app.delete('/api/surveys/:id', requireAuth, requireDb, async (req, res) => {
   try {
-    const ok = await deleteCall(req.params.id);
+    const ok = await deleteCall(req.params.id, req.user.id);
     if (!ok) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/projects', requireAuth, requireDb, async (req, res) => {
-  try { res.json(await getProjects()); }
+  try { res.json(await getProjects(req.user.id)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/projects/:name/calls', requireAuth, requireDb, async (req, res) => {
-  try { res.json(await getProjectCalls(req.params.name)); }
+  try { res.json(await getProjectCalls(req.params.name, req.user.id)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/projects/:name/analytics', requireAuth, requireDb, async (req, res) => {
   try {
-    const analytics = await getProjectAnalytics(req.params.name);
+    const analytics = await getProjectAnalytics(req.params.name, req.user.id);
     if (!analytics) return res.status(404).json({ error: 'No data' });
     res.json(analytics);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -992,7 +1019,7 @@ app.get('/api/projects/:name/analytics', requireAuth, requireDb, async (req, res
 
 app.get('/api/projects/:name/response-breakdowns', requireAuth, requireDb, async (req, res) => {
   try {
-    const data = await getProjectResponseBreakdowns(req.params.name);
+    const data = await getProjectResponseBreakdowns(req.params.name, req.user.id);
     if (!data) return res.status(404).json({ error: 'No data' });
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1000,7 +1027,7 @@ app.get('/api/projects/:name/response-breakdowns', requireAuth, requireDb, async
 
 app.get('/api/projects/:name/survey-config', requireAuth, requireDb, async (req, res) => {
   try {
-    const config = await getProjectSurveyConfig(req.params.name);
+    const config = await getProjectSurveyConfig(req.params.name, req.user.id);
     if (!config) return res.status(404).json({ error: 'No survey config found' });
     res.json(config);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1008,7 +1035,7 @@ app.get('/api/projects/:name/survey-config', requireAuth, requireDb, async (req,
 
 app.get('/api/projects/:name/export/json', requireAuth, requireDb, async (req, res) => {
   try {
-    const data = await exportProjectCallsJson(req.params.name);
+    const data = await exportProjectCallsJson(req.params.name, req.user.id);
     const masked = data.map(row => ({ ...row, phone_number: maskPhone(row.phone_number) }));
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(req.params.name)}-export.json"`);
     res.json(masked);
@@ -1017,7 +1044,7 @@ app.get('/api/projects/:name/export/json', requireAuth, requireDb, async (req, r
 
 app.get('/api/projects/:name/export/csv', requireAuth, requireDb, async (req, res) => {
   try {
-    const csv = await exportProjectCallsCsv(req.params.name);
+    const csv = await exportProjectCallsCsv(req.params.name, req.user.id);
     if (!csv) return res.status(404).json({ error: 'No data' });
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(req.params.name)}-export.csv"`);
@@ -1414,7 +1441,6 @@ async function initSession(callId, call, ws, streamSid) {
         // Multi mode (en/hi/es/fr/de/ru/pt/ja/it/nl) handles code-switching natively.
         // For languages NOT in multi (bn, ta, te, gu, kn, ml, pa, mr), reconnect STT
         // to that specific language for accurate transcription.
-        const MULTI_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
         if (!MULTI_LANGUAGES.has(detectedLang) && sessionObj.stt.language !== detectedLang) {
           console.log(`[STT:${callId}] Language ${detectedLang} not in multi set — reconnecting STT...`);
           sessionObj.stt.switchLanguage(detectedLang).catch(err => {
@@ -1441,8 +1467,7 @@ async function initSession(callId, call, ws, streamSid) {
             console.log(`[STT:${callId}] No language field — detected ${lang} from script in text`);
             sessionObj.sttDetectedLanguage = lang;
             // Reconnect if not in multi set
-            const MULTI_LANGS = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
-            if (!MULTI_LANGS.has(lang) && sessionObj.stt.language !== lang) {
+            if (!MULTI_LANGUAGES.has(lang) && sessionObj.stt.language !== lang) {
               sessionObj.stt.switchLanguage(lang).catch(err => {
                 console.error(`[STT:${callId}] Script-based language switch failed:`, err.message);
               });
@@ -1814,8 +1839,7 @@ async function processUserSpeech(callId, text) {
         : '';
       // For languages in Deepgram multi set (en/hi), transcription is accurate.
       // For others (bn/ta/te/etc.), first turn may be garbled since STT is reconnecting.
-      const MULTI_LANGS = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
-      const garbledNote = !MULTI_LANGS.has(langHint)
+      const garbledNote = !MULTI_LANGUAGES.has(langHint)
         ? ' The text below may be garbled because speech recognition is switching languages — do NOT try to interpret the literal words, just switch language and continue naturally.'
         : '';
       textForClaude = `[SYSTEM: The respondent just switched to ${langName}. You MUST respond entirely in ${langName} from this point. Use natural ${langName} grammar and vocabulary, not translated English.${genderHint}${garbledNote} Prefix your response with [LANG:${langHint}].] ${textForClaude}`;
@@ -1915,8 +1939,7 @@ async function processUserSpeech(callId, text) {
 
             // Switch STT to match Claude's detected language.
             // Multi mode handles en/hi natively — only reconnect for other languages.
-            const MULTI_LANGS = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
-            if (session.stt.language !== ttsLanguage && !MULTI_LANGS.has(ttsLanguage)) {
+            if (session.stt.language !== ttsLanguage && !MULTI_LANGUAGES.has(ttsLanguage)) {
               session.sttDetectedLanguage = ttsLanguage;
               console.log(`[STT:${callId}] Switching STT ${session.stt.language} → ${ttsLanguage} (Claude language change, not in multi)`);
               session.stt.switchLanguage(ttsLanguage).then(() => {
@@ -2535,5 +2558,14 @@ initDb().then(async () => {
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err.message);
+  process.exit(1);
+});
+
+// Crash handlers — prevent silent drops of active calls
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
   process.exit(1);
 });

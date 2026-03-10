@@ -15,9 +15,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // API key check — prevents unauthorized usage
+  // API key check — prevents unauthorized usage (fails closed if not configured)
   const API_SECRET = process.env.API_SECRET;
-  if (API_SECRET && req.headers['x-api-key'] !== API_SECRET) {
+  if (!API_SECRET) {
+    return res.status(500).json({ error: 'API secret not configured' });
+  }
+  if (req.headers['x-api-key'] !== API_SECRET) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
@@ -59,7 +62,7 @@ export default async function handler(req, res) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Cartesia API error:', errorText);
-      return res.status(response.status).json({ error: 'TTS generation failed', details: errorText });
+      return res.status(response.status).json({ error: 'TTS generation failed' });
     }
 
     // Get audio bytes and return as base64
