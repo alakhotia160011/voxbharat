@@ -206,6 +206,7 @@ export async function initDb() {
       UNIQUE(user_id, name)
     );
   `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_surveys_user_created ON surveys(user_id, created_at DESC)`);
 
   // Webhooks for push notifications
   await pool.query(`
@@ -219,6 +220,7 @@ export async function initDb() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_webhooks_user ON webhooks(user_id) WHERE enabled = TRUE`);
 
   // Webhook delivery tracking
   await pool.query(`
@@ -234,6 +236,7 @@ export async function initDb() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook_created ON webhook_deliveries(webhook_id, created_at DESC)`);
 
   // Idempotency keys for POST request deduplication
   await pool.query(`
@@ -245,6 +248,7 @@ export async function initDb() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_idempotency_keys_created ON idempotency_keys(created_at)`);
 
   console.log('✓ Postgres connected, all tables ready');
   return true;
