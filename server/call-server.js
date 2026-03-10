@@ -68,7 +68,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
-  ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } })
+  ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD }, dnsOptions: { family: 4 } })
   : null;
 console.log(`[Email] Mail transport: ${mailTransport ? `configured (user: ${GMAIL_USER})` : 'NOT configured — GMAIL_USER or GMAIL_APP_PASSWORD missing'}`);
 
