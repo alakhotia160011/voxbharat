@@ -25,6 +25,7 @@ const FaqsPage = lazy(() => import('./components/pages/AboutPage').then(m => ({ 
 const DashboardPage = lazy(() => import('./components/pages/DashboardPage'));
 const MemoPage = lazy(() => import('./components/pages/MemoPage'));
 const ResetPasswordPage = lazy(() => import('./components/pages/ResetPasswordPage'));
+const ApiDocsPage = lazy(() => import('./components/pages/ApiDocsPage'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -151,6 +152,19 @@ export default function VoxBharat() {
     );
   }
 
+  if (currentPage === 'api-docs') {
+    return (
+      <>
+        <ErrorBoundary><Suspense fallback={<PageLoader />}>
+          <PageShell currentPage={currentPage} navigateTo={navigateTo} setShowBuilder={setShowBuilder}>
+            <ApiDocsPage navigateTo={navigateTo} setShowBuilder={setShowBuilder} />
+          </PageShell>
+        </Suspense></ErrorBoundary>
+        <CallMeWidget />
+      </>
+    );
+  }
+
   if (currentPage === 'data-policy') {
     return (
       <>
@@ -165,7 +179,7 @@ export default function VoxBharat() {
   }
 
   // ── 404 — unknown routes ──
-  const knownPages = ['home', 'how-it-works', 'about', 'faqs', 'memo', 'dashboard', 'data-policy'];
+  const knownPages = ['home', 'how-it-works', 'about', 'faqs', 'memo', 'dashboard', 'api-docs', 'data-policy'];
   if (currentPage !== 'home' && !knownPages.includes(currentPage) && !currentPage.startsWith('reset-password')) {
     return (
       <>
