@@ -70,6 +70,7 @@ const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : nul
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
   ? nodemailer.createTransport({ service: 'gmail', auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD } })
   : null;
+console.log(`[Email] Mail transport: ${mailTransport ? `configured (user: ${GMAIL_USER})` : 'NOT configured — GMAIL_USER or GMAIL_APP_PASSWORD missing'}`);
 
 async function notifySignup(email, name) {
   if (!mailTransport || !NOTIFY_EMAIL) return;
