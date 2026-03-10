@@ -270,10 +270,11 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     const language = getSelectedLanguage();
 
     abortRef.current = new AbortController();
+    const signal = abortRef.current.signal; // capture locally so old runs check their own signal
 
     for (let idx = 0; idx < conversation.length; idx++) {
       // Check if demo was stopped
-      if (abortRef.current.signal.aborted) return;
+      if (signal.aborted) return;
 
       const msg = conversation[idx];
       const voiceId = msg.speaker === 'ai' ? aiVoiceId : respondentVoiceId;
@@ -284,7 +285,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
         setIsSpeaking(true);
 
         // Fetch current message (may already be cached from prefetch)
-        const blob = await fetchTtsBlob(msg.text, voiceId, language, abortRef.current.signal);
+        const blob = await fetchTtsBlob(msg.text, voiceId, language, signal);
 
         // Prefetch next 2 messages while this one plays
         for (let ahead = 1; ahead <= 2; ahead++) {
@@ -297,7 +298,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
 
         // Play audio using the already-unlocked element
         await new Promise((resolve, reject) => {
-          if (abortRef.current.signal.aborted) {
+          if (signal.aborted) {
             URL.revokeObjectURL(url);
             reject(new Error('Aborted'));
             return;
@@ -332,7 +333,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
           });
         }
       } catch (err) {
-        if (err.name === 'AbortError' || err.message === 'Aborted') {
+        if (err.name === 'AbortError' || err.message === 'Aborted' || signal.aborted) {
           return;
         }
         // Fall back to text-only timing for remaining messages
@@ -340,12 +341,12 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
         setIsSpeaking(false);
 
         for (let j = idx + 1; j < conversation.length; j++) {
-          if (abortRef.current?.signal.aborted) return;
+          if (signal.aborted) return;
           await new Promise((resolve) => {
             const t = setTimeout(resolve, 1500);
             timersRef.current.push(t);
           });
-          if (abortRef.current?.signal.aborted) return;
+          if (signal.aborted) return;
           setDemoStep(j + 1);
 
           if (conversation[j].speaker === 'ai') {
@@ -362,7 +363,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     }
 
     // Demo finished
-    if (!abortRef.current?.signal.aborted) {
+    if (!signal.aborted) {
       setCallComplete(true);
       setDemoActive(false);
       setIsSpeaking(false);
