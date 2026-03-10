@@ -1,7 +1,12 @@
 // Vercel Serverless Function - Cartesia TTS Proxy
 // This keeps the API key secure on the server
 
-const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'https://voxbharat.com';
+const ALLOWED_ORIGINS = new Set([
+  'https://www.voxbharat.ai',
+  'https://voxbharat.ai',
+  'https://voxbharat.vercel.app',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL.replace(/\/+$/, '')] : []),
+]);
 const MAX_TEXT_LENGTH = 2000;
 
 const VALID_VOICE_IDS = new Set([
@@ -19,8 +24,10 @@ const VALID_VOICE_IDS = new Set([
 const VALID_LANGUAGES = new Set(['hi', 'bn', 'te', 'mr', 'ta', 'gu', 'kn', 'ml', 'pa', 'en']);
 
 export default async function handler(req, res) {
-  // CORS headers — restrict to frontend origin
-  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+  // CORS headers — restrict to frontend origins
+  const origin = (req.headers.origin || '').replace(/\/+$/, '');
+  const matchedOrigin = ALLOWED_ORIGINS.has(origin) ? origin : 'https://www.voxbharat.ai';
+  res.setHeader('Access-Control-Allow-Origin', matchedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Vary', 'Origin');
@@ -30,9 +37,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Origin check — only allow requests from the frontend
-  const origin = (req.headers.origin || req.headers.referer || '').replace(/\/+$/, '');
-  if (origin !== ALLOWED_ORIGIN && !origin.startsWith(ALLOWED_ORIGIN + '/')) {
+  // Origin check — only allow requests from known frontend origins
+  const reqOrigin = (req.headers.origin || req.headers.referer || '').replace(/\/+$/, '');
+  if (!ALLOWED_ORIGINS.has(reqOrigin)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
