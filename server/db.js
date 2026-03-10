@@ -177,6 +177,75 @@ export async function initDb() {
     );
   `);
 
+  // ─── API v1 tables ─────────────────────────────────────
+
+  // API keys for programmatic access
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      key_prefix TEXT NOT NULL,
+      key_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      last_used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      revoked_at TIMESTAMPTZ
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys(key_prefix) WHERE revoked_at IS NULL`);
+
+  // First-class survey entities
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS surveys (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      name TEXT NOT NULL,
+      config JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, name)
+    );
+  `);
+
+  // Webhooks for push notifications
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      url TEXT NOT NULL,
+      events TEXT[] NOT NULL,
+      secret TEXT NOT NULL,
+      enabled BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  // Webhook delivery tracking
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS webhook_deliveries (
+      id SERIAL PRIMARY KEY,
+      webhook_id UUID REFERENCES webhooks(id) ON DELETE CASCADE NOT NULL,
+      event TEXT NOT NULL,
+      payload JSONB NOT NULL,
+      status_code INTEGER,
+      attempt INTEGER DEFAULT 1,
+      next_retry_at TIMESTAMPTZ,
+      delivered_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  // Idempotency keys for POST request deduplication
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS idempotency_keys (
+      key TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      response_status INTEGER NOT NULL,
+      response_body JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   console.log('✓ Postgres connected, all tables ready');
   return true;
 }
@@ -890,6 +959,26 @@ export async function deleteBucketMapping(projectName, field, rawValue) {
     [projectName, field, rawValue]
   );
   return result.rowCount > 0;
+}
+
+/**
+ * Get calls for a specific campaign (by campaign_id column)
+ */
+export async function getCampaignCalls(campaignId, userId) {
+  if (!pool) return [];
+
+  const { rows } = await pool.query(`
+    SELECT id, started_at as timestamp, duration, language, status, summary,
+           demographics->>'age' as age,
+           demographics->>'ageGroup' as age_group,
+           demographics->>'religion' as religion,
+           recording_url, recording_duration
+    FROM calls
+    WHERE campaign_id = $1 AND (user_id = $2 OR user_id IS NULL) AND status = 'completed'
+    ORDER BY started_at DESC
+  `, [campaignId, userId]);
+
+  return rows;
 }
 
 /**

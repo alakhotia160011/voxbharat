@@ -5,6 +5,29 @@ info:
     REST API for programmatic access to VoxBharat's AI voice survey platform.
     Enables AI agents and developers to create surveys, initiate calls,
     run campaigns, and retrieve results.
+
+    ## Authentication
+    All endpoints (except API key management) use API key authentication.
+    Include your key in the Authorization header: `Authorization: Bearer vxb_live_...`
+
+    ## Request IDs
+    Every response includes an `X-Request-Id` header for debugging.
+    You can also send your own `X-Request-Id` header to correlate requests.
+
+    ## Rate Limits
+    - API key endpoints: 60 requests/minute per API key
+    - Rate limit headers are included in responses (RateLimit-*)
+
+    ## Idempotency
+    POST requests support the `Idempotency-Key` header. If a request with the same
+    key is received again, the cached response is returned without re-executing.
+
+    ## Webhooks
+    - Webhook payloads are signed with HMAC-SHA256 (header: `X-VoxBharat-Signature`)
+    - Verify signature: `sha256=HMAC-SHA256(payload_body, webhook_secret)`
+    - Retry policy: 3 attempts at 1min, 5min, 30min intervals
+    - Events: `call.completed`, `call.failed`, `campaign.completed`
+    - Use `POST /webhooks/:id/test` to verify your endpoint
   version: 1.0.0
   contact:
     name: VoxBharat
@@ -653,6 +676,47 @@ paths:
         '200':
           description: Campaign cancelled
 
+  /campaigns/{id}/progress:
+    get:
+      summary: Get real-time campaign progress
+      description: Returns counts by status (pending, calling, completed, failed, no_answer, voicemail) and percent complete.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Progress counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      pending:
+                        type: integer
+                      calling:
+                        type: integer
+                      completed:
+                        type: integer
+                      failed:
+                        type: integer
+                      no_answer:
+                        type: integer
+                      voicemail:
+                        type: integer
+                      total:
+                        type: integer
+                      percentComplete:
+                        type: integer
+
   /campaigns/{id}/numbers:
     get:
       summary: Get per-number status
@@ -755,3 +819,30 @@ paths:
       responses:
         '200':
           description: Delivery list
+
+  /webhooks/{id}/test:
+    post:
+      summary: Send test webhook
+      description: Sends a test event to verify webhook endpoint is working. Returns delivery status.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      delivered:
+                        type: boolean
+                      statusCode:
+                        type: integer

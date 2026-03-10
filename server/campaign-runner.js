@@ -87,9 +87,10 @@ function randomRetryMinutes(callTiming) {
 const RETRYABLE_STATUSES = ['no_answer', 'failed', 'voicemail'];
 
 export class CampaignRunner {
-  constructor({ initiateCallFn, getActiveCallsFn }) {
+  constructor({ initiateCallFn, getActiveCallsFn, onCampaignCompleted }) {
     this.initiateCall = initiateCallFn;
     this.getActiveCalls = getActiveCallsFn;
+    this.onCampaignCompleted = onCampaignCompleted || null;
     this.activeCampaigns = new Map(); // campaignId -> { config, activeCallIds: Set, isPaused }
     this._timers = new Map(); // campaignId -> timeout ID (for scheduling)
   }
@@ -313,8 +314,14 @@ export class CampaignRunner {
     if (counts.pending === 0 && counts.calling === 0) {
       this._clearTimer(campaignId);
       await updateCampaignStatus(campaignId, 'completed');
+      const completedState = this.activeCampaigns.get(campaignId);
       this.activeCampaigns.delete(campaignId);
       console.log(`[Campaign] ${campaignId} completed — ${counts.completed} completed, ${counts.failed} failed, ${counts.no_answer} no answer, ${counts.voicemail || 0} voicemail`);
+
+      // Notify webhook subscribers
+      if (this.onCampaignCompleted && completedState?.config?.user_id) {
+        this.onCampaignCompleted(completedState.config.user_id, campaignId, counts);
+      }
       return true;
     }
 
