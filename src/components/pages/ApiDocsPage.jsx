@@ -188,7 +188,7 @@ export default function ApiDocsPage({ navigateTo, setShowBuilder }) {
         >
           <motion.div variants={fadeInUp}>
             <SectionHeading
-              number={7}
+              number={1}
               title="API Documentation"
               subtitle="Integrate VoxBharat into your workflow. Create surveys, make calls, and retrieve results programmatically."
             />
