@@ -1,16 +1,20 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useBuilder } from '../../contexts/BuilderContext';
 
-const Footer = ({ navigateTo, setShowBuilder }) => {
+const Footer = () => {
+  const { setShowBuilder } = useBuilder();
+
   const navLinks = [
-    { page: 'home', label: 'Home' },
-    { page: 'dashboard', label: 'Dashboard' },
-    { page: 'memo', label: 'Memo' },
-    { page: 'about', label: 'About' },
-    { page: 'how-it-works', label: 'How It Works' },
-    { page: 'faqs', label: 'FAQs' },
-    { page: 'api-docs', label: 'API Docs' },
-    { page: 'data-policy', label: 'Data Policy' },
+    { to: '/', label: 'Home' },
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/memo', label: 'Memo' },
+    { to: '/about', label: 'About' },
+    { to: '/how-it-works', label: 'How It Works' },
+    { to: '/faqs', label: 'FAQs' },
+    { to: '/api-docs', label: 'API Docs' },
+    { to: '/data-policy', label: 'Data Policy' },
   ];
 
   return (
@@ -26,14 +30,14 @@ const Footer = ({ navigateTo, setShowBuilder }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
           {/* Brand column */}
           <div>
-            <button onClick={() => navigateTo('home')} className="flex items-center cursor-pointer">
+            <Link to="/" className="flex items-center">
               <span className="font-display text-2xl font-bold">
                 <span className="bg-gradient-to-r from-[#e8550f] to-[#c24a0e] bg-clip-text text-transparent">
                   Vox
                 </span>
                 <span className="text-[#faf8f5]">Bharat</span>
               </span>
-            </button>
+            </Link>
             <p className="text-[#faf8f5]/50 text-sm mt-3">
               AI-powered voice surveys for Bharat.
             </p>
@@ -45,14 +49,14 @@ const Footer = ({ navigateTo, setShowBuilder }) => {
               Navigate
             </h4>
             <div className="space-y-2">
-              {navLinks.map(({ page, label }) => (
-                <button
-                  key={page}
-                  onClick={() => navigateTo(page)}
-                  className="block text-[#faf8f5]/60 hover:text-[#e8550f] text-sm transition-colors cursor-pointer"
+              {navLinks.map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="block text-[#faf8f5]/60 hover:text-[#e8550f] text-sm transition-colors"
                 >
                   {label}
-                </button>
+                </Link>
               ))}
             </div>
           </div>
@@ -88,24 +92,24 @@ const Footer = ({ navigateTo, setShowBuilder }) => {
               &copy; 2026 VoxBharat
             </span>
             <div className="flex gap-6">
-              <button
-                onClick={() => navigateTo('data-policy')}
-                className="text-[#faf8f5]/30 text-xs hover:text-[#e8550f] transition-colors cursor-pointer"
+              <Link
+                to="/data-policy"
+                className="text-[#faf8f5]/30 text-xs hover:text-[#e8550f] transition-colors"
               >
                 Privacy
-              </button>
-              <button
-                onClick={() => navigateTo('faqs')}
-                className="text-[#faf8f5]/30 text-xs hover:text-[#e8550f] transition-colors cursor-pointer"
+              </Link>
+              <Link
+                to="/faqs"
+                className="text-[#faf8f5]/30 text-xs hover:text-[#e8550f] transition-colors"
               >
                 Support
-              </button>
+              </Link>
             </div>
           </div>
 
           {/* Language script watermark */}
           <div className="mt-8 text-[#c4a04a]/30 text-xs font-serif-indic text-center">
-            हिंदी &middot; বাংলা &middot; తెలుగు &middot; मराठी &middot; தமிழ் &middot; ગુજરાதી &middot; ಕನ್ನಡ &middot; മലయാളം &middot; ਪੰਜਾਬੀ &middot; ଓଡ଼ିଆ &middot; অসমীয়া &middot; اردو
+            हिंदी &middot; বাংলা &middot; తెలుగు &middot; मराठी &middot; தமிழ் &middot; ગુજરાતી &middot; ಕನ್ನಡ &middot; മലയാളം &middot; ਪੰਜਾਬੀ &middot; ଓଡ଼ିଆ &middot; অসমীয়া &middot; اردو
           </div>
         </div>
       </div>

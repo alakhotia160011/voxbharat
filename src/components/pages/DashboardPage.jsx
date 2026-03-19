@@ -13,6 +13,7 @@ import { generateCallPDF, generateProjectPDF } from '../../utils/pdfExport';
 
 import { getToken, setToken, clearToken, authFetch } from '../../utils/auth';
 import { CALL_SERVER } from '../../utils/config';
+import { useBuilder } from '../../contexts/BuilderContext';
 const sectionNumerals = ['१', '२', '३', '४'];
 
 // Built-in survey question map (snake_case field → camelCase key in `structured`)
@@ -1351,7 +1352,8 @@ function parseHash(hash) {
   return {};
 }
 
-export default function DashboardPage({ setShowBuilder }) {
+export default function DashboardPage() {
+  const { setShowBuilder } = useBuilder();
   const [authed, setAuthed] = useState(!!getToken());
   const [checkingAuth, setCheckingAuth] = useState(!!getToken());
   const [projects, setProjects] = useState([]);

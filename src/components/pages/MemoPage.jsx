@@ -50,7 +50,7 @@ const competitors = [
   },
 ];
 
-export default function MemoPage({ navigateTo }) {
+export default function MemoPage() {
   return (
     <div>
       {/* ── Hero ── */}

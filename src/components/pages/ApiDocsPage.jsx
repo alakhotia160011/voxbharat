@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useBuilder } from '../../contexts/BuilderContext';
 import SectionHeading from '../shared/SectionHeading';
 import SectionDivider from '../layout/SectionDivider';
 import { fadeInUp, staggerContainer, sectionViewport } from '../../styles/animations';
@@ -174,7 +176,9 @@ function CodeBlock({ code }) {
   );
 }
 
-export default function ApiDocsPage({ navigateTo, setShowBuilder }) {
+export default function ApiDocsPage() {
+  const navigate = useNavigate();
+  const { setShowBuilder } = useBuilder();
   return (
     <div>
       {/* Hero */}
@@ -409,7 +413,7 @@ function verifyWebhook(body, signature, secret) {
             </motion.p>
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => navigateTo('dashboard')}
+                onClick={() => navigate('/dashboard')}
                 className="px-8 py-3 bg-white text-saffron rounded-full font-body font-semibold hover:bg-white/90 transition-colors cursor-pointer"
               >
                 Go to Dashboard

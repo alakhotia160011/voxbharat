@@ -6,7 +6,7 @@ import AnimatedCounter from '../shared/AnimatedCounter';
 import { fadeInUp, scaleIn, staggerContainer, sectionViewport } from '../../styles/animations';
 
 /* ─── About Page ─── */
-export default function AboutPage({ navigateTo }) {
+export default function AboutPage() {
   return (
     <div>
       {/* Hero */}
@@ -228,7 +228,7 @@ const faqItemVariants = {
   }),
 };
 
-export function FaqsPage({ navigateTo }) {
+export function FaqsPage() {
   const [openFaq, setOpenFaq] = useState(null);
 
   return (

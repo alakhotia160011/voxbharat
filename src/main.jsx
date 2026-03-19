@@ -1,9 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import posthog from 'posthog-js'
 import './styles/globals.css'
 import VoxBharat from './App.jsx'
+import { AuthProvider } from './contexts/AuthContext'
+import { BuilderProvider } from './contexts/BuilderContext'
+import { ToastProvider } from './hooks/useToast'
+import Toaster from './components/shared/Toaster'
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 if (POSTHOG_KEY) {
@@ -17,7 +22,16 @@ if (POSTHOG_KEY) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <VoxBharat />
+    <BrowserRouter>
+      <AuthProvider>
+        <BuilderProvider>
+          <ToastProvider>
+            <VoxBharat />
+            <Toaster />
+          </ToastProvider>
+        </BuilderProvider>
+      </AuthProvider>
+    </BrowserRouter>
     <Analytics />
   </React.StrictMode>
 )

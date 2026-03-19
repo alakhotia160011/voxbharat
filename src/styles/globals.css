@@ -13,11 +13,16 @@
   --color-indigo: #2d3a6e;
   --color-indigo-light: #e8ebf4;
   --color-gold: #c4a04a;
+  --color-bark: #6b4c3a;
+  --color-dark: #0D0D0D;
+  --color-dark-warm: #1a1210;
 
   /* Fonts */
   --font-display: 'Playfair Display', serif;
+  --font-heading: 'Fraunces', 'Playfair Display', serif;
   --font-serif-indic: 'Noto Serif Devanagari', 'Noto Serif Bengali', serif;
   --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
 }
 
 @layer base {

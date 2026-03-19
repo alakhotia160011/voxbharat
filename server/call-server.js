@@ -133,8 +133,12 @@ if (!FRONTEND_URL) {
 }
 app.set('trust proxy', 1); // Railway runs behind a reverse proxy
 app.use(helmet());
+const allowedOrigins = FRONTEND_URL ? FRONTEND_URL.split(',').map(u => u.trim()) : [];
+if (!allowedOrigins.includes('http://localhost:5173')) {
+  allowedOrigins.push('http://localhost:5173');
+}
 app.use(cors({
-  origin: FRONTEND_URL ? FRONTEND_URL.split(',').map(u => u.trim()) : false,
+  origin: allowedOrigins.length ? allowedOrigins : false,
   credentials: true,
 }));
 app.use(express.json({ limit: '1mb' }));

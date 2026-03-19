@@ -67,7 +67,7 @@ const policySections = [
   },
 ];
 
-export default function DataPolicyPage({ navigateTo }) {
+export default function DataPolicyPage() {
   return (
     <div>
       {/* Hero */}

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useBuilder } from '../../contexts/BuilderContext';
 
-const NavBar = ({ currentPage, navigateTo, setShowBuilder }) => {
+const NavBar = () => {
+  const location = useLocation();
+  const { setShowBuilder } = useBuilder();
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -20,22 +24,24 @@ const NavBar = ({ currentPage, navigateTo, setShowBuilder }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on navigation
-  const handleNav = (page) => {
-    setMobileOpen(false);
-    navigateTo(page);
-  };
+  // Close mobile menu on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const navLinks = [
-    { page: 'home', label: 'Home' },
-    { page: 'dashboard', label: 'Dashboard' },
-    { page: 'memo', label: 'Memo' },
-    { page: 'about', label: 'About' },
-    { page: 'how-it-works', label: 'How It Works' },
-    { page: 'faqs', label: 'FAQs' },
-    { page: 'api-docs', label: 'API Docs' },
-    { page: 'data-policy', label: 'Data Policy' },
+    { to: '/', label: 'Home' },
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/memo', label: 'Memo' },
+    { to: '/about', label: 'About' },
+    { to: '/how-it-works', label: 'How It Works' },
+    { to: '/faqs', label: 'FAQs' },
+    { to: '/api-docs', label: 'API Docs' },
+    { to: '/data-policy', label: 'Data Policy' },
   ];
+
+  const isActive = (to) => {
+    if (to === '/') return location.pathname === '/';
+    return location.pathname === to;
+  };
 
   return (
     <nav
@@ -53,29 +59,29 @@ const NavBar = ({ currentPage, navigateTo, setShowBuilder }) => {
 
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <button onClick={() => handleNav('home')} className="flex items-center cursor-pointer">
+        <Link to="/" className="flex items-center">
           <span className="font-display text-2xl font-bold">
             <span className="bg-gradient-to-r from-[#e8550f] to-[#c24a0e] bg-clip-text text-transparent">
               Vox
             </span>
             <span className="text-[#3d2314]">Bharat</span>
           </span>
-        </button>
+        </Link>
 
         {/* Desktop nav links + CTA */}
         <div className="hidden md:flex items-center gap-6">
-          {navLinks.map(({ page, label }) => (
-            <button
-              key={page}
-              onClick={() => handleNav(page)}
-              className={`font-body text-sm transition-colors cursor-pointer ${
-                currentPage === page
+          {navLinks.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              className={`font-body text-sm transition-colors ${
+                isActive(to)
                   ? 'text-[#e8550f] font-medium'
                   : 'text-[#6b4c3a] hover:text-[#e8550f]'
               }`}
             >
               {label}
-            </button>
+            </Link>
           ))}
           <motion.button
             onClick={() => setShowBuilder(true)}
@@ -114,18 +120,18 @@ const NavBar = ({ currentPage, navigateTo, setShowBuilder }) => {
             className="md:hidden overflow-hidden bg-[#faf8f5]/95 backdrop-blur-xl border-t border-[#e8550f]/10"
           >
             <div className="px-6 py-4 space-y-3">
-              {navLinks.map(({ page, label }) => (
-                <button
-                  key={page}
-                  onClick={() => handleNav(page)}
-                  className={`block w-full text-left font-body text-base py-2 transition-colors cursor-pointer ${
-                    currentPage === page
+              {navLinks.map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className={`block w-full text-left font-body text-base py-2 transition-colors ${
+                    isActive(to)
                       ? 'text-[#e8550f] font-medium'
                       : 'text-[#3d2314] hover:text-[#e8550f]'
                   }`}
                 >
                   {label}
-                </button>
+                </Link>
               ))}
               <button
                 onClick={() => { setMobileOpen(false); setShowBuilder(true); }}

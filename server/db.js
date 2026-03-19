@@ -710,6 +710,7 @@ export async function getProjectCalls(projectName, userId) {
 
   const { rows } = await pool.query(`
     SELECT id, started_at as timestamp, duration, language, status, summary,
+           phone_number,
            demographics->>'age' as age,
            demographics->>'ageGroup' as age_group,
            demographics->>'religion' as religion,

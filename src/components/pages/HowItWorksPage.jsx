@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import SectionHeading from '../shared/SectionHeading';
 import SectionDivider from '../layout/SectionDivider';
 import { fadeInUp, staggerContainer, sectionViewport } from '../../styles/animations';
+import { useBuilder } from '../../contexts/BuilderContext';
 
 const steps = [
   {
@@ -56,7 +57,8 @@ const stepVariants = {
   }),
 };
 
-export default function HowItWorksPage({ navigateTo, setShowBuilder }) {
+export default function HowItWorksPage() {
+  const { setShowBuilder } = useBuilder();
   return (
     <div>
       {/* Hero */}

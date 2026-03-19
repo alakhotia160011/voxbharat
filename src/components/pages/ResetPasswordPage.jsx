@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const CALL_SERVER = import.meta.env.VITE_CALL_SERVER_URL || '';
 const TOKEN_KEY = 'voxbharat_token';
 
-export default function ResetPasswordPage({ navigateTo }) {
+export default function ResetPasswordPage() {
+  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -49,7 +51,7 @@ export default function ResetPasswordPage({ navigateTo }) {
       } else {
         localStorage.setItem(TOKEN_KEY, data.token);
         setSuccess(true);
-        setTimeout(() => navigateTo('dashboard'), 1500);
+        setTimeout(() => navigate('/dashboard'), 1500);
       }
     } catch {
       setError('Unable to connect to server');
@@ -85,7 +87,7 @@ export default function ResetPasswordPage({ navigateTo }) {
               {error || 'This reset link is invalid or has expired.'}
             </div>
             <button
-              onClick={() => navigateTo('dashboard')}
+              onClick={() => navigate('/dashboard')}
               className="text-sm font-body text-saffron hover:text-saffron-deep transition-colors cursor-pointer font-medium"
             >
               Go to login and request a new link
