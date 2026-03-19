@@ -69,42 +69,42 @@ VoxBharat conducts voice surveys that feel like a conversation with a real perso
 ## Architecture
 
 ```
-                    ┌──────────────────────────────────────┐
-                    │         Vercel (Frontend)            │
-                    │                                      │
-                    │  React + Vite + Tailwind v4          │
-                    │  - Landing page                      │
-                    │  - Survey builder                    │
-                    │  - Campaign manager                  │
-                    │  - Dashboard + analytics             │
-                    │  - Auth (JWT + Google OAuth)         │
-                    │                                      │
-                    │  Serverless Functions:                │
-                    │  - /api/generate-questions            │
-                    │  - /api/tts (voice preview)          │
-                    └──────────────────┬───────────────────┘
-                                       │ HTTPS
-                    ┌──────────────────▼───────────────────┐
-                    │       Railway (Call Server)           │
-                    │                                      │
-                    │  Express + WebSocket                 │
-                    │  - Twilio voice webhooks             │
-                    │  - Real-time audio pipeline          │
-                    │  - Campaign orchestration            │
-                    │  - Inbound call handling             │
-                    │  - Auth + user APIs                  │
-                    │  - Data export (CSV/JSON)            │
-                    └──┬───────────┬───────────┬───────────┘
-                       │           │           │
-              ┌────────▼───┐  ┌────▼──────┐  ┌─▼──────────────┐
-              │  Twilio     │  │ Postgres  │  │  AI Services   │
-              │  (Voice)    │  │ (Data)    │  │                │
-              │             │  │           │  │  Claude (LLM)  │
-              │  Calls      │  │  Users    │  │  Cartesia TTS  │
-              │  Webhooks   │  │  Calls    │  │  Deepgram STT  │
-              │  Recording  │  │  Surveys  │  │  Cartesia STT  │
-              └─────────────┘  │  Campaigns│  └────────────────┘
-                               └───────────┘
+              ┌────────────────────────────────────────┐
+              │          Vercel (Frontend)              │
+              │                                        │
+              │  React + Vite + Tailwind v4             │
+              │  - Landing page                        │
+              │  - Survey builder                      │
+              │  - Dashboard (react-router-dom v6)      │
+              │  - Auth (JWT + Google OAuth)            │
+              │                                        │
+              │  Serverless Functions:                  │
+              │  - /api/generate-questions              │
+              │  - /api/tts (voice preview)             │
+              └───────────────────┬────────────────────┘
+                                  │ HTTPS
+              ┌───────────────────▼────────────────────┐
+              │        Railway (Call Server)            │
+              │                                        │
+              │  Express + WebSocket                   │
+              │  - Twilio voice webhooks               │
+              │  - Real-time audio pipeline            │
+              │  - Campaign orchestration              │
+              │  - Inbound call handling               │
+              │  - Auth + user APIs                    │
+              │  - Public API v1 (/api/v1/)            │
+              │  - Data export (CSV/JSON/PDF)           │
+              └──┬────────────┬────────────┬───────────┘
+                 │            │            │
+          ┌──────▼──────┐ ┌──▼──────────┐ ┌▼───────────────┐
+          │   Twilio     │ │  Postgres   │ │  AI Services   │
+          │   (Voice)    │ │  (Data)     │ │                │
+          │              │ │             │ │  Claude (LLM)  │
+          │   Calls      │ │  Users      │ │  Cartesia TTS  │
+          │   Webhooks   │ │  Calls      │ │  Deepgram STT  │
+          │   Recording  │ │  Surveys    │ │  Cartesia STT  │
+          └──────────────┘ │  Campaigns  │ └────────────────┘
+                           └─────────────┘
 ```
 
 ### Tech Stack
@@ -112,6 +112,8 @@ VoxBharat conducts voice surveys that feel like a conversation with a real perso
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | Frontend | React 18, Vite, Tailwind CSS v4, Framer Motion | Dashboard, survey builder, campaign UI |
+| Routing | react-router-dom v6 | Client-side routing with nested layouts |
+| Charts | Recharts, custom BarChart | Analytics visualizations |
 | Call Server | Express, WebSocket (`ws`), Node.js | Real-time audio pipeline, Twilio integration |
 | LLM | Claude Haiku 4.5 | Conversation turns (fast, cheap) |
 | LLM | Claude Sonnet | Question generation (complex reasoning) |
@@ -151,12 +153,34 @@ Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, E
 - 24/7 availability with no human operators needed
 
 ### Dashboard & Analytics
-- Real-time call list with status, duration, language, and sentiment
-- Full transcripts with turn-by-turn English translations
-- Structured response extraction (survey answers as clean data)
-- Demographic breakdown and cross-tabulations
-- Export to CSV or JSON
-- Per-call PDF report generation
+
+The dashboard is a full authenticated application with sidebar navigation and 8 views:
+
+| View | Route | Description |
+|------|-------|-------------|
+| Overview | `/dashboard` | Summary stats, recent surveys, quick actions |
+| Surveys | `/dashboard/surveys` | Grid of all surveys with language badges, call counts |
+| Survey Detail | `/dashboard/surveys/:name` | Full analytics, response breakdowns, call list, bucket mapping |
+| Call Logs | `/dashboard/calls` | Cross-survey call log with status/language filters |
+| Campaigns | `/dashboard/campaigns` | Campaign list, detail, new campaign flow with live polling |
+| Inbound | `/dashboard/inbound` | Inbound agent configuration (create, toggle, delete) |
+| Insights | `/dashboard/insights` | Recharts visualizations (calls by survey/language/duration) |
+| Settings | `/dashboard/settings` | Profile display, change password |
+
+**Survey Detail features:**
+- Stats cards (respondents, avg duration, total minutes, languages)
+- Analytics charts (by language, religion, age group, sentiment)
+- Per-question response breakdowns with bar charts
+- **Categorize Answers** — merge raw free-text answers into categories (bucket mapping)
+- **Edit Survey & Test Call** — modify the survey and test it by calling yourself
+- Individual calls table with language/search filters and pagination
+- Click any call to open a slide-in detail panel with:
+  - Full conversation transcript (chat bubble UI)
+  - AI summary, demographics, sentiment analysis
+  - Structured survey Q&A responses
+  - Download recording, export JSON/CSV/PDF
+
+**Export options:** CSV, JSON, and PDF at both project level and individual call level.
 
 ### Security
 - JWT authentication with short-lived tokens
@@ -174,16 +198,32 @@ Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Kannada, Malayalam, Punjabi, E
 voxbharat-local/
 ├── src/                            Frontend (React)
 │   ├── components/
-│   │   ├── landing/                Landing page (hero, features, how-it-works)
-│   │   ├── survey-builder/         Multi-step survey creation
+│   │   ├── landing/                Landing page (hero, stats, demo, features)
+│   │   ├── survey-builder/         Multi-step survey creation (FullSurveyBuilder)
 │   │   ├── campaigns/              Campaign list, detail, creation flow
 │   │   ├── inbound/                Inbound call configuration
-│   │   ├── pages/                  Dashboard, auth, about, settings
-│   │   ├── layout/                 Navbar, sidebar, footer
-│   │   ├── modals/                 Dialogs (call detail, test call)
-│   │   └── shared/                 Charts, buttons, reusable UI
+│   │   ├── auth/                   ProtectedRoute
+│   │   ├── pages/                  Public pages (about, FAQ, API docs, etc.)
+│   │   ├── layout/                 NavBar, Sidebar, TopBar, Footer, PageShell
+│   │   ├── modals/                 Sample report/call log modals
+│   │   └── shared/                 BarChart, AnimatedCounter, Toaster, ErrorBoundary
+│   ├── pages/
+│   │   ├── LoginPage.jsx           Standalone login (email + Google OAuth)
+│   │   ├── DashboardLayout.jsx     Sidebar + TopBar + Outlet shell
+│   │   └── dashboard/              Dashboard views (8 pages)
+│   │       ├── OverviewPage.jsx
+│   │       ├── SurveysPage.jsx
+│   │       ├── SurveyDetailPage.jsx
+│   │       ├── CallLogsPage.jsx
+│   │       ├── CampaignsPage.jsx
+│   │       ├── InboundPage.jsx
+│   │       ├── InsightsPage.jsx
+│   │       └── SettingsPage.jsx
+│   ├── contexts/                   AuthContext, BuilderContext
+│   ├── hooks/                      useToast
+│   ├── lib/                        Centralized API client (api.js)
 │   ├── utils/                      Auth helpers, PDF export, config
-│   └── styles/                     Animations, global CSS
+│   └── styles/                     Animations, global CSS tokens
 ├── server/                         Call server (deployed to Railway)
 │   ├── call-server.js              Main: Express, WebSocket, Twilio, all APIs
 │   ├── claude-conversation.js      Claude API wrapper, message management
@@ -195,6 +235,7 @@ voxbharat-local/
 │   ├── website-scraper.js          URL scraping for survey context
 │   ├── audio-convert.js            mu-law ↔ PCM16k conversion
 │   ├── call-store.js               In-memory active call state
+│   ├── routes/api-v1.js            Public API v1 (REST endpoints)
 │   └── db.js                       PostgreSQL schema, migrations, queries
 ├── api/                            Vercel serverless functions
 │   ├── generate-questions.js       AI question generation (Claude Sonnet)
@@ -231,6 +272,7 @@ node call-server.js     # http://localhost:3002
 **Frontend** (`.env`):
 ```
 VITE_CALL_SERVER_URL=http://localhost:3002
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
 **Call Server** (`server/.env`):
@@ -255,7 +297,7 @@ FRONTEND_URL=http://localhost:5173
 
 | Component | Platform | Notes |
 |-----------|----------|-------|
-| Frontend | Vercel | Auto-deploys from `main`. Set `VITE_CALL_SERVER_URL` to Railway domain. |
+| Frontend | Vercel | Auto-deploys from `main`. Set `VITE_CALL_SERVER_URL` and `VITE_GOOGLE_CLIENT_ID`. |
 | Call Server | Railway | Root directory: `server/`. Set `PORT=3002` explicitly. Procfile: `web: node call-server.js` |
 | Database | Railway Postgres | Auto-injects `DATABASE_URL`. Schema auto-migrates on server start. |
 
@@ -264,3 +306,4 @@ FRONTEND_URL=http://localhost:5173
 - Domain target port must match the PORT env var
 - Server binds to `0.0.0.0` for container networking
 - IPv4-first DNS is enforced (Railway doesn't support IPv6 outbound)
+- Add `http://localhost:5173` to `FRONTEND_URL` (comma-separated) for local dev CORS
