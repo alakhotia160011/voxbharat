@@ -81,6 +81,9 @@ export async function initDb() {
     );
   `);
 
+  // Add metrics column (latency tracking)
+  await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS metrics JSONB`);
+
   // Campaign tables
   await pool.query(`
     CREATE TABLE IF NOT EXISTS campaigns (
@@ -370,13 +373,13 @@ export async function saveCall(call) {
       custom_survey, answered_by, voicemail_left, status, duration, summary,
       transcript, demographics, structured, responses, sentiment,
       recording_url, recording_duration, started_at, connected_at, ended_at,
-      campaign_id, direction, user_id
+      campaign_id, direction, user_id, metrics
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10, $11, $12,
       $13, $14, $15, $16, $17,
       $18, $19, $20, $21, $22,
-      $23, $24, $25
+      $23, $24, $25, $26
     )
     ON CONFLICT (id) DO UPDATE SET
       status = EXCLUDED.status,
@@ -392,7 +395,8 @@ export async function saveCall(call) {
       ended_at = EXCLUDED.ended_at,
       campaign_id = EXCLUDED.campaign_id,
       direction = EXCLUDED.direction,
-      user_id = EXCLUDED.user_id
+      user_id = EXCLUDED.user_id,
+      metrics = EXCLUDED.metrics
   `, [
     call.id,
     call.phoneNumber,
@@ -419,6 +423,7 @@ export async function saveCall(call) {
     call.campaignId || null,
     call.direction || 'outbound',
     call.userId || null,
+    call.metrics ? JSON.stringify(call.metrics) : null,
   ]);
 
   return call.id;

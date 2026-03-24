@@ -1462,6 +1462,11 @@ async function initSession(callId, call, ws, streamSid) {
     // Consent-phase disengagement timer
     callStartedAt: Date.now(),
     consentObtained: false,
+    // Latency tracking per turn
+    turnMetrics: [],
+    userSpeechFinalizedAt: null,
+    firstClaudeDeltaAt: null,
+    firstTtsChunkAt: null,
   };
 
   // Select STT provider — default to cartesia, fallback for unsupported Deepgram languages
@@ -1936,6 +1941,11 @@ async function processUserSpeech(callId, text) {
     }
   }
 
+  // Mark start of response generation for latency tracking
+  session.userSpeechFinalizedAt = Date.now();
+  session.firstClaudeDeltaAt = null;
+  session.firstTtsChunkAt = null;
+
   // No filler words — go straight to Claude's response for crisp delivery
   session.isAiSpeaking = true;
   const fillerDone = Promise.resolve();
@@ -1992,6 +2002,11 @@ async function processUserSpeech(callId, text) {
 
       fullResponse += delta;
       pendingText += delta;
+
+      // Track first Claude text delta for latency measurement
+      if (!session.firstClaudeDeltaAt) {
+        session.firstClaudeDeltaAt = Date.now();
+      }
 
       // Parse [LANG:xx] tag from the beginning of response
       if (!langTagParsed) {
@@ -2190,6 +2205,15 @@ async function speakSentence(session, text, language, emotion = null) {
           media: { payload: chunk },
         }));
         chunkCount++;
+        // Record first TTS audio chunk for latency tracking
+        if (chunkCount === 1 && !session.firstTtsChunkAt && session.userSpeechFinalizedAt) {
+          session.firstTtsChunkAt = Date.now();
+          session.turnMetrics.push({
+            responseTtfbMs: (session.firstClaudeDeltaAt || session.firstTtsChunkAt) - session.userSpeechFinalizedAt,
+            ttsTtfbMs: session.firstTtsChunkAt - (session.firstClaudeDeltaAt || session.userSpeechFinalizedAt),
+            totalTtfbMs: session.firstTtsChunkAt - session.userSpeechFinalizedAt,
+          });
+        }
         if (chunkCount % 40 === 0) {
           await new Promise(r => setImmediate(r));
         }
@@ -2290,6 +2314,24 @@ async function handleCallEnd(callId, reason) {
 
     cleanupSession(callId);
     return;
+  }
+
+  // Compute latency metrics from turn-level measurements
+  if (session?.turnMetrics?.length > 0) {
+    const turns = session.turnMetrics;
+    const avg = (arr) => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+    const totalTtfbs = turns.map(t => t.totalTtfbMs);
+    const metrics = {
+      turnCount: turns.length,
+      avgResponseTtfbMs: avg(turns.map(t => t.responseTtfbMs)),
+      avgTtsTtfbMs: avg(turns.map(t => t.ttsTtfbMs)),
+      avgTotalTtfbMs: avg(totalTtfbs),
+      minTotalTtfbMs: Math.min(...totalTtfbs),
+      maxTotalTtfbMs: Math.max(...totalTtfbs),
+      sttProvider: session.sttProvider || 'unknown',
+    };
+    updateCall(callId, { metrics });
+    console.log(`[Call:${callId}] Latency metrics: avg=${metrics.avgTotalTtfbMs}ms, min=${metrics.minTotalTtfbMs}ms, max=${metrics.maxTotalTtfbMs}ms (${turns.length} turns)`);
   }
 
   updateCall(callId, {

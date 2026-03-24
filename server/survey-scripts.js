@@ -577,14 +577,23 @@ Return ONLY valid JSON matching this exact schema:
     "diversityOpinion": "<makes_better|both|challenging|no_effect|null>"
   },
   "sentiment": {
-    "overall": "<positive|neutral|negative>",
+    "overall": "<positive|negative|mixed|neutral>",
+    "confidence": "<high|medium|low>",
     "openness": "<high|medium|low>",
-    "religiosity": "<high|medium|low>"
+    "religiosity": "<high|medium|low>",
+    "engagement": "<high|medium|low>",
+    "emotionalTone": "<string — dominant emotion e.g. enthusiastic, frustrated, indifferent, curious, grateful, anxious, amused, resigned>"
   },
   "summary": "<1-2 sentence summary in English>"
 }
 
-Be precise. Map the respondent's answers to the closest option value. If an answer was not given or unclear, use null.`;
+Be precise. Map the respondent's answers to the closest option value. If an answer was not given or unclear, use null.
+
+SENTIMENT RULES:
+- "overall": Judge from the FULL conversation. "positive" = cooperative, friendly, or satisfied. "negative" = frustrated, hostile, or unhappy. "mixed" = shifted between positive and negative. "neutral" = flat affect, no emotional signal. Default to "mixed" rather than "neutral" if there were ANY emotional signals.
+- "confidence": How confident are you? "high" = clear signals, "low" = ambiguous or very short call.
+- "engagement": "high" = detailed answers, asked questions back. "medium" = answered adequately but briefly. "low" = one-word answers, distracted.
+- "emotionalTone": Single most dominant emotion across the conversation.`;
 }
 
 /**
@@ -1070,8 +1079,10 @@ Return ONLY valid JSON matching this schema:
 ${fields.join(',\n')}
   },
   "sentiment": {
-    "overall": "<positive|neutral|negative>",
-    "engagement": "<high|medium|low>"
+    "overall": "<positive|negative|mixed|neutral>",
+    "confidence": "<high|medium|low>",
+    "engagement": "<high|medium|low>",
+    "emotionalTone": "<string — dominant emotion e.g. enthusiastic, frustrated, indifferent, curious, grateful, anxious, amused, resigned>"
   },
   "summary": "<1-2 sentence summary in English>"
 }
@@ -1081,7 +1092,13 @@ EXTRACTION RULES:
 2. For free-text fields (<string or null>), extract as a concise English string.
 3. If the respondent did not answer or the answer is unclear, use null.
 4. For number fields, extract as an integer.
-5. Some questions may have been skipped due to conditional branching. Use null for any question that was not asked during the conversation.`;
+5. Some questions may have been skipped due to conditional branching. Use null for any question that was not asked during the conversation.
+
+SENTIMENT RULES:
+- "overall": Judge from the FULL conversation, not just the last exchange. "positive" = respondent was cooperative, friendly, or expressed satisfaction. "negative" = frustrated, hostile, or clearly unhappy. "mixed" = shifted between positive and negative during the call. "neutral" = flat affect, minimal engagement, purely transactional with no emotional signal either way. Default to "mixed" rather than "neutral" if there were ANY emotional signals.
+- "confidence": How confident are you in your sentiment assessment? "high" = clear signals, "low" = ambiguous or very short call.
+- "engagement": "high" = gave detailed answers, asked questions back, showed interest. "medium" = answered adequately but briefly. "low" = one-word answers, seemed distracted or disinterested.
+- "emotionalTone": Pick the single most dominant emotion across the conversation.`;
 }
 
 /**

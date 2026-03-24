@@ -35,6 +35,7 @@ export function createCall(options = {}) {
     transcript: [],
     responses: [],
     extractedData: null,
+    metrics: null,
     error: null,
   };
 

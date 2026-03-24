@@ -529,6 +529,7 @@ Call the generate_survey_questions tool with all the questions and the greetingT
         },
         recordingUrl: call.recording_url,
         recordingDuration: call.recording_duration,
+        metrics: call.metrics || null,
         startedAt: call.started_at,
         endedAt: call.ended_at,
         surveyName: call.custom_survey?.name || null,
