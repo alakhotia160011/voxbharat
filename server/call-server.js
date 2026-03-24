@@ -1922,12 +1922,12 @@ async function processUserSpeech(callId, text) {
   }
 
   // Consent-phase time cap: if 30+ seconds have passed and we're still in the first
-  // few exchanges (consent not clearly obtained), hint Claude to wrap up
-  if (!session.consentObtained) {
+  // few exchanges (consent not clearly obtained), hint Claude to wrap up (skip for demo/widget calls)
+  if (!session.consentObtained && call.customSurvey?.type !== 'demo') {
     const elapsedSec = (Date.now() - session.callStartedAt) / 1000;
     const userMsgCount = session.conversation.messages.filter(m => m.role === 'user').length;
     if (elapsedSec >= 30 && userMsgCount <= 3) {
-      textForClaude = `[SYSTEM: The respondent seems disengaged — wrap up the call politely.] ${textForClaude}`;
+      textForClaude = `[SYSTEM: The respondent seems disengaged — thank them for their time in the language they were speaking and wrap up the call politely.] ${textForClaude}`;
       console.log(`[Call:${callId}] Consent phase timeout (${Math.round(elapsedSec)}s, ${userMsgCount} user msgs) — injecting wrap-up hint`);
     }
     // Mark consent obtained after 3 user messages (past intro/consent phase)
