@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBuilder } from '../../contexts/BuilderContext';
 
@@ -23,12 +23,21 @@ export default function Sidebar() {
 
   return (
     <aside className="w-[260px] bg-dark h-screen flex flex-col shrink-0">
-      {/* Logo */}
-      <div className="px-6 py-6 border-b border-white/5">
-        <span className="font-heading text-xl font-bold">
+      {/* Logo — links to homepage */}
+      <div className="px-6 py-5 border-b border-white/5">
+        <Link to="/" className="font-heading text-xl font-bold hover:opacity-80 transition-opacity">
           <span className="text-saffron">Vox</span>
           <span className="text-cream">Bharat</span>
-        </span>
+        </Link>
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 mt-2 text-cream/30 hover:text-cream/60 text-xs font-body transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Back to website
+        </Link>
       </div>
 
       {/* Nav */}
