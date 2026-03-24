@@ -230,6 +230,7 @@ export class ClaudeConversation {
         demographics: { age: null, ageGroup: null, religion: null, language: this.language },
         structured: {},
         sentiment: { overall: 'neutral', confidence: 'low', engagement: 'low', emotionalTone: 'unknown' },
+        customMetrics: {},
         summary: 'Data extraction failed',
       };
     }

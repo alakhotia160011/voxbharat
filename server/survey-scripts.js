@@ -1070,6 +1070,27 @@ export function getCustomExtractionPrompt(customSurvey) {
     return `    "${fieldName}": ${valueHint}`;
   });
 
+  // Build custom metrics schema if defined
+  const metrics = (customSurvey.successMetrics || []).filter(m => m.name && m.prompt);
+  const metricsSchema = metrics.length > 0 ? `
+  "customMetrics": {
+${metrics.map(m => {
+    const key = m.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    return `    "${key}": { "pass": <true|false>, "reason": "<1 sentence justification>" }`;
+  }).join(',\n')}
+  },` : '';
+
+  const metricsRules = metrics.length > 0 ? `
+
+CUSTOM METRICS RULES:
+${metrics.map(m => {
+    const key = m.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    return `- "${key}" (${m.name}): ${m.prompt}`;
+  }).join('\n')}
+- For each metric, evaluate the FULL conversation against its criteria.
+- "pass": true ONLY if there is clear evidence in the transcript. When in doubt, use false.
+- "reason": One concise sentence explaining your judgment.` : '';
+
   return `Extract structured survey data from the following conversation transcript.
 The survey is called "${customSurvey.name}".
 Return ONLY valid JSON matching this schema:
@@ -1083,7 +1104,7 @@ ${fields.join(',\n')}
     "confidence": "<high|medium|low>",
     "engagement": "<high|medium|low>",
     "emotionalTone": "<string — dominant emotion e.g. enthusiastic, frustrated, indifferent, curious, grateful, anxious, amused, resigned>"
-  },
+  },${metricsSchema}
   "summary": "<1-2 sentence summary in English>"
 }
 
@@ -1098,7 +1119,7 @@ SENTIMENT RULES:
 - "overall": Judge from the FULL conversation, not just the last exchange. "positive" = respondent was cooperative, friendly, or expressed satisfaction. "negative" = frustrated, hostile, or clearly unhappy. "mixed" = shifted between positive and negative during the call. "neutral" = flat affect, minimal engagement, purely transactional with no emotional signal either way. Default to "mixed" rather than "neutral" if there were ANY emotional signals.
 - "confidence": How confident are you in your sentiment assessment? "high" = clear signals, "low" = ambiguous or very short call.
 - "engagement": "high" = gave detailed answers, asked questions back, showed interest. "medium" = answered adequately but briefly. "low" = one-word answers, seemed distracted or disinterested.
-- "emotionalTone": Pick the single most dominant emotion across the conversation.`;
+- "emotionalTone": Pick the single most dominant emotion across the conversation.${metricsRules}`;
 }
 
 /**

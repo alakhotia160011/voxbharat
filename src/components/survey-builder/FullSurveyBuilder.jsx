@@ -202,6 +202,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       qualityChecks: true,
       recordAudio: true,
       sttProvider: 'cartesia',
+      successMetrics: [],
     };
     if (initialSurvey) {
       base.name = initialSurvey.name || '';
@@ -234,6 +235,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
       base.qualityChecks = initialSurvey.qualityChecks ?? true;
       base.sttProvider = initialSurvey.sttProvider || 'cartesia';
       base.recordAudio = initialSurvey.recordAudio ?? true;
+      base.successMetrics = initialSurvey.successMetrics || [];
     }
     return base;
   });
@@ -397,6 +399,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
             recordAudio: config.recordAudio ?? true,
             sttProvider: config.sttProvider || 'cartesia',
             greetingTopic: config.greetingTopic || '',
+            successMetrics: (config.successMetrics || []).filter(m => m.name && m.prompt),
             questions: questions.map(q => ({
               id: q.id,
               text: q.text,
@@ -1262,6 +1265,66 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   rows={3}
                   className="w-full px-4 py-3 border border-cream-warm rounded-xl focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
                 />
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">
+                <label className="block text-sm font-medium text-earth mb-1">Success Metrics (Optional)</label>
+                <p className="text-sm text-gray-500 mb-4">Define custom pass/fail criteria evaluated after each call.</p>
+
+                {config.successMetrics.map((metric, idx) => (
+                  <div key={idx} className="border border-cream-warm rounded-xl p-4 mb-3 relative">
+                    <button
+                      onClick={() => setConfig(prev => ({
+                        ...prev,
+                        successMetrics: prev.successMetrics.filter((_, i) => i !== idx),
+                      }))}
+                      className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-lg"
+                    >
+                      &times;
+                    </button>
+                    <div className="mb-3">
+                      <label className="block text-xs text-gray-500 mb-1">Metric Name</label>
+                      <input
+                        type="text"
+                        value={metric.name}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          successMetrics: prev.successMetrics.map((m, i) => i === idx ? { ...m, name: e.target.value } : m),
+                        }))}
+                        placeholder="e.g., Repurchase Intent"
+                        className="w-full px-3 py-2 border border-cream-warm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-saffron/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Evaluation Criteria</label>
+                      <textarea
+                        value={metric.prompt}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          successMetrics: prev.successMetrics.map((m, i) => i === idx ? { ...m, prompt: e.target.value } : m),
+                        }))}
+                        placeholder="e.g., Did the respondent express willingness to buy again?"
+                        rows={2}
+                        className="w-full px-3 py-2 border border-cream-warm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {config.successMetrics.length < 5 && (
+                  <button
+                    onClick={() => setConfig(prev => ({
+                      ...prev,
+                      successMetrics: [...prev.successMetrics, { name: '', prompt: '' }],
+                    }))}
+                    className="text-sm text-saffron hover:text-saffron-deep font-medium"
+                  >
+                    + Add Success Metric
+                  </button>
+                )}
+                {config.successMetrics.length >= 5 && (
+                  <p className="text-xs text-gray-400">Maximum 5 metrics</p>
+                )}
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-cream-warm">

@@ -238,7 +238,7 @@ export function createApiV1Router({ initiateCallFn, campaignRunnerRef, getActive
   // ==========================================
 
   router.post('/surveys', wrap(async (req, res) => {
-    const { name, type, purpose, languages, targetAudience, geography, tone, duration, questions, companyName, greetingTopic, sensitivity, keyQuestions, analysisGoals, brandNames, companyContext } = req.body;
+    const { name, type, purpose, languages, targetAudience, geography, tone, duration, questions, companyName, greetingTopic, sensitivity, keyQuestions, analysisGoals, brandNames, companyContext, successMetrics } = req.body;
 
     if (!name || typeof name !== 'string') {
       return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'name is required' } });
@@ -268,6 +268,10 @@ export function createApiV1Router({ initiateCallFn, campaignRunnerRef, getActive
       analysisGoals: analysisGoals || '',
       brandNames: brandNames || '',
       companyContext: companyContext || '',
+      successMetrics: (Array.isArray(successMetrics) ? successMetrics : [])
+        .filter(m => m && typeof m.name === 'string' && typeof m.prompt === 'string' && m.name.trim() && m.prompt.trim())
+        .slice(0, 5)
+        .map(m => ({ name: m.name.trim(), prompt: m.prompt.trim() })),
     };
 
     const survey = await createSurvey(req.user.id, name.trim(), config);
