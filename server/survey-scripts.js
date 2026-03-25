@@ -1682,50 +1682,61 @@ ${getEmotionInstructions(true)}`;
  * Generate voicemail message for when an answering machine is detected.
  * Brief, clear, identifies the company (never VoxBharat), explains why calling, mentions retry.
  */
-export function getVoicemailMessage(language, gender, surveyName, companyName) {
+export function getVoicemailMessage(language, gender, surveyName, companyName, greetingTopic) {
   const org = companyName || null;
+  const topic = greetingTopic || surveyName || null;
 
   const messages = {
     hi: () => {
       const verb = gender === 'female' ? 'रही' : 'रहा';
       const from = org ? `${org} से बोल ${verb} हूँ` : `बोल ${verb} हूँ`;
-      return `नमस्ते, मैं ${from}। हम आपसे बात करना चाहते थे — कृपया हमें वापस कॉल करें, या हम दोबारा कॉल करेंगे। धन्यवाद।`;
+      const about = topic ? ` ${topic} के बारे में एक छोटा सा सर्वे था।` : '';
+      return `नमस्ते, मैं Ananya, ${from}।${about} हम दोबारा कॉल करेंगे। धन्यवाद।`;
     },
     bn: () => {
       const from = org ? `${org} থেকে বলছি` : `বলছি`;
-      return `নমস্কার, আমি ${from}। আপনার সাথে কথা বলতে চেয়েছিলাম — অনুগ্রহ করে আমাদের ফিরে কল করুন, অথবা আমরা আবার কল করব। ধন্যবাদ।`;
+      const about = topic ? ` ${topic} নিয়ে একটি ছোট জরিপ ছিল।` : '';
+      return `নমস্কার, আমি Ananya, ${from}।${about} আমরা আবার কল করব। ধন্যবাদ।`;
     },
     te: () => {
       const from = org ? `${org} నుండి మాట్లాడుతున్నాను` : `మాట్లాడుతున్నాను`;
-      return `నమస్కారం, నేను ${from}. మీతో మాట్లాడాలనుకున్నాము — దయచేసి మాకు తిరిగి కాల్ చేయండి, లేదా మేము మళ్ళీ కాల్ చేస్తాము. ధన్యవాదాలు.`;
+      const about = topic ? ` ${topic} గురించి ఒక చిన్న సర్వే ఉంది.` : '';
+      return `నమస్కారం, నేను Ananya, ${from}.${about} మేము మళ్ళీ కాల్ చేస్తాము. ధన్యవాదాలు.`;
     },
     mr: () => {
       const from = org ? `${org} कडून बोलत आहे` : `बोलत आहे`;
-      return `नमस्कार, मी ${from}. तुमच्याशी बोलायचे होते — कृपया आम्हाला परत कॉल करा, किंवा आम्ही पुन्हा कॉल करू. धन्यवाद.`;
+      const about = topic ? ` ${topic} बद्दल एक छोटा सर्वे होता.` : '';
+      return `नमस्कार, मी Ananya, ${from}.${about} आम्ही पुन्हा कॉल करू. धन्यवाद.`;
     },
     ta: () => {
       const from = org ? `${org}-இலிருந்து பேசுகிறேன்` : `பேசுகிறேன்`;
-      return `வணக்கம், நான் ${from}. உங்களிடம் பேச விரும்பினோம் — தயவுசெய்து எங்களை திரும்ப அழைக்கவும், அல்லது நாங்கள் மீண்டும் அழைப்போம். நன்றி.`;
+      const about = topic ? ` ${topic} பற்றி ஒரு சிறிய கருத்துக் கணிப்பு இருந்தது.` : '';
+      return `வணக்கம், நான் Ananya, ${from}.${about} நாங்கள் மீண்டும் அழைப்போம். நன்றி.`;
     },
     gu: () => {
-      const from = org ? `${org} તરફથી બોલી રહ્યો છું` : `બોલી રહ્યો છું`;
-      return `નમસ્તે, હું ${from}. તમારી સાથે વાત કરવા માંગતા હતા — કૃપા કરીને અમને પાછો કૉલ કરો, અથવા અમે ફરીથી કૉલ કરીશું. આભાર.`;
+      const from = org ? `${org} તરફથી બોલી રહી છું` : `બોલી રહી છું`;
+      const about = topic ? ` ${topic} વિશે એક નાનો સર્વે હતો.` : '';
+      return `નમસ્તે, હું Ananya, ${from}.${about} અમે ફરીથી કૉલ કરીશું. આભાર.`;
     },
     kn: () => {
       const from = org ? `${org} ನಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ` : `ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ`;
-      return `ನಮಸ್ಕಾರ, ನಾನು ${from}. ನಿಮ್ಮೊಂದಿಗೆ ಮಾತನಾಡಲು ಬಯಸಿದ್ದೆವು — ದಯವಿಟ್ಟು ನಮಗೆ ಮರಳಿ ಕರೆ ಮಾಡಿ, ಅಥವಾ ನಾವು ಮತ್ತೆ ಕರೆ ಮಾಡುತ್ತೇವೆ. ಧನ್ಯವಾದಗಳು.`;
+      const about = topic ? ` ${topic} ಬಗ್ಗೆ ಒಂದು ಸಣ್ಣ ಸಮೀಕ್ಷೆ ಇತ್ತು.` : '';
+      return `ನಮಸ್ಕಾರ, ನಾನು Ananya, ${from}.${about} ನಾವು ಮತ್ತೆ ಕರೆ ಮಾಡುತ್ತೇವೆ. ಧನ್ಯವಾದಗಳು.`;
     },
     ml: () => {
       const from = org ? `${org}-ൽ നിന്ന് വിളിക്കുന്നു` : `വിളിക്കുന്നു`;
-      return `നമസ്കാരം, ഞാൻ ${from}. നിങ്ങളോട് സംസാരിക്കാൻ ആഗ്രഹിച്ചു — ദയവായി ഞങ്ങളെ തിരിച്ചു വിളിക്കുക, അല്ലെങ്കിൽ ഞങ്ങൾ വീണ്ടും വിളിക്കാം. നന്ദി.`;
+      const about = topic ? ` ${topic} കുറിച്ച് ഒരു ചെറിയ സർവേ ഉണ്ടായിരുന്നു.` : '';
+      return `നമസ്കാരം, ഞാൻ Ananya, ${from}.${about} ഞങ്ങൾ വീണ്ടും വിളിക്കാം. നന്ദി.`;
     },
     pa: () => {
-      const from = org ? `${org} ਤੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ` : `ਬੋਲ ਰਿਹਾ ਹਾਂ`;
-      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ, ਮੈਂ ${from}। ਤੁਹਾਡੇ ਨਾਲ ਗੱਲ ਕਰਨਾ ਚਾਹੁੰਦੇ ਸੀ — ਕਿਰਪਾ ਕਰਕੇ ਸਾਨੂੰ ਵਾਪਸ ਕਾਲ ਕਰੋ, ਜਾਂ ਅਸੀਂ ਦੁਬਾਰਾ ਕਾਲ ਕਰਾਂਗੇ। ਧੰਨਵਾਦ।`;
+      const from = org ? `${org} ਤੋਂ ਬੋਲ ਰਹੀ ਹਾਂ` : `ਬੋਲ ਰਹੀ ਹਾਂ`;
+      const about = topic ? ` ${topic} ਬਾਰੇ ਇੱਕ ਛੋਟਾ ਸਰਵੇ ਸੀ।` : '';
+      return `ਸਤ ਸ੍ਰੀ ਅਕਾਲ, ਮੈਂ Ananya, ${from}।${about} ਅਸੀਂ ਦੁਬਾਰਾ ਕਾਲ ਕਰਾਂਗੇ। ਧੰਨਵਾਦ।`;
     },
     en: () => {
-      const from = org ? `calling from ${org}` : `calling`;
-      return `Hello, we were ${from} and wanted to speak with you. Please call us back, or we will try again later. Thank you.`;
+      const from = org ? `from ${org}` : '';
+      const about = topic ? ` about ${topic}` : '';
+      return `Hello, this is Ananya${from ? ` ${from}` : ''}. We were calling for a quick survey${about}. We will try again later. Thank you.`;
     },
   };
 

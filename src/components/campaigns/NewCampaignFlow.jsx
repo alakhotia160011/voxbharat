@@ -74,7 +74,7 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
   const [waEnabled, setWaEnabled] = useState(false);
   const [waMode, setWaMode] = useState('batch');
   const [waDelay, setWaDelay] = useState(30);
-  const [waMessage, setWaMessage] = useState('Hello! {company} ki taraf se. Hum {calling_number} se {topic} ke liye {duration} min ka ek call karenge. Kripya call zaroor uthayein!\n\nReply STOP to opt out.');
+  const [waMessage, setWaMessage] = useState('Hello! I am Ananya from {company}. I will be calling you from {calling_number} for a quick survey on {topic} ({duration} min). Please pick up!');
 
   // Step 4
   const [creating, setCreating] = useState(false);
@@ -475,12 +475,12 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
               </div>
             </div>
 
-            {/* WhatsApp Reminders */}
+            {/* SMS Reminders */}
             <div className="border-t border-cream-warm/60 pt-5">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <label className={labelClass + ' mb-0'}>WhatsApp Reminders</label>
-                  <p className="text-xs text-earth-mid/60 font-body mt-0.5">Send a heads-up message before calling to improve pickup rates.</p>
+                  <label className={labelClass + ' mb-0'}>SMS Reminders</label>
+                  <p className="text-xs text-earth-mid/60 font-body mt-0.5">Send an SMS heads-up before calling to improve pickup rates.</p>
                 </div>
                 <button
                   onClick={() => setWaEnabled(!waEnabled)}
@@ -603,7 +603,7 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
                   <span className="text-sm font-body font-medium text-earth">{maxRetries}x per number</span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-sm font-body text-earth-mid">WhatsApp Reminders</span>
+                  <span className="text-sm font-body text-earth-mid">SMS Reminders</span>
                   <span className="text-sm font-body font-medium text-earth">
                     {waEnabled
                       ? `${waMode === 'batch' ? 'All at once' : 'Before each call'} · ${waDelay}min delay`

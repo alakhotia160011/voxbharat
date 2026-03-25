@@ -127,6 +127,7 @@ export class CampaignRunner {
       console.log(`[Campaign] ${campaignId} — sending batch WhatsApp reminders...`);
 
       const templateVars = {
+        name: waConfig.name || '',
         company: waConfig.company || campaign.name,
         topic: waConfig.topic || 'a brief survey',
         duration: waConfig.duration || '2-3',
@@ -311,6 +312,7 @@ export class CampaignRunner {
         const alreadySent = await hasReminderBeenSent(num.id);
         if (!alreadySent) {
           const templateVars = {
+            name: waConfig.name || '',
             company: waConfig.company || state.config.name,
             topic: waConfig.topic || 'a brief survey',
             duration: waConfig.duration || '2-3',

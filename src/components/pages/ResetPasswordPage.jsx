@@ -14,11 +14,7 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [tokenInvalid, setTokenInvalid] = useState(false);
 
-  const resetToken = (() => {
-    const hash = window.location.hash.replace('#', '');
-    const match = hash.match(/[?&]token=([^&]+)/);
-    return match ? match[1] : null;
-  })();
+  const resetToken = new URLSearchParams(window.location.search).get('token');
 
   useEffect(() => {
     if (!resetToken) setTokenInvalid(true);

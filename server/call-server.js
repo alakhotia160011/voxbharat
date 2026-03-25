@@ -32,7 +32,7 @@ import {
   createUser, verifyUser, getUserByEmail,
   findOrCreateGoogleUser, createPasswordResetToken, verifyPasswordResetToken, resetPassword,
   createCampaign, getCampaignById, getCampaignsByUser,
-  updateCampaignStatus, updateCampaignProgress,
+  updateCampaignStatus, updateCampaignProgress, updateCampaign,
   addCampaignNumbers, getCampaignNumbersByCampaign, getProgressCounts,
   createInboundConfig, getInboundConfigById, getInboundConfigsByUser,
   getInboundConfigByNumber, updateInboundConfig, deleteInboundConfig,
@@ -73,7 +73,6 @@ const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER || '+14155238886'; // Sandbox default
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
@@ -772,7 +771,7 @@ app.post('/call/amd-callback', validateTwilioSignature, async (req, res) => {
   // Generate and stream voicemail message
   const language = session.currentLanguage || call.language;
   const surveyName = call.customSurvey?.name || null;
-  const voicemailText = getVoicemailMessage(language, call.gender, surveyName, call.customSurvey?.companyName);
+  const voicemailText = getVoicemailMessage(language, call.gender, surveyName, call.customSurvey?.companyName, call.customSurvey?.greetingTopic);
 
   console.log(`[AMD:${callId}] Voicemail (${language}): "${voicemailText.substring(0, 60)}..."`);
 
@@ -954,7 +953,7 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
     }
     const token = await createPasswordResetToken(user.id);
     const frontendBase = FRONTEND_URL ? FRONTEND_URL.split(',')[0].trim() : 'https://voxbharat.ai';
-    const resetLink = `${frontendBase}/#reset-password?token=${token}`;
+    const resetLink = `${frontendBase}/reset-password?token=${token}`;
     if (!mailTransport) {
       console.error('Password reset email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not configured');
       return res.status(500).json({ error: 'Email service not configured. Contact support.' });
@@ -965,12 +964,21 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
         to: email,
         subject: 'Reset your VoxBharat password',
         html: `
-          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-            <h2 style="color: #3d2314;">Reset Your Password</h2>
-            <p>You requested a password reset for your VoxBharat account.</p>
-            <p>Click the button below to set a new password. This link expires in 1 hour.</p>
-            <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background: #e8550f; color: white; text-decoration: none; border-radius: 8px; margin: 16px 0; font-weight: 600;">Reset Password</a>
-            <p style="color: #888; font-size: 13px;">If you did not request this, you can safely ignore this email.</p>
+          <div style="font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; background: #faf8f5; border-radius: 16px; border: 1px solid #f5ede3; overflow: hidden;">
+            <div style="padding: 32px 32px 0;">
+              <div style="margin-bottom: 24px;">
+                <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 24px; font-weight: 700;">
+                  <span style="color: #e8550f;">Vox</span><span style="color: #3d2314;">Bharat</span>
+                </span>
+              </div>
+              <h2 style="color: #3d2314; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; margin: 0 0 8px;">Reset Your Password</h2>
+              <p style="color: #6b4c3a; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">You requested a password reset for your VoxBharat account. Click the button below to set a new password.</p>
+              <a href="${resetLink}" style="display: inline-block; padding: 12px 28px; background: #e8550f; color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">Reset Password</a>
+              <p style="color: #6b4c3a; font-size: 12px; margin: 24px 0 0; opacity: 0.7;">This link expires in 1 hour. If you did not request this, you can safely ignore this email.</p>
+            </div>
+            <div style="padding: 20px 32px; margin-top: 24px; border-top: 1px solid #f5ede3;">
+              <p style="color: #6b4c3a; font-size: 11px; margin: 0; opacity: 0.5;">&copy; ${new Date().getFullYear()} VoxBharat</p>
+            </div>
           </div>
         `,
       });
@@ -2517,6 +2525,86 @@ app.get('/api/campaigns/:id', requireAuth, requireDb, async (req, res) => {
   }
 });
 
+// Update campaign settings (only when pending or paused)
+app.put('/api/campaigns/:id', requireAuth, requireDb, async (req, res) => {
+  try {
+    const campaign = await getCampaignById(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+    if (!['pending', 'paused'].includes(campaign.status)) {
+      return res.status(400).json({ error: 'Can only edit campaigns that are pending or paused' });
+    }
+
+    const { name, concurrency, maxRetries, callTiming, language, gender, autoDetectLanguage, whatsappConfig } = req.body;
+    const fields = {};
+
+    if (name !== undefined) fields.name = name.trim() || campaign.name;
+    if (concurrency !== undefined) fields.concurrency = Math.min(Math.max(concurrency, 1), 2);
+    if (maxRetries !== undefined) fields.max_retries = Math.min(Math.max(maxRetries, 0), 10);
+    if (callTiming !== undefined) fields.call_timing = callTiming;
+    if (language !== undefined) fields.language = language;
+    if (gender !== undefined) fields.gender = gender;
+    if (autoDetectLanguage !== undefined) fields.auto_detect_language = autoDetectLanguage;
+
+    if (whatsappConfig !== undefined) {
+      if (!whatsappConfig || !whatsappConfig.enabled) {
+        fields.whatsapp_config = null;
+      } else {
+        const mode = whatsappConfig.mode === 'staggered' ? 'staggered' : 'batch';
+        const delay = Math.min(Math.max(parseInt(whatsappConfig.delayMinutes, 10) || 30, 1), 120);
+        const msg = (whatsappConfig.message || '').trim().slice(0, 1024);
+        if (!msg) return res.status(400).json({ error: 'WhatsApp message text is required when reminders are enabled' });
+        fields.whatsapp_config = { enabled: true, mode, delayMinutes: delay, message: msg };
+      }
+    }
+
+    const updated = await updateCampaign(campaign.id, fields);
+    res.json(updated);
+  } catch (error) {
+    console.error('[Campaign API] Update error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Send WhatsApp reminders now (without starting calls)
+app.post('/api/campaigns/:id/send-reminders', requireAuth, requireDb, async (req, res) => {
+  try {
+    const campaign = await getCampaignById(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    if (!campaign.whatsapp_config?.enabled) {
+      return res.status(400).json({ error: 'WhatsApp reminders are not enabled for this campaign' });
+    }
+    if (!['pending', 'paused'].includes(campaign.status)) {
+      return res.status(400).json({ error: 'Can only send reminders when campaign is pending or paused' });
+    }
+    if (!campaignRunner?.whatsappSender) {
+      return res.status(500).json({ error: 'WhatsApp sender not initialized' });
+    }
+
+    const previousStatus = campaign.status;
+    await updateCampaignStatus(campaign.id, 'sending_reminders');
+    res.json({ message: 'Sending reminders' });
+
+    // Fire-and-forget: send in background, then restore previous status
+    const waConfig = campaign.whatsapp_config;
+    const templateVars = {
+      company: waConfig.company || campaign.name,
+      topic: waConfig.topic || 'a brief survey',
+      duration: waConfig.duration || '2-3',
+      callingNumber: process.env.TWILIO_PHONE_NUMBER || '',
+    };
+    campaignRunner.whatsappSender.sendBatch(campaign.id, waConfig.message, templateVars)
+      .catch(err => console.error(`[Campaign] ${campaign.id} — manual reminder send error:`, err.message))
+      .finally(() => updateCampaignStatus(campaign.id, previousStatus)
+        .catch(err => console.error(`[Campaign] ${campaign.id} — status restore error:`, err.message)));
+  } catch (error) {
+    console.error('[Campaign API] Send reminders error:', error.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Start or resume a campaign
 app.post('/api/campaigns/:id/start', requireAuth, requireDb, async (req, res) => {
   try {
@@ -2570,46 +2658,44 @@ app.post('/api/campaigns/:id/cancel', requireAuth, requireDb, async (req, res) =
 });
 
 // ============================================
-// WhatsApp Webhook Routes
+// SMS Webhook Routes
 // ============================================
 
-// Twilio WhatsApp message status callback (delivered, read, failed, etc.)
-app.post('/whatsapp/status', async (req, res) => {
+// Twilio SMS status callback (delivered, failed, etc.)
+app.post('/sms/status', async (req, res) => {
   try {
     const { MessageSid, MessageStatus } = req.body;
     if (MessageSid && MessageStatus) {
       const { updateReminderDeliveryStatus } = await import('./db.js');
       await updateReminderDeliveryStatus(MessageSid, MessageStatus);
-      console.log(`[WhatsApp] Status update: ${MessageSid} → ${MessageStatus}`);
+      console.log(`[SMS] Status update: ${MessageSid} → ${MessageStatus}`);
     }
   } catch (err) {
-    console.error('[WhatsApp] Status callback error:', err.message);
+    console.error('[SMS] Status callback error:', err.message);
   }
   res.sendStatus(204);
 });
 
-// Twilio WhatsApp inbound message (replies from recipients)
-app.post('/whatsapp/inbound', async (req, res) => {
+// Twilio SMS inbound message (replies from recipients)
+app.post('/sms/inbound', async (req, res) => {
   try {
     const { From, Body } = req.body;
     if (!From || !Body) return res.sendStatus(204);
 
-    // Normalize phone number: "whatsapp:+919876543210" → "+919876543210"
-    const phone = From.replace('whatsapp:', '');
+    const phone = From;
     const text = Body.trim();
-    console.log(`[WhatsApp] Inbound from ${phone}: "${text}"`);
+    console.log(`[SMS] Inbound from ${phone}: "${text}"`);
 
     if (isOptOutMessage(text)) {
       const { markReminderOptedOut } = await import('./db.js');
       const affected = await markReminderOptedOut(phone, text);
-      console.log(`[WhatsApp] Opt-out: ${phone} — ${affected.length} reminder(s) marked, calls skipped`);
+      console.log(`[SMS] Opt-out: ${phone} — ${affected.length} reminder(s) marked, calls skipped`);
     } else {
-      // Save the reply even if not an opt-out (useful for analytics)
       const { saveReminderReply } = await import('./db.js');
       await saveReminderReply(phone, text);
     }
   } catch (err) {
-    console.error('[WhatsApp] Inbound handler error:', err.message);
+    console.error('[SMS] Inbound handler error:', err.message);
   }
   res.sendStatus(204);
 });
@@ -2712,13 +2798,13 @@ app.post('/api/inbound-configs/:id/toggle', requireAuth, requireDb, async (req, 
 // Initialize Postgres + Campaign Runner, then start server
 initDb().then(async () => {
   // Initialize campaign runner
-  const whatsappSender = new WhatsAppSender(twilioClient, TWILIO_WHATSAPP_NUMBER, {
-    statusCallbackUrl: PUBLIC_URL && !PUBLIC_URL.includes('localhost') ? `${PUBLIC_URL}/whatsapp/status` : null,
+  const smsSender = new WhatsAppSender(twilioClient, TWILIO_PHONE, {
+    statusCallbackUrl: PUBLIC_URL && !PUBLIC_URL.includes('localhost') ? `${PUBLIC_URL}/sms/status` : null,
   });
   campaignRunner = new CampaignRunner({
     initiateCallFn: initiateCall,
     getActiveCallsFn: getActiveCalls,
-    whatsappSender,
+    whatsappSender: smsSender,
     callingNumber: TWILIO_PHONE,
     onCampaignCompleted: (userId, campaignId, counts) => {
       dispatchWebhook(userId, 'campaign.completed', {
