@@ -147,13 +147,25 @@ export async function initDb() {
       campaign_number_id INTEGER REFERENCES campaign_numbers(id) ON DELETE CASCADE NOT NULL,
       phone_number TEXT NOT NULL,
       status TEXT DEFAULT 'pending' CHECK (status IN ('pending','sent','failed','skipped')),
+      delivery_status TEXT DEFAULT NULL,
+      opted_out BOOLEAN DEFAULT FALSE,
+      reply_text TEXT,
       twilio_message_sid TEXT,
       error TEXT,
       sent_at TIMESTAMPTZ,
+      delivered_at TIMESTAMPTZ,
+      read_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_reminders_campaign ON whatsapp_reminders(campaign_id, status)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_reminders_sid ON whatsapp_reminders(twilio_message_sid)`);
+  // Add columns for delivery tracking + opt-out (safe for existing tables)
+  await pool.query(`ALTER TABLE whatsapp_reminders ADD COLUMN IF NOT EXISTS delivery_status TEXT`);
+  await pool.query(`ALTER TABLE whatsapp_reminders ADD COLUMN IF NOT EXISTS opted_out BOOLEAN DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE whatsapp_reminders ADD COLUMN IF NOT EXISTS reply_text TEXT`);
+  await pool.query(`ALTER TABLE whatsapp_reminders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE whatsapp_reminders ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ`);
 
   // Allow 'sending_reminders' as a campaign status
   await pool.query(`
@@ -1218,11 +1230,20 @@ export async function updateReminderStatus(id, status, messageSid, error) {
 export async function getReminderProgress(campaignId) {
   if (!pool) return { pending: 0, sent: 0, failed: 0 };
   const { rows } = await pool.query(`
-    SELECT status, COUNT(*)::int as count FROM whatsapp_reminders
+    SELECT status, COUNT(*)::int as count,
+      COUNT(*) FILTER (WHERE delivery_status = 'delivered')::int as delivered,
+      COUNT(*) FILTER (WHERE delivery_status = 'read')::int as read,
+      COUNT(*) FILTER (WHERE opted_out = TRUE)::int as opted_out
+    FROM whatsapp_reminders
     WHERE campaign_id = $1 GROUP BY status
   `, [campaignId]);
-  const counts = { pending: 0, sent: 0, failed: 0, skipped: 0 };
-  for (const row of rows) counts[row.status] = row.count;
+  const counts = { pending: 0, sent: 0, failed: 0, skipped: 0, delivered: 0, read: 0, optedOut: 0 };
+  for (const row of rows) {
+    counts[row.status] = row.count;
+    counts.delivered += row.delivered;
+    counts.read += row.read;
+    counts.optedOut += row.opted_out;
+  }
   return counts;
 }
 
@@ -1230,6 +1251,58 @@ export async function hasReminderBeenSent(campaignNumberId) {
   if (!pool) return false;
   const { rows } = await pool.query(`
     SELECT 1 FROM whatsapp_reminders WHERE campaign_number_id = $1 AND status = 'sent' LIMIT 1
+  `, [campaignNumberId]);
+  return rows.length > 0;
+}
+
+export async function updateReminderDeliveryStatus(messageSid, deliveryStatus) {
+  if (!pool) return;
+  const ts = new Date().toISOString();
+  const deliveredAt = deliveryStatus === 'delivered' ? ts : null;
+  const readAt = deliveryStatus === 'read' ? ts : null;
+  await pool.query(`
+    UPDATE whatsapp_reminders SET
+      delivery_status = $2,
+      delivered_at = COALESCE(delivered_at, $3),
+      read_at = COALESCE(read_at, $4)
+    WHERE twilio_message_sid = $1
+  `, [messageSid, deliveryStatus, deliveredAt, readAt]);
+}
+
+export async function markReminderOptedOut(phoneNumber, replyText) {
+  if (!pool) return [];
+  // Mark all pending/sent reminders for this phone as opted out + skip calling
+  const { rows } = await pool.query(`
+    UPDATE whatsapp_reminders SET opted_out = TRUE, reply_text = $2
+    WHERE phone_number = $1 AND status IN ('pending', 'sent')
+    RETURNING campaign_id, campaign_number_id
+  `, [phoneNumber, replyText]);
+  // Also skip the campaign_numbers so they don't get called
+  for (const row of rows) {
+    await pool.query(`
+      UPDATE campaign_numbers SET status = 'failed', error = 'Opted out via WhatsApp reply'
+      WHERE id = $1 AND status = 'pending'
+    `, [row.campaign_number_id]);
+  }
+  return rows;
+}
+
+export async function saveReminderReply(phoneNumber, replyText) {
+  if (!pool) return;
+  // Save reply text on the most recent reminder for this phone
+  await pool.query(`
+    UPDATE whatsapp_reminders SET reply_text = $2
+    WHERE id = (
+      SELECT id FROM whatsapp_reminders
+      WHERE phone_number = $1 ORDER BY created_at DESC LIMIT 1
+    )
+  `, [phoneNumber, replyText]);
+}
+
+export async function isNumberOptedOut(campaignNumberId) {
+  if (!pool) return false;
+  const { rows } = await pool.query(`
+    SELECT 1 FROM whatsapp_reminders WHERE campaign_number_id = $1 AND opted_out = TRUE LIMIT 1
   `, [campaignNumberId]);
   return rows.length > 0;
 }

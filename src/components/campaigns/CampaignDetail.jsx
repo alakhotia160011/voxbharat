@@ -184,10 +184,13 @@ export default function CampaignDetail({ campaignId, onBack }) {
               <span className="text-xs font-body text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Sending...</span>
             )}
           </div>
-          <div className="flex items-center gap-6 text-sm font-body">
+          <div className="flex items-center gap-4 flex-wrap text-sm font-body">
             <span className="text-green-700 font-medium">{rp.sent || 0} sent</span>
+            {(rp.delivered || 0) > 0 && <span className="text-green-600">{rp.delivered} delivered</span>}
+            {(rp.read || 0) > 0 && <span className="text-blue-600">{rp.read} read</span>}
             {(rp.pending || 0) > 0 && <span className="text-earth-mid">{rp.pending} pending</span>}
             {(rp.failed || 0) > 0 && <span className="text-red-500">{rp.failed} failed</span>}
+            {(rp.optedOut || 0) > 0 && <span className="text-red-400">{rp.optedOut} opted out</span>}
           </div>
           {(rp.sent || 0) + (rp.pending || 0) + (rp.failed || 0) > 0 && (
             <div className="mt-2 h-1.5 bg-cream-warm rounded-full overflow-hidden">

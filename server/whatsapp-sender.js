@@ -6,23 +6,38 @@ import {
 
 const DEFAULT_RATE_MS = 1000; // 1 message/second (sandbox limit)
 
+// Opt-out keywords (case-insensitive). Covers English + Hindi common responses.
+const OPT_OUT_KEYWORDS = [
+  'stop', 'no', 'cancel', 'unsubscribe', 'opt out', 'optout',
+  'nahi', 'nahin', 'nhin', 'mat karo', 'band karo', 'rukh',
+  'don\'t call', 'do not call',
+];
+
+export function isOptOutMessage(text) {
+  if (!text) return false;
+  const lower = text.trim().toLowerCase();
+  return OPT_OUT_KEYWORDS.some(kw => lower === kw || lower.startsWith(kw + ' ') || lower.endsWith(' ' + kw));
+}
+
 export class WhatsAppSender {
-  constructor(twilioClient, fromNumber) {
+  constructor(twilioClient, fromNumber, options = {}) {
     this.twilio = twilioClient;
     this.from = `whatsapp:${fromNumber}`;
     this.rateMs = DEFAULT_RATE_MS;
+    this.statusCallbackUrl = options.statusCallbackUrl || null; // e.g. https://domain/whatsapp/status
   }
 
   /**
    * Interpolate {placeholders} in the message template.
-   * Supported: {company}, {topic}, {duration}, {name}
+   * Supported: {company}, {topic}, {duration}, {name}, {calling_number}
    */
   interpolateMessage(template, vars = {}) {
     return template
       .replace(/\{company\}/gi, vars.company || 'VoxBharat')
       .replace(/\{topic\}/gi, vars.topic || 'a brief survey')
       .replace(/\{duration\}/gi, vars.duration || '2-3')
-      .replace(/\{name\}/gi, vars.name || '');
+      .replace(/\{name\}/gi, vars.name || '')
+      .replace(/\{calling_number\}/gi, vars.callingNumber || '');
   }
 
   /**
@@ -30,11 +45,16 @@ export class WhatsAppSender {
    * Returns { sid, status } on success, throws on failure.
    */
   async sendMessage(toPhone, body) {
-    const msg = await this.twilio.messages.create({
+    const params = {
       from: this.from,
       to: `whatsapp:${toPhone}`,
       body,
-    });
+    };
+    // Add status callback for delivery tracking
+    if (this.statusCallbackUrl) {
+      params.statusCallback = this.statusCallbackUrl;
+    }
+    const msg = await this.twilio.messages.create(params);
     return { sid: msg.sid, status: msg.status };
   }
 

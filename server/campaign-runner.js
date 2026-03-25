@@ -5,7 +5,7 @@ import {
   getCampaignById, updateCampaignStatus, updateCampaignProgress,
   getNextPendingNumbers, updateCampaignNumberStatus, getProgressCounts,
   resetCallingNumbers, getRunningCampaigns, requeueNumberForRetry,
-  hasReminderBeenSent,
+  hasReminderBeenSent, isNumberOptedOut,
 } from './db.js';
 
 // Call timing — supports both formats:
@@ -88,11 +88,12 @@ function randomRetryMinutes(callTiming) {
 const RETRYABLE_STATUSES = ['no_answer', 'failed', 'voicemail'];
 
 export class CampaignRunner {
-  constructor({ initiateCallFn, getActiveCallsFn, onCampaignCompleted, whatsappSender }) {
+  constructor({ initiateCallFn, getActiveCallsFn, onCampaignCompleted, whatsappSender, callingNumber }) {
     this.initiateCall = initiateCallFn;
     this.getActiveCalls = getActiveCallsFn;
     this.onCampaignCompleted = onCampaignCompleted || null;
     this.whatsappSender = whatsappSender || null;
+    this.callingNumber = callingNumber || '';
     this.activeCampaigns = new Map(); // campaignId -> { config, activeCallIds: Set, isPaused }
     this._timers = new Map(); // campaignId -> timeout ID (for scheduling)
   }
@@ -129,6 +130,7 @@ export class CampaignRunner {
         company: waConfig.company || campaign.name,
         topic: waConfig.topic || 'a brief survey',
         duration: waConfig.duration || '2-3',
+        callingNumber: this.callingNumber,
       };
 
       try {
@@ -295,8 +297,16 @@ export class CampaignRunner {
       const num = pendingNumbers[i];
       if (state.isPaused) break;
 
-      // Staggered WhatsApp reminder: send before calling, then delay
+      // Skip numbers that opted out via WhatsApp reply
       const waConfig = state.config.whatsapp_config;
+      if (waConfig?.enabled && await isNumberOptedOut(num.id)) {
+        console.log(`[Campaign] ${campaignId} — skipping ${num.phone_number} (opted out via WhatsApp)`);
+        await updateCampaignNumberStatus(num.id, 'failed', null, 'Opted out via WhatsApp');
+        await this._updateProgress(campaignId);
+        continue;
+      }
+
+      // Staggered WhatsApp reminder: send before calling, then delay
       if (waConfig?.enabled && waConfig.mode === 'staggered' && this.whatsappSender) {
         const alreadySent = await hasReminderBeenSent(num.id);
         if (!alreadySent) {
@@ -304,6 +314,7 @@ export class CampaignRunner {
             company: waConfig.company || state.config.name,
             topic: waConfig.topic || 'a brief survey',
             duration: waConfig.duration || '2-3',
+            callingNumber: this.callingNumber,
           };
           await this.whatsappSender.sendSingleReminder(
             campaignId, num.id, num.phone_number, waConfig.message, templateVars

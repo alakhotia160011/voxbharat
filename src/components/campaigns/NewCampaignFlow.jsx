@@ -74,7 +74,7 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
   const [waEnabled, setWaEnabled] = useState(false);
   const [waMode, setWaMode] = useState('batch');
   const [waDelay, setWaDelay] = useState(30);
-  const [waMessage, setWaMessage] = useState('Hi! This is {company}. We\'ll be calling you shortly for a brief survey about {topic}. The call will take about {duration} minutes. Thank you!');
+  const [waMessage, setWaMessage] = useState('Namaste! This is {company}. We will be calling you shortly from {calling_number} for a brief survey about {topic}. It will take about {duration} minutes.\n\nPlease pick up when you see the call — your input is valuable.\n\nReply STOP if you\'d prefer not to receive the call.');
 
   // Step 4
   const [creating, setCreating] = useState(false);
@@ -545,7 +545,7 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
                     />
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-xs text-earth-mid/60 font-body">
-                        Placeholders: <code className="text-saffron/70">{'{company}'}</code> <code className="text-saffron/70">{'{topic}'}</code> <code className="text-saffron/70">{'{duration}'}</code>
+                        Placeholders: <code className="text-saffron/70">{'{company}'}</code> <code className="text-saffron/70">{'{topic}'}</code> <code className="text-saffron/70">{'{duration}'}</code> <code className="text-saffron/70">{'{calling_number}'}</code>
                       </p>
                       <span className="text-xs text-earth-mid/40 font-body">{waMessage.length}/1024</span>
                     </div>

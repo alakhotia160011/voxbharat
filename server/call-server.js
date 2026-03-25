@@ -40,7 +40,7 @@ import {
   getBucketMappings, saveBucketMappingsBatch, deleteBucketMapping,
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
-import { WhatsAppSender } from './whatsapp-sender.js';
+import { WhatsAppSender, isOptOutMessage } from './whatsapp-sender.js';
 import { createApiV1Router } from './routes/api-v1.js';
 import { startIdempotencyCleanup } from './middleware/idempotency.js';
 import { dispatchWebhook } from './webhook-dispatcher.js';
@@ -2570,6 +2570,51 @@ app.post('/api/campaigns/:id/cancel', requireAuth, requireDb, async (req, res) =
 });
 
 // ============================================
+// WhatsApp Webhook Routes
+// ============================================
+
+// Twilio WhatsApp message status callback (delivered, read, failed, etc.)
+app.post('/whatsapp/status', async (req, res) => {
+  try {
+    const { MessageSid, MessageStatus } = req.body;
+    if (MessageSid && MessageStatus) {
+      const { updateReminderDeliveryStatus } = await import('./db.js');
+      await updateReminderDeliveryStatus(MessageSid, MessageStatus);
+      console.log(`[WhatsApp] Status update: ${MessageSid} → ${MessageStatus}`);
+    }
+  } catch (err) {
+    console.error('[WhatsApp] Status callback error:', err.message);
+  }
+  res.sendStatus(204);
+});
+
+// Twilio WhatsApp inbound message (replies from recipients)
+app.post('/whatsapp/inbound', async (req, res) => {
+  try {
+    const { From, Body } = req.body;
+    if (!From || !Body) return res.sendStatus(204);
+
+    // Normalize phone number: "whatsapp:+919876543210" → "+919876543210"
+    const phone = From.replace('whatsapp:', '');
+    const text = Body.trim();
+    console.log(`[WhatsApp] Inbound from ${phone}: "${text}"`);
+
+    if (isOptOutMessage(text)) {
+      const { markReminderOptedOut } = await import('./db.js');
+      const affected = await markReminderOptedOut(phone, text);
+      console.log(`[WhatsApp] Opt-out: ${phone} — ${affected.length} reminder(s) marked, calls skipped`);
+    } else {
+      // Save the reply even if not an opt-out (useful for analytics)
+      const { saveReminderReply } = await import('./db.js');
+      await saveReminderReply(phone, text);
+    }
+  } catch (err) {
+    console.error('[WhatsApp] Inbound handler error:', err.message);
+  }
+  res.sendStatus(204);
+});
+
+// ============================================
 // Inbound Config API Routes
 // ============================================
 
@@ -2667,11 +2712,14 @@ app.post('/api/inbound-configs/:id/toggle', requireAuth, requireDb, async (req, 
 // Initialize Postgres + Campaign Runner, then start server
 initDb().then(async () => {
   // Initialize campaign runner
-  const whatsappSender = new WhatsAppSender(twilioClient, TWILIO_WHATSAPP_NUMBER);
+  const whatsappSender = new WhatsAppSender(twilioClient, TWILIO_WHATSAPP_NUMBER, {
+    statusCallbackUrl: PUBLIC_URL && !PUBLIC_URL.includes('localhost') ? `${PUBLIC_URL}/whatsapp/status` : null,
+  });
   campaignRunner = new CampaignRunner({
     initiateCallFn: initiateCall,
     getActiveCallsFn: getActiveCalls,
     whatsappSender,
+    callingNumber: TWILIO_PHONE,
     onCampaignCompleted: (userId, campaignId, counts) => {
       dispatchWebhook(userId, 'campaign.completed', {
         campaignId,
