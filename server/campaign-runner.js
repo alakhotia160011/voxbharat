@@ -5,6 +5,7 @@ import {
   getCampaignById, updateCampaignStatus, updateCampaignProgress,
   getNextPendingNumbers, updateCampaignNumberStatus, getProgressCounts,
   resetCallingNumbers, getRunningCampaigns, requeueNumberForRetry,
+  hasReminderBeenSent,
 } from './db.js';
 
 // Call timing — supports both formats:
@@ -87,10 +88,11 @@ function randomRetryMinutes(callTiming) {
 const RETRYABLE_STATUSES = ['no_answer', 'failed', 'voicemail'];
 
 export class CampaignRunner {
-  constructor({ initiateCallFn, getActiveCallsFn, onCampaignCompleted }) {
+  constructor({ initiateCallFn, getActiveCallsFn, onCampaignCompleted, whatsappSender }) {
     this.initiateCall = initiateCallFn;
     this.getActiveCalls = getActiveCallsFn;
     this.onCampaignCompleted = onCampaignCompleted || null;
+    this.whatsappSender = whatsappSender || null;
     this.activeCampaigns = new Map(); // campaignId -> { config, activeCallIds: Set, isPaused }
     this._timers = new Map(); // campaignId -> timeout ID (for scheduling)
   }
@@ -115,6 +117,45 @@ export class CampaignRunner {
     if (!campaign) throw new Error('Campaign not found');
     if (!['pending', 'paused'].includes(campaign.status)) {
       throw new Error(`Cannot start campaign with status: ${campaign.status}`);
+    }
+
+    // Check for WhatsApp batch reminders
+    const waConfig = campaign.whatsapp_config;
+    if (waConfig?.enabled && waConfig.mode === 'batch' && this.whatsappSender) {
+      await updateCampaignStatus(campaignId, 'sending_reminders');
+      console.log(`[Campaign] ${campaignId} — sending batch WhatsApp reminders...`);
+
+      const templateVars = {
+        company: waConfig.company || campaign.name,
+        topic: waConfig.topic || 'a brief survey',
+        duration: waConfig.duration || '2-3',
+      };
+
+      try {
+        const result = await this.whatsappSender.sendBatch(campaignId, waConfig.message, templateVars);
+        console.log(`[Campaign] ${campaignId} — reminders done: ${result.sent} sent, ${result.failed} failed`);
+      } catch (err) {
+        console.error(`[Campaign] ${campaignId} — reminder batch error:`, err.message);
+      }
+
+      // Schedule campaign start after delay
+      const delayMs = (waConfig.delayMinutes || 30) * 60 * 1000;
+      console.log(`[Campaign] ${campaignId} — waiting ${waConfig.delayMinutes || 30}min before starting calls`);
+
+      this.activeCampaigns.set(campaignId, {
+        config: campaign,
+        activeCallIds: new Set(),
+        isPaused: false,
+        force,
+      });
+
+      this._timers.set(campaignId, setTimeout(async () => {
+        await updateCampaignStatus(campaignId, 'running');
+        console.log(`[Campaign] ${campaignId} — delay elapsed, starting calls`);
+        this._processQueue(campaignId);
+      }, delayMs));
+
+      return;
     }
 
     await updateCampaignStatus(campaignId, 'running');
@@ -253,6 +294,28 @@ export class CampaignRunner {
     for (let i = 0; i < pendingNumbers.length; i++) {
       const num = pendingNumbers[i];
       if (state.isPaused) break;
+
+      // Staggered WhatsApp reminder: send before calling, then delay
+      const waConfig = state.config.whatsapp_config;
+      if (waConfig?.enabled && waConfig.mode === 'staggered' && this.whatsappSender) {
+        const alreadySent = await hasReminderBeenSent(num.id);
+        if (!alreadySent) {
+          const templateVars = {
+            company: waConfig.company || state.config.name,
+            topic: waConfig.topic || 'a brief survey',
+            duration: waConfig.duration || '2-3',
+          };
+          await this.whatsappSender.sendSingleReminder(
+            campaignId, num.id, num.phone_number, waConfig.message, templateVars
+          );
+
+          // Requeue this number with a delay so we call after the reminder
+          const { requeueNumberForRetry: requeue } = await import('./db.js');
+          await requeue(num.id, waConfig.delayMinutes || 5);
+          console.log(`[Campaign] ${campaignId} — sent staggered reminder to ${num.phone_number}, calling in ${waConfig.delayMinutes || 5}min`);
+          continue; // Skip calling now — will be picked up on next cycle
+        }
+      }
 
       try {
         await updateCampaignNumberStatus(num.id, 'calling', null, null);

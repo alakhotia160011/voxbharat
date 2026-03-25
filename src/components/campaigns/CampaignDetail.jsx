@@ -50,9 +50,9 @@ export default function CampaignDetail({ campaignId, onBack }) {
     fetchData();
   }, [fetchData]);
 
-  // Poll while running
+  // Poll while running or sending reminders
   useEffect(() => {
-    if (campaign?.status === 'running') {
+    if (campaign?.status === 'running' || campaign?.status === 'sending_reminders') {
       pollRef.current = setInterval(fetchData, 3000);
     } else {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -103,6 +103,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
   const done = (progress.completed || 0) + (progress.failed || 0) + (progress.no_answer || 0) + (progress.voicemail || 0);
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
+  const rp = campaign.reminderProgress;
   const canStart = campaign.status === 'pending' || campaign.status === 'paused';
   const canPause = campaign.status === 'running';
   const canCancel = campaign.status === 'pending' || campaign.status === 'running' || campaign.status === 'paused';
@@ -172,6 +173,32 @@ export default function CampaignDetail({ campaignId, onBack }) {
           )}
         </div>
       </div>
+
+      {/* WhatsApp Reminder Progress */}
+      {rp && (
+        <div className="bg-white border border-cream-warm rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">💬</span>
+            <span className="text-sm font-body font-medium text-earth">WhatsApp Reminders</span>
+            {campaign.status === 'sending_reminders' && (
+              <span className="text-xs font-body text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Sending...</span>
+            )}
+          </div>
+          <div className="flex items-center gap-6 text-sm font-body">
+            <span className="text-green-700 font-medium">{rp.sent || 0} sent</span>
+            {(rp.pending || 0) > 0 && <span className="text-earth-mid">{rp.pending} pending</span>}
+            {(rp.failed || 0) > 0 && <span className="text-red-500">{rp.failed} failed</span>}
+          </div>
+          {(rp.sent || 0) + (rp.pending || 0) + (rp.failed || 0) > 0 && (
+            <div className="mt-2 h-1.5 bg-cream-warm rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.round(((rp.sent || 0) / ((rp.sent || 0) + (rp.pending || 0) + (rp.failed || 0))) * 100)}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <motion.div

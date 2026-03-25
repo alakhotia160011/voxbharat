@@ -70,6 +70,12 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
   const [maxRetries, setMaxRetries] = useState(3);
   const [callTiming, setCallTiming] = useState(['morning', 'afternoon', 'evening']);
 
+  // WhatsApp reminders
+  const [waEnabled, setWaEnabled] = useState(false);
+  const [waMode, setWaMode] = useState('batch');
+  const [waDelay, setWaDelay] = useState(30);
+  const [waMessage, setWaMessage] = useState('Hi! This is {company}. We\'ll be calling you shortly for a brief survey about {topic}. The call will take about {duration} minutes. Thank you!');
+
   // Step 4
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -142,6 +148,14 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
           concurrency,
           maxRetries,
           callTiming,
+          ...(waEnabled && {
+            whatsappConfig: {
+              enabled: true,
+              mode: waMode,
+              delayMinutes: waDelay,
+              message: waMessage,
+            },
+          }),
         }),
       });
 
@@ -460,6 +474,85 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
                 ))}
               </div>
             </div>
+
+            {/* WhatsApp Reminders */}
+            <div className="border-t border-cream-warm/60 pt-5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className={labelClass + ' mb-0'}>WhatsApp Reminders</label>
+                  <p className="text-xs text-earth-mid/60 font-body mt-0.5">Send a heads-up message before calling to improve pickup rates.</p>
+                </div>
+                <button
+                  onClick={() => setWaEnabled(!waEnabled)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${waEnabled ? 'bg-saffron' : 'bg-cream-warm'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${waEnabled ? 'translate-x-5' : ''}`} />
+                </button>
+              </div>
+
+              {waEnabled && (
+                <div className="space-y-4 mt-3 p-4 bg-saffron/[0.03] border border-saffron/10 rounded-xl">
+                  <div>
+                    <label className={labelClass}>Sending Mode</label>
+                    <div className="flex gap-3">
+                      {[
+                        { id: 'batch', label: 'All at once', desc: 'Send to all numbers, then wait before calling' },
+                        { id: 'staggered', label: 'Before each call', desc: 'Send reminder per number, then call after delay' },
+                      ].map(m => (
+                        <button
+                          key={m.id}
+                          onClick={() => setWaMode(m.id)}
+                          className={`flex-1 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                            waMode === m.id
+                              ? 'border-saffron bg-saffron/5'
+                              : 'border-cream-warm bg-white hover:border-saffron/30'
+                          }`}
+                        >
+                          <div className={`text-sm font-body font-medium ${waMode === m.id ? 'text-saffron' : 'text-earth-mid'}`}>{m.label}</div>
+                          <div className="text-xs font-body text-earth-mid/60 mt-0.5">{m.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>
+                      {waMode === 'batch' ? 'Wait before calling (minutes)' : 'Delay per number (minutes)'}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={waDelay}
+                      onChange={e => setWaDelay(Math.min(120, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                      className={inputClass + ' w-32'}
+                    />
+                    <p className="text-xs text-earth-mid/60 font-body mt-1">
+                      {waMode === 'batch'
+                        ? 'All reminders are sent first, then calls start after this delay.'
+                        : 'Each number receives a reminder, then gets called after this delay.'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Message Template</label>
+                    <textarea
+                      value={waMessage}
+                      onChange={e => setWaMessage(e.target.value)}
+                      rows={3}
+                      maxLength={1024}
+                      className={inputClass + ' resize-y'}
+                    />
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-earth-mid/60 font-body">
+                        Placeholders: <code className="text-saffron/70">{'{company}'}</code> <code className="text-saffron/70">{'{topic}'}</code> <code className="text-saffron/70">{'{duration}'}</code>
+                      </p>
+                      <span className="text-xs text-earth-mid/40 font-body">{waMessage.length}/1024</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -505,9 +598,17 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
                     {callTiming.join(', ')} IST
                   </span>
                 </div>
-                <div className="flex justify-between py-2">
+                <div className="flex justify-between py-2 border-b border-cream-warm/60">
                   <span className="text-sm font-body text-earth-mid">Retries</span>
                   <span className="text-sm font-body font-medium text-earth">{maxRetries}x per number</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-sm font-body text-earth-mid">WhatsApp Reminders</span>
+                  <span className="text-sm font-body font-medium text-earth">
+                    {waEnabled
+                      ? `${waMode === 'batch' ? 'All at once' : 'Before each call'} · ${waDelay}min delay`
+                      : 'Disabled'}
+                  </span>
                 </div>
               </div>
             </div>

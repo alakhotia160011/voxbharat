@@ -138,6 +138,32 @@ export async function initDb() {
   // Add retry_after to campaign_numbers for scheduling retries
   await pool.query(`ALTER TABLE campaign_numbers ADD COLUMN IF NOT EXISTS retry_after TIMESTAMPTZ`);
 
+  // WhatsApp reminders
+  await pool.query(`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS whatsapp_config JSONB`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS whatsapp_reminders (
+      id SERIAL PRIMARY KEY,
+      campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE NOT NULL,
+      campaign_number_id INTEGER REFERENCES campaign_numbers(id) ON DELETE CASCADE NOT NULL,
+      phone_number TEXT NOT NULL,
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending','sent','failed','skipped')),
+      twilio_message_sid TEXT,
+      error TEXT,
+      sent_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_reminders_campaign ON whatsapp_reminders(campaign_id, status)`);
+
+  // Allow 'sending_reminders' as a campaign status
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE campaigns DROP CONSTRAINT IF EXISTS campaigns_status_check;
+      ALTER TABLE campaigns ADD CONSTRAINT campaigns_status_check
+        CHECK (status IN ('pending','sending_reminders','running','paused','completed','cancelled'));
+    END $$;
+  `);
+
   // Add campaign_id to calls table if not present
   await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS campaign_id UUID`);
 
@@ -1006,14 +1032,15 @@ export async function deleteCall(id, userId) {
 export async function createCampaign(userId, data) {
   if (!pool) throw new Error('Database unavailable');
   const { rows } = await pool.query(`
-    INSERT INTO campaigns (user_id, name, survey_config, language, gender, auto_detect_language, concurrency, max_retries, call_timing)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    INSERT INTO campaigns (user_id, name, survey_config, language, gender, auto_detect_language, concurrency, max_retries, call_timing, whatsapp_config)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING *
   `, [
     userId, data.name, JSON.stringify(data.surveyConfig),
     data.language || 'hi', data.gender || 'female', data.autoDetectLanguage || false,
     data.concurrency || 2, data.maxRetries ?? 3,
     JSON.stringify(data.callTiming || ['morning', 'afternoon', 'evening']),
+    data.whatsappConfig ? JSON.stringify(data.whatsappConfig) : null,
   ]);
   return rows[0];
 }
@@ -1148,12 +1175,63 @@ export async function resetCallingNumbers(campaignId) {
 
 export async function getRunningCampaigns() {
   if (!pool) return [];
-  const { rows } = await pool.query(`SELECT id FROM campaigns WHERE status = 'running'`);
+  const { rows } = await pool.query(`SELECT id FROM campaigns WHERE status IN ('running', 'sending_reminders')`);
   return rows;
 }
 
 export function getPool() {
   return pool;
+}
+
+// ─── WhatsApp Reminders ─────────────────────────────────────
+
+export async function createWhatsAppReminders(campaignId) {
+  if (!pool) return;
+  await pool.query(`
+    INSERT INTO whatsapp_reminders (campaign_id, campaign_number_id, phone_number)
+    SELECT campaign_id, id, phone_number FROM campaign_numbers WHERE campaign_id = $1
+  `, [campaignId]);
+}
+
+export async function getNextPendingReminders(campaignId, limit = 10) {
+  if (!pool) return [];
+  const { rows } = await pool.query(`
+    SELECT id, campaign_number_id, phone_number FROM whatsapp_reminders
+    WHERE campaign_id = $1 AND status = 'pending'
+    ORDER BY id LIMIT $2
+  `, [campaignId, limit]);
+  return rows;
+}
+
+export async function updateReminderStatus(id, status, messageSid, error) {
+  if (!pool) return;
+  await pool.query(`
+    UPDATE whatsapp_reminders SET
+      status = $2,
+      twilio_message_sid = $3,
+      error = $4,
+      sent_at = CASE WHEN $2 = 'sent' THEN NOW() ELSE sent_at END
+    WHERE id = $1
+  `, [id, status, messageSid || null, error || null]);
+}
+
+export async function getReminderProgress(campaignId) {
+  if (!pool) return { pending: 0, sent: 0, failed: 0 };
+  const { rows } = await pool.query(`
+    SELECT status, COUNT(*)::int as count FROM whatsapp_reminders
+    WHERE campaign_id = $1 GROUP BY status
+  `, [campaignId]);
+  const counts = { pending: 0, sent: 0, failed: 0, skipped: 0 };
+  for (const row of rows) counts[row.status] = row.count;
+  return counts;
+}
+
+export async function hasReminderBeenSent(campaignNumberId) {
+  if (!pool) return false;
+  const { rows } = await pool.query(`
+    SELECT 1 FROM whatsapp_reminders WHERE campaign_number_id = $1 AND status = 'sent' LIMIT 1
+  `, [campaignNumberId]);
+  return rows.length > 0;
 }
 
 // ─── Inbound Configs ─────────────────────────────────────

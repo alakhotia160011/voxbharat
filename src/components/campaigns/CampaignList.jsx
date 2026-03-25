@@ -3,11 +3,12 @@ import { motion } from 'framer-motion';
 import { fadeInUp, staggerContainer } from '../../styles/animations';
 
 const statusConfig = {
-  pending:   { label: 'Pending',   bg: 'bg-gray-100',   text: 'text-gray-600',   dot: 'bg-gray-400' },
-  running:   { label: 'Running',   bg: 'bg-yellow-50',  text: 'text-yellow-700', dot: 'bg-yellow-400 animate-pulse' },
-  paused:    { label: 'Paused',    bg: 'bg-indigo/10',  text: 'text-indigo',     dot: 'bg-indigo' },
-  completed: { label: 'Completed', bg: 'bg-green-50',   text: 'text-green-700',  dot: 'bg-green-500' },
-  cancelled: { label: 'Cancelled', bg: 'bg-red-50',     text: 'text-red-600',    dot: 'bg-red-400' },
+  pending:            { label: 'Pending',            bg: 'bg-gray-100',   text: 'text-gray-600',   dot: 'bg-gray-400' },
+  sending_reminders:  { label: 'Sending Reminders',  bg: 'bg-green-50',   text: 'text-green-700',  dot: 'bg-green-400 animate-pulse' },
+  running:            { label: 'Running',            bg: 'bg-yellow-50',  text: 'text-yellow-700', dot: 'bg-yellow-400 animate-pulse' },
+  paused:             { label: 'Paused',             bg: 'bg-indigo/10',  text: 'text-indigo',     dot: 'bg-indigo' },
+  completed:          { label: 'Completed',          bg: 'bg-green-50',   text: 'text-green-700',  dot: 'bg-green-500' },
+  cancelled:          { label: 'Cancelled',          bg: 'bg-red-50',     text: 'text-red-600',    dot: 'bg-red-400' },
 };
 
 export function StatusBadge({ status }) {

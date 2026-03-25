@@ -40,6 +40,7 @@ import {
   getBucketMappings, saveBucketMappingsBatch, deleteBucketMapping,
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
+import { WhatsAppSender } from './whatsapp-sender.js';
 import { createApiV1Router } from './routes/api-v1.js';
 import { startIdempotencyCleanup } from './middleware/idempotency.js';
 import { dispatchWebhook } from './webhook-dispatcher.js';
@@ -72,6 +73,7 @@ const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER || '+14155238886'; // Sandbox default
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
@@ -2430,7 +2432,7 @@ function cleanupSession(callId) {
 // Create a new campaign
 app.post('/api/campaigns', requireAuth, requireDb, async (req, res) => {
   try {
-    const { name, surveyConfig, phoneNumbers, numbersWithData, language, gender, autoDetectLanguage, concurrency, maxRetries, callTiming } = req.body;
+    const { name, surveyConfig, phoneNumbers, numbersWithData, language, gender, autoDetectLanguage, concurrency, maxRetries, callTiming, whatsappConfig } = req.body;
 
     // Accept either phoneNumbers (string[]) or numbersWithData ([{phoneNumber, metadata}])
     const hasNumbers = (phoneNumbers && Array.isArray(phoneNumbers) && phoneNumbers.length > 0) ||
@@ -2444,9 +2446,30 @@ app.post('/api/campaigns', requireAuth, requireDb, async (req, res) => {
     const retries = maxRetries ?? surveyConfig?.retryPolicy ?? 3;
     const timing = callTiming || surveyConfig?.callTiming || ['morning', 'afternoon', 'evening'];
 
+    // Validate WhatsApp config if provided
+    let validatedWhatsapp = null;
+    if (whatsappConfig?.enabled) {
+      const mode = whatsappConfig.mode === 'staggered' ? 'staggered' : 'batch';
+      const delay = Math.min(Math.max(parseInt(whatsappConfig.delayMinutes, 10) || 30, 1), 120);
+      const msg = (whatsappConfig.message || '').trim().slice(0, 1024);
+      if (!msg) {
+        return res.status(400).json({ error: 'WhatsApp message text is required when reminders are enabled' });
+      }
+      validatedWhatsapp = {
+        enabled: true,
+        mode,
+        delayMinutes: delay,
+        message: msg,
+        company: (whatsappConfig.company || '').trim() || undefined,
+        topic: (whatsappConfig.topic || '').trim() || undefined,
+        duration: (whatsappConfig.duration || '').trim() || undefined,
+      };
+    }
+
     const campaign = await createCampaign(req.user.id, {
       name, surveyConfig, language, gender, autoDetectLanguage,
       concurrency: validConcurrency, maxRetries: retries, callTiming: timing,
+      whatsappConfig: validatedWhatsapp,
     });
 
     // numbersWithData takes precedence; fall back to plain phoneNumbers
@@ -2481,7 +2504,14 @@ app.get('/api/campaigns/:id', requireAuth, requireDb, async (req, res) => {
     const numbers = await getCampaignNumbersByCampaign(campaign.id);
     const progress = await getProgressCounts(campaign.id);
 
-    res.json({ campaign: { ...campaign, progress }, numbers });
+    // Include WhatsApp reminder progress if configured
+    let reminderProgress = null;
+    if (campaign.whatsapp_config?.enabled) {
+      const { getReminderProgress } = await import('./db.js');
+      reminderProgress = await getReminderProgress(campaign.id);
+    }
+
+    res.json({ campaign: { ...campaign, progress, reminderProgress }, numbers });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -2637,9 +2667,11 @@ app.post('/api/inbound-configs/:id/toggle', requireAuth, requireDb, async (req, 
 // Initialize Postgres + Campaign Runner, then start server
 initDb().then(async () => {
   // Initialize campaign runner
+  const whatsappSender = new WhatsAppSender(twilioClient, TWILIO_WHATSAPP_NUMBER);
   campaignRunner = new CampaignRunner({
     initiateCallFn: initiateCall,
     getActiveCallsFn: getActiveCalls,
+    whatsappSender,
     onCampaignCompleted: (userId, campaignId, counts) => {
       dispatchWebhook(userId, 'campaign.completed', {
         campaignId,
