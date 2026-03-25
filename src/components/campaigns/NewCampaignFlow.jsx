@@ -74,7 +74,7 @@ export default function NewCampaignFlow({ onBack, onCreated }) {
   const [waEnabled, setWaEnabled] = useState(false);
   const [waMode, setWaMode] = useState('batch');
   const [waDelay, setWaDelay] = useState(30);
-  const [waMessage, setWaMessage] = useState('Namaste! This is {company}. We will be calling you shortly from {calling_number} for a brief survey about {topic}. It will take about {duration} minutes.\n\nPlease pick up when you see the call — your input is valuable.\n\nReply STOP if you\'d prefer not to receive the call.');
+  const [waMessage, setWaMessage] = useState('Hello! {company} ki taraf se. Hum {calling_number} se {topic} ke liye {duration} min ka ek call karenge. Kripya call zaroor uthayein!\n\nReply STOP to opt out.');
 
   // Step 4
   const [creating, setCreating] = useState(false);
