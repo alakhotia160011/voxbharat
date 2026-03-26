@@ -81,6 +81,7 @@ const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
       port: 465,
       secure: true,
       auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+      family: 4, // force IPv4 — Railway cannot reach Gmail over IPv6
     })
   : null;
 console.log(`[Email] Mail transport: ${mailTransport ? `configured (user: ${GMAIL_USER}, password length: ${GMAIL_APP_PASSWORD.length})` : 'NOT configured — GMAIL_USER or GMAIL_APP_PASSWORD missing'}`);
