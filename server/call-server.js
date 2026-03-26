@@ -78,8 +78,9 @@ const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : nul
 const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
   ? nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
+      requireTLS: true,
       auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
       family: 4, // force IPv4 — Railway cannot reach Gmail over IPv6
     })
