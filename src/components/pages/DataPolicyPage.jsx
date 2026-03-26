@@ -189,8 +189,8 @@ export default function DataPolicyPage() {
               </h3>
               <p className="text-cream/70 text-lg leading-relaxed">
                 For any data-related inquiries, deletion requests, or privacy concerns, reach us at{' '}
-                <a href="mailto:ary.lakhotia@gmail.com" className="text-saffron hover:underline">
-                  ary.lakhotia@gmail.com
+                <a href="mailto:aryamaan@voxbharat.ai" className="text-saffron hover:underline">
+                  aryamaan@voxbharat.ai
                 </a>.
               </p>
             </motion.div>
