@@ -1079,6 +1079,27 @@ export async function updateCampaignStatus(id, status) {
   return rows[0] || null;
 }
 
+export async function updateCampaign(id, fields) {
+  if (!pool) return null;
+  const allowed = ['name', 'concurrency', 'max_retries', 'call_timing', 'whatsapp_config', 'language', 'gender', 'auto_detect_language'];
+  const sets = [];
+  const params = [id];
+  let idx = 2;
+  for (const [key, value] of Object.entries(fields)) {
+    if (!allowed.includes(key)) continue;
+    const needsJson = ['call_timing', 'whatsapp_config'].includes(key);
+    sets.push(`${key} = $${idx}`);
+    params.push(needsJson ? JSON.stringify(value) : value);
+    idx++;
+  }
+  if (sets.length === 0) return null;
+  sets.push('updated_at = NOW()');
+  const { rows } = await pool.query(
+    `UPDATE campaigns SET ${sets.join(', ')} WHERE id = $1 RETURNING *`, params
+  );
+  return rows[0] || null;
+}
+
 export async function updateCampaignProgress(id, progress) {
   if (!pool) return null;
   await pool.query(`

@@ -1,9 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, staggerContainer } from '../../styles/animations';
 import { StatusBadge, ProgressBar } from './CampaignList';
 import { authFetch } from '../../utils/auth';
 import { CALL_SERVER } from '../../utils/config';
+
+const LANGUAGES = [
+  { code: 'hi', label: 'Hindi' },
+  { code: 'bn', label: 'Bengali' },
+  { code: 'te', label: 'Telugu' },
+  { code: 'mr', label: 'Marathi' },
+  { code: 'ta', label: 'Tamil' },
+  { code: 'gu', label: 'Gujarati' },
+  { code: 'kn', label: 'Kannada' },
+  { code: 'ml', label: 'Malayalam' },
+  { code: 'pa', label: 'Punjabi' },
+  { code: 'en', label: 'English' },
+];
 
 const numberStatusConfig = {
   pending:   { label: 'Pending',     color: 'text-gray-500' },
@@ -27,11 +40,241 @@ function StatCard({ label, value, accent }) {
   );
 }
 
+const btnBase = 'px-4 py-2 rounded-lg font-body text-sm font-medium transition-colors cursor-pointer disabled:opacity-60';
+const inputClass = 'w-full px-4 py-2.5 border border-cream-warm rounded-lg text-sm font-body text-earth focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/20 transition-colors';
+const labelClass = 'block text-xs font-body text-earth-mid uppercase tracking-wider mb-1.5';
+
+function EditPanel({ campaign, onSave, onCancel, saving }) {
+  const [name, setName] = useState(campaign.name);
+  const [concurrency, setConcurrency] = useState(campaign.concurrency || 2);
+  const [language, setLanguage] = useState(campaign.language || 'hi');
+  const [gender, setGender] = useState(campaign.gender || 'female');
+  const [autoDetect, setAutoDetect] = useState(campaign.auto_detect_language || false);
+  const [maxRetries, setMaxRetries] = useState(campaign.max_retries ?? 3);
+  const [callTiming, setCallTiming] = useState(
+    Array.isArray(campaign.call_timing) ? campaign.call_timing : ['morning', 'afternoon', 'evening']
+  );
+  const waConfig = campaign.whatsapp_config;
+  const [waEnabled, setWaEnabled] = useState(waConfig?.enabled || false);
+  const [waMode, setWaMode] = useState(waConfig?.mode || 'batch');
+  const [waDelay, setWaDelay] = useState(waConfig?.delayMinutes || 30);
+  const [waMessage, setWaMessage] = useState(waConfig?.message || '');
+
+  const handleSubmit = () => {
+    const body = {
+      name: name.trim(),
+      concurrency,
+      language,
+      gender,
+      autoDetectLanguage: autoDetect,
+      maxRetries,
+      callTiming,
+      whatsappConfig: waEnabled
+        ? { enabled: true, mode: waMode, delayMinutes: waDelay, message: waMessage }
+        : { enabled: false },
+    };
+    onSave(body);
+  };
+
+  const toggleBtn = (active) =>
+    `flex-1 py-2.5 rounded-xl border text-sm font-body font-medium transition-all cursor-pointer ${
+      active ? 'border-saffron bg-saffron/5 text-saffron' : 'border-cream-warm bg-white text-earth-mid hover:border-saffron/30'
+    }`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className="bg-white border border-saffron/20 rounded-xl overflow-hidden"
+    >
+      <div className="p-5 space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg font-semibold text-earth">Edit Campaign</h3>
+          <button onClick={onCancel} className="text-sm font-body text-earth-mid hover:text-earth cursor-pointer">
+            Cancel
+          </button>
+        </div>
+
+        <div>
+          <label className={labelClass}>Campaign Name</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-5">
+          <div>
+            <label className={labelClass}>Concurrency</label>
+            <div className="flex gap-3">
+              {[1, 2].map(n => (
+                <button key={n} onClick={() => setConcurrency(n)} className={toggleBtn(concurrency === n)}>
+                  {n} call{n > 1 ? 's' : ''} at a time
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Language</label>
+            <select value={language} onChange={e => setLanguage(e.target.value)} className={inputClass + ' cursor-pointer'}>
+              {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>Voice Gender</label>
+            <div className="flex gap-3">
+              {['female', 'male'].map(g => (
+                <button key={g} onClick={() => setGender(g)} className={toggleBtn(gender === g) + ' capitalize'}>
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Auto-Detect Language</label>
+            <button onClick={() => setAutoDetect(!autoDetect)} className={toggleBtn(autoDetect) + ' w-full'}>
+              {autoDetect ? 'Enabled' : 'Disabled'}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>Call Timing (IST)</label>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { id: 'morning', label: 'Morning (8am-12pm)' },
+              { id: 'afternoon', label: 'Afternoon (12pm-5pm)' },
+              { id: 'evening', label: 'Evening (5pm-9pm)' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  const next = callTiming.includes(t.id)
+                    ? callTiming.filter(x => x !== t.id)
+                    : [...callTiming, t.id];
+                  if (next.length > 0) setCallTiming(next);
+                }}
+                className={`px-4 py-2.5 rounded-xl border text-sm font-body font-medium transition-all cursor-pointer ${
+                  callTiming.includes(t.id)
+                    ? 'border-saffron bg-saffron/5 text-saffron'
+                    : 'border-cream-warm bg-white text-earth-mid hover:border-saffron/30'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>Retry Policy</label>
+          <div className="flex gap-3">
+            {[1, 2, 3, 5].map(n => (
+              <button
+                key={n}
+                onClick={() => setMaxRetries(n)}
+                className={`w-14 py-2.5 rounded-xl border text-sm font-body font-medium transition-all cursor-pointer ${
+                  maxRetries === n
+                    ? 'border-saffron bg-saffron/5 text-saffron'
+                    : 'border-cream-warm bg-white text-earth-mid hover:border-saffron/30'
+                }`}
+              >
+                {n}x
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* SMS Config */}
+        <div className="border-t border-cream-warm/60 pt-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <label className={labelClass + ' mb-0'}>SMS Reminders</label>
+              <p className="text-xs text-earth-mid/60 font-body mt-0.5">Send an SMS heads-up before calling.</p>
+            </div>
+            <button
+              onClick={() => setWaEnabled(!waEnabled)}
+              className={`relative w-11 h-6 rounded-full transition-colors ${waEnabled ? 'bg-saffron' : 'bg-cream-warm'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${waEnabled ? 'translate-x-5' : ''}`} />
+            </button>
+          </div>
+
+          {waEnabled && (
+            <div className="space-y-4 mt-3 p-4 bg-saffron/[0.03] border border-saffron/10 rounded-xl">
+              <div>
+                <label className={labelClass}>Sending Mode</label>
+                <div className="flex gap-3">
+                  {[
+                    { id: 'batch', label: 'All at once' },
+                    { id: 'staggered', label: 'Before each call' },
+                  ].map(m => (
+                    <button key={m.id} onClick={() => setWaMode(m.id)} className={toggleBtn(waMode === m.id)}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  {waMode === 'batch' ? 'Wait before calling (minutes)' : 'Delay per number (minutes)'}
+                </label>
+                <input
+                  type="number" min={1} max={120} value={waDelay}
+                  onChange={e => setWaDelay(Math.min(120, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                  className={inputClass + ' w-32'}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Message Template</label>
+                <textarea
+                  value={waMessage}
+                  onChange={e => setWaMessage(e.target.value)}
+                  rows={3} maxLength={1024}
+                  className={inputClass + ' resize-y'}
+                />
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-earth-mid/60 font-body">
+                    Placeholders: <code className="text-saffron/70">{'{company}'}</code> <code className="text-saffron/70">{'{topic}'}</code> <code className="text-saffron/70">{'{duration}'}</code>
+                  </p>
+                  <span className="text-xs text-earth-mid/40 font-body">{waMessage.length}/1024</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <div className="flex-1" />
+          <button
+            onClick={onCancel}
+            className={`${btnBase} border border-cream-warm text-earth-mid hover:bg-cream-warm`}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || !name.trim()}
+            className={`${btnBase} bg-saffron text-white hover:bg-saffron-deep`}
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function CampaignDetail({ campaignId, onBack }) {
   const [campaign, setCampaign] = useState(null);
   const [numbers, setNumbers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const pollRef = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -45,12 +288,8 @@ export default function CampaignDetail({ campaignId, onBack }) {
     setLoading(false);
   }, [campaignId]);
 
-  // Initial fetch
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Poll while running or sending reminders
   useEffect(() => {
     if (campaign?.status === 'running' || campaign?.status === 'sending_reminders') {
       pollRef.current = setInterval(fetchData, 3000);
@@ -70,6 +309,22 @@ export default function CampaignDetail({ campaignId, onBack }) {
       await fetchData();
     } catch { /* ignore */ }
     setActionLoading(false);
+  };
+
+  const handleSave = async (body) => {
+    setSaving(true);
+    try {
+      const res = await authFetch(`${CALL_SERVER}/api/campaigns/${campaignId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setEditing(false);
+        await fetchData();
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
   };
 
   if (loading) {
@@ -94,7 +349,6 @@ export default function CampaignDetail({ campaignId, onBack }) {
     );
   }
 
-  // Compute stats from actual numbers array (more reliable than cached progress JSON)
   const progress = numbers.reduce((acc, n) => {
     acc[n.status] = (acc[n.status] || 0) + 1;
     return acc;
@@ -104,9 +358,14 @@ export default function CampaignDetail({ campaignId, onBack }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   const rp = campaign.reminderProgress;
+  const canEdit = campaign.status === 'pending' || campaign.status === 'paused';
   const canStart = campaign.status === 'pending' || campaign.status === 'paused';
   const canPause = campaign.status === 'running';
   const canCancel = campaign.status === 'pending' || campaign.status === 'running' || campaign.status === 'paused';
+
+  const waEnabled = campaign.whatsapp_config?.enabled;
+  const reminderTotal = rp ? (rp.sent || 0) + (rp.pending || 0) + (rp.failed || 0) : 0;
+  const canSendReminders = waEnabled && canEdit && (reminderTotal === 0 || (rp?.pending || 0) > 0);
 
   return (
     <motion.div
@@ -137,18 +396,27 @@ export default function CampaignDetail({ campaignId, onBack }) {
             {' \u00b7 '} Retries: {campaign.max_retries ?? 3}x
             {campaign.call_timing && ` \u00b7 Window: ${
               campaign.call_timing.start !== undefined
-                ? `${campaign.call_timing.start <= 12 ? campaign.call_timing.start + ':00 AM' : (campaign.call_timing.start - 12) + ':00 PM'}–${campaign.call_timing.end <= 12 ? campaign.call_timing.end + ':00 AM' : (campaign.call_timing.end - 12) + ':00 PM'} IST`
+                ? `${campaign.call_timing.start <= 12 ? campaign.call_timing.start + ':00 AM' : (campaign.call_timing.start - 12) + ':00 PM'}\u2013${campaign.call_timing.end <= 12 ? campaign.call_timing.end + ':00 AM' : (campaign.call_timing.end - 12) + ':00 PM'} IST`
                 : (Array.isArray(campaign.call_timing) ? campaign.call_timing.join(', ') : '')
             }`}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {canEdit && !editing && (
+            <button
+              onClick={() => setEditing(true)}
+              disabled={actionLoading}
+              className={`${btnBase} border border-cream-warm text-earth-mid hover:bg-cream-warm`}
+            >
+              Edit
+            </button>
+          )}
           {canStart && (
             <button
               onClick={() => handleAction('start', { force: true })}
               disabled={actionLoading}
-              className="px-4 py-2 bg-saffron text-white rounded-lg font-body text-sm font-medium hover:bg-saffron-deep transition-colors cursor-pointer disabled:opacity-60"
+              className={`${btnBase} bg-saffron text-white hover:bg-saffron-deep`}
             >
               Call Now
             </button>
@@ -157,7 +425,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
             <button
               onClick={() => handleAction('pause')}
               disabled={actionLoading}
-              className="px-4 py-2 border border-cream-warm text-earth-mid rounded-lg font-body text-sm font-medium hover:bg-cream-warm transition-colors cursor-pointer disabled:opacity-60"
+              className={`${btnBase} border border-cream-warm text-earth-mid hover:bg-cream-warm`}
             >
               Pause
             </button>
@@ -166,7 +434,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
             <button
               onClick={() => handleAction('cancel')}
               disabled={actionLoading}
-              className="px-4 py-2 border border-red-200 text-red-500 rounded-lg font-body text-sm font-medium hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-60"
+              className={`${btnBase} border border-red-200 text-red-500 hover:bg-red-50`}
             >
               Cancel
             </button>
@@ -174,31 +442,60 @@ export default function CampaignDetail({ campaignId, onBack }) {
         </div>
       </div>
 
-      {/* WhatsApp Reminder Progress */}
-      {rp && (
+      {/* Edit Panel */}
+      <AnimatePresence>
+        {editing && (
+          <EditPanel
+            campaign={campaign}
+            onSave={handleSave}
+            onCancel={() => setEditing(false)}
+            saving={saving}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* SMS Reminder Progress */}
+      {(waEnabled || rp) && (
         <div className="bg-white border border-cream-warm rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">💬</span>
-            <span className="text-sm font-body font-medium text-earth">WhatsApp Reminders</span>
-            {campaign.status === 'sending_reminders' && (
-              <span className="text-xs font-body text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Sending...</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-body font-medium text-earth">SMS Reminders</span>
+              {campaign.status === 'sending_reminders' && (
+                <span className="text-xs font-body text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Sending...</span>
+              )}
+            </div>
+            {canSendReminders && (
+              <button
+                onClick={() => handleAction('send-reminders')}
+                disabled={actionLoading || campaign.status === 'sending_reminders'}
+                className={`${btnBase} bg-green-600 text-white hover:bg-green-700 text-xs px-3 py-1.5`}
+              >
+                {campaign.status === 'sending_reminders' ? 'Sending...' : 'Send SMS Now'}
+              </button>
             )}
           </div>
-          <div className="flex items-center gap-4 flex-wrap text-sm font-body">
-            <span className="text-green-700 font-medium">{rp.sent || 0} sent</span>
-            {(rp.delivered || 0) > 0 && <span className="text-green-600">{rp.delivered} delivered</span>}
-            {(rp.read || 0) > 0 && <span className="text-blue-600">{rp.read} read</span>}
-            {(rp.pending || 0) > 0 && <span className="text-earth-mid">{rp.pending} pending</span>}
-            {(rp.failed || 0) > 0 && <span className="text-red-500">{rp.failed} failed</span>}
-            {(rp.optedOut || 0) > 0 && <span className="text-red-400">{rp.optedOut} opted out</span>}
-          </div>
-          {(rp.sent || 0) + (rp.pending || 0) + (rp.failed || 0) > 0 && (
-            <div className="mt-2 h-1.5 bg-cream-warm rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.round(((rp.sent || 0) / ((rp.sent || 0) + (rp.pending || 0) + (rp.failed || 0))) * 100)}%` }}
-              />
-            </div>
+          {rp && (
+            <>
+              <div className="flex items-center gap-4 flex-wrap text-sm font-body">
+                <span className="text-green-700 font-medium">{rp.sent || 0} sent</span>
+                {(rp.delivered || 0) > 0 && <span className="text-green-600">{rp.delivered} delivered</span>}
+                {(rp.read || 0) > 0 && <span className="text-blue-600">{rp.read} read</span>}
+                {(rp.pending || 0) > 0 && <span className="text-earth-mid">{rp.pending} pending</span>}
+                {(rp.failed || 0) > 0 && <span className="text-red-500">{rp.failed} failed</span>}
+                {(rp.optedOut || 0) > 0 && <span className="text-red-400">{rp.optedOut} opted out</span>}
+              </div>
+              {reminderTotal > 0 && (
+                <div className="mt-2 h-1.5 bg-cream-warm rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.round(((rp.sent || 0) / reminderTotal) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+          {!rp && waEnabled && (
+            <p className="text-sm font-body text-earth-mid">No reminders sent yet. Click "Send SMS Now" to send reminders before calling.</p>
           )}
         </div>
       )}
@@ -258,7 +555,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
                 </tr>
               </thead>
               <tbody>
-                {numbers.map((num, idx) => {
+                {numbers.map((num) => {
                   const cfg = numberStatusConfig[num.status] || numberStatusConfig.pending;
                   return (
                     <tr
