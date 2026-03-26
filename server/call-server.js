@@ -76,7 +76,7 @@ const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : nul
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
-const EMAIL_FROM = GMAIL_USER ? `VoxBharat <${GMAIL_USER}>` : 'VoxBharat <noreply@voxbharat.ai>';
+const EMAIL_FROM = 'VoxBharat <aryamaan@voxbharat.ai>';
 console.log(`[Email] Resend: ${resend ? 'configured' : 'NOT configured — RESEND_API_KEY missing'}`);
 
 async function notifySignup(email, name) {
