@@ -83,6 +83,9 @@ export async function initDb() {
 
   // Add metrics column (latency tracking)
   await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS metrics JSONB`);
+  // Lead scoring columns
+  await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS custom_metrics JSONB`);
+  await pool.query(`ALTER TABLE calls ADD COLUMN IF NOT EXISTS lead_score INTEGER`);
 
   // Campaign tables
   await pool.query(`
@@ -411,13 +414,15 @@ export async function saveCall(call) {
       custom_survey, answered_by, voicemail_left, status, duration, summary,
       transcript, demographics, structured, responses, sentiment,
       recording_url, recording_duration, started_at, connected_at, ended_at,
-      campaign_id, direction, user_id, metrics
+      campaign_id, direction, user_id, metrics,
+      custom_metrics, lead_score
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10, $11, $12,
       $13, $14, $15, $16, $17,
       $18, $19, $20, $21, $22,
-      $23, $24, $25, $26
+      $23, $24, $25, $26,
+      $27, $28
     )
     ON CONFLICT (id) DO UPDATE SET
       status = EXCLUDED.status,
@@ -434,7 +439,9 @@ export async function saveCall(call) {
       campaign_id = EXCLUDED.campaign_id,
       direction = EXCLUDED.direction,
       user_id = EXCLUDED.user_id,
-      metrics = EXCLUDED.metrics
+      metrics = EXCLUDED.metrics,
+      custom_metrics = EXCLUDED.custom_metrics,
+      lead_score = EXCLUDED.lead_score
   `, [
     call.id,
     call.phoneNumber,
@@ -462,6 +469,8 @@ export async function saveCall(call) {
     call.direction || 'outbound',
     call.userId || null,
     call.metrics ? JSON.stringify(call.metrics) : null,
+    call.extractedData.customMetrics ? JSON.stringify(call.extractedData.customMetrics) : null,
+    call.leadScore ?? null,
   ]);
 
   return call.id;
@@ -1182,7 +1191,10 @@ export async function updateCampaignNumberStatus(id, status, callId, error) {
 export async function getCampaignNumbersByCampaign(campaignId) {
   if (!pool) return [];
   const { rows } = await pool.query(`
-    SELECT * FROM campaign_numbers WHERE campaign_id = $1 ORDER BY id
+    SELECT cn.*, c.lead_score
+    FROM campaign_numbers cn
+    LEFT JOIN calls c ON cn.call_id = c.id
+    WHERE cn.campaign_id = $1 ORDER BY cn.id
   `, [campaignId]);
   return rows;
 }

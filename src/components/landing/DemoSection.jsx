@@ -78,6 +78,7 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
 
   const audioRef = useRef(null);
   const abortRef = useRef(null);
+  const prefetchAbortRef = useRef(null);
   const timersRef = useRef([]);
   const conversationRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -173,16 +174,17 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
   };
 
   // Prefetch in batches of 2 to match Cartesia concurrency limit
-  const prefetchBatched = async (messages, aiVoiceId, respondentVoiceId, language) => {
+  const prefetchBatched = async (messages, aiVoiceId, respondentVoiceId, language, signal) => {
     const BATCH_SIZE = 2;
     for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+      if (signal?.aborted) return;
       const batch = messages.slice(i, i + BATCH_SIZE);
       await Promise.allSettled(
         batch.map((msg) => {
           const voiceId = msg.speaker === 'ai' ? aiVoiceId : respondentVoiceId;
           const key = makeCacheKey(msg.text, voiceId, language);
           if (audioCacheRef.current.has(key)) return Promise.resolve();
-          return fetchTtsBlob(msg.text, voiceId, language);
+          return fetchTtsBlob(msg.text, voiceId, language, signal);
         })
       );
     }
@@ -197,6 +199,11 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
 
   // Prefetch ALL conversation messages when voice changes (so play is instant)
   useEffect(() => {
+    // Cancel any in-flight prefetch from previous voice
+    if (prefetchAbortRef.current) prefetchAbortRef.current.abort();
+    const ac = new AbortController();
+    prefetchAbortRef.current = ac;
+
     const voice = CARTESIA_VOICES.find((v) => v.id === selectedVoice);
     if (!voice) return;
     const lang = voice.lang;
@@ -209,7 +216,9 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
 
     // Prefetch in batches to avoid rate limiting
     const convo = getConversation();
-    prefetchBatched(convo, selectedVoice, respondentId, lang);
+    prefetchBatched(convo, selectedVoice, respondentId, lang, ac.signal);
+
+    return () => ac.abort();
   }, [selectedVoice]);
 
   // ── Text-only demo ──
@@ -256,13 +265,22 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     setDemoStep(0);
     setIsSpeaking(false);
 
-    // Unlock audio playback immediately on user gesture (before any async work)
-    // Browsers require audio.play() within the user-gesture context
-    const audio = new Audio();
+    // Reuse existing Audio element or create one — browsers block play() on
+    // brand-new elements that are far from the user gesture (after async TTS fetch).
+    // Keeping the same element that was "unlocked" on the first click avoids this.
+    let audio = audioRef.current;
+    if (!audio) {
+      audio = new Audio();
+      audioRef.current = audio;
+    }
+    // Stop any previous playback and detach old handlers
+    audio.pause();
+    audio.onended = null;
+    audio.onerror = null;
+    // Unlock playback in this user-gesture context (required by browsers)
     audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
     try { await audio.play(); } catch (_) {}
     audio.pause();
-    audioRef.current = audio;
 
     const conversation = getConversation();
     const aiVoiceId = selectedVoice;
@@ -362,8 +380,12 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
       }
     }
 
-    // Demo finished
+    // Demo finished — clean up audio state but keep the element for reuse
     if (!signal.aborted) {
+      if (audio) {
+        audio.onended = null;
+        audio.onerror = null;
+      }
       setCallComplete(true);
       setDemoActive(false);
       setIsSpeaking(false);
@@ -379,8 +401,10 @@ export default function DemoSection({ onShowSampleReport, onShowSampleCallLog })
     }
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
       audioRef.current.removeAttribute('src');
-      audioRef.current = null;
+      // Keep the element alive so it can be reused (browser remembers its "unlocked" state)
     }
     setDemoActive(false);
     setIsSpeaking(false);

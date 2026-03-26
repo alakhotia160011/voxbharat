@@ -274,6 +274,45 @@ function CallDetailPanel({ callId, projectName, onClose }) {
               </div>
             </div>
           )}
+          {/* Lead Score */}
+          {data.lead_score != null && data.custom_metrics && (
+            <div className="bg-white border border-cream-warm rounded-xl p-4">
+              <h4 className="font-semibold text-earth mb-3 text-xs uppercase tracking-wider font-body">Lead Score</h4>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="relative w-16 h-16 flex-shrink-0">
+                  <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f5ede3" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15.9" fill="none"
+                      stroke={data.lead_score >= 80 ? '#22c55e' : data.lead_score >= 50 ? '#eab308' : '#9ca3af'}
+                      strokeWidth="3"
+                      strokeDasharray={`${data.lead_score} ${100 - data.lead_score}`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-sm font-bold font-display text-earth">{data.lead_score}</span>
+                  </div>
+                </div>
+                <div className={`text-sm font-body font-medium ${
+                  data.lead_score >= 80 ? 'text-green-700' : data.lead_score >= 50 ? 'text-yellow-600' : 'text-gray-400'
+                }`}>
+                  {data.lead_score >= 80 ? 'Hot Lead' : data.lead_score >= 50 ? 'Warm Lead' : 'Cold Lead'}
+                </div>
+              </div>
+              <div className="space-y-0 text-sm font-body">
+                {Object.entries(data.custom_metrics).map(([key, val]) => (
+                  <div key={key} className="flex justify-between py-1.5 border-b border-cream-warm/60 last:border-0">
+                    <span className="text-earth-mid capitalize">{key.replace(/_/g, ' ')}</span>
+                    <span className={`font-medium px-2 py-0.5 rounded-full text-xs ${
+                      val.pass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {val.pass ? 'Pass' : 'Fail'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Survey Responses */}

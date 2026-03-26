@@ -1308,6 +1308,30 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                         className="w-full px-3 py-2 border border-cream-warm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-saffron/20 resize-none"
                       />
                     </div>
+                    <div className="mt-3">
+                      <label className="block text-xs text-gray-500 mb-1">Weight</label>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map(w => (
+                          <button
+                            key={w}
+                            type="button"
+                            onClick={() => setConfig(prev => ({
+                              ...prev,
+                              successMetrics: prev.successMetrics.map((m, i) =>
+                                i === idx ? { ...m, weight: w } : m
+                              ),
+                            }))}
+                            className={`w-8 h-8 rounded-lg border text-sm font-body font-medium transition-all cursor-pointer ${
+                              (metric.weight || 3) === w
+                                ? 'border-saffron bg-saffron/5 text-saffron'
+                                : 'border-cream-warm bg-white text-earth-mid hover:border-saffron/30'
+                            }`}
+                          >
+                            {w}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ))}
 
@@ -1315,7 +1339,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
                   <button
                     onClick={() => setConfig(prev => ({
                       ...prev,
-                      successMetrics: [...prev.successMetrics, { name: '', prompt: '' }],
+                      successMetrics: [...prev.successMetrics, { name: '', prompt: '', weight: 3 }],
                     }))}
                     className="text-sm text-saffron hover:text-saffron-deep font-medium"
                   >

@@ -2356,6 +2356,26 @@ async function handleCallEnd(callId, reason) {
       const data = await session.conversation.extractData();
       updateCall(callId, { extractedData: data });
 
+      // Compute lead score from custom metrics
+      const customMetrics = data.customMetrics || {};
+      const successMetrics = call.customSurvey?.successMetrics || [];
+      if (successMetrics.length > 0 && Object.keys(customMetrics).length > 0) {
+        let weightedScore = 0;
+        let totalWeight = 0;
+        for (const metric of successMetrics) {
+          if (!metric.name || !metric.prompt) continue;
+          const key = metric.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+          const weight = metric.weight || 3;
+          totalWeight += weight;
+          if (customMetrics[key]?.pass) {
+            weightedScore += weight;
+          }
+        }
+        const leadScore = totalWeight > 0 ? Math.round((weightedScore / totalWeight) * 100) : null;
+        updateCall(callId, { leadScore });
+        console.log(`[Call:${callId}] Lead score: ${leadScore} (${Object.keys(customMetrics).length} metrics)`);
+      }
+
       // Save to Postgres
       await saveCallToFile(getCall(callId));
       updateCall(callId, { status: 'saved' });

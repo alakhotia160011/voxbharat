@@ -1,9 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { fadeInUp, staggerContainer } from '../../styles/animations';
 import { StatusBadge, ProgressBar } from './CampaignList';
 import { authFetch } from '../../utils/auth';
 import { CALL_SERVER } from '../../utils/config';
+
+const DISPOSITION_COLORS = {
+  completed: '#22c55e',
+  voicemail: '#2d3a6e',
+  no_answer: '#9ca3af',
+  failed:    '#f87171',
+  pending:   '#e8e0d6',
+  calling:   '#eab308',
+};
 
 const LANGUAGES = [
   { code: 'hi', label: 'Hindi' },
@@ -27,14 +37,21 @@ const numberStatusConfig = {
   voicemail: { label: 'Voicemail',   color: 'text-indigo' },
 };
 
-function StatCard({ label, value, accent }) {
+function StatCard({ label, value, accent, suffix }) {
   return (
     <motion.div
       variants={fadeInUp}
       className="bg-white border border-cream-warm rounded-xl p-5 relative overflow-hidden"
     >
       <div className={`absolute top-0 left-0 right-0 h-0.5 ${accent || 'bg-saffron'}`} />
-      <div className="text-2xl font-display font-bold text-earth">{value}</div>
+      <motion.div
+        key={value}
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-2xl font-display font-bold text-earth"
+      >
+        {value}{suffix || ''}
+      </motion.div>
       <div className="text-xs font-body text-earth-mid mt-1 uppercase tracking-wider">{label}</div>
     </motion.div>
   );
@@ -275,7 +292,9 @@ export default function CampaignDetail({ campaignId, onBack }) {
   const [actionLoading, setActionLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activityLog, setActivityLog] = useState([]);
   const pollRef = useRef(null);
+  const prevNumbersRef = useRef([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -298,6 +317,32 @@ export default function CampaignDetail({ campaignId, onBack }) {
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [campaign?.status, fetchData]);
+
+  // Derive live activity feed by diffing numbers between polls
+  useEffect(() => {
+    if (prevNumbersRef.current.length === 0) {
+      prevNumbersRef.current = numbers;
+      return;
+    }
+    const prevMap = new Map(prevNumbersRef.current.map(n => [n.id, n.status]));
+    const newEvents = [];
+    for (const num of numbers) {
+      const prevStatus = prevMap.get(num.id);
+      if (prevStatus && prevStatus !== num.status) {
+        newEvents.push({
+          id: `${num.id}-${Date.now()}`,
+          phone: num.phone_number,
+          to: num.status,
+          score: num.lead_score,
+          time: new Date(),
+        });
+      }
+    }
+    if (newEvents.length > 0) {
+      setActivityLog(prev => [...newEvents, ...prev].slice(0, 20));
+    }
+    prevNumbersRef.current = numbers;
+  }, [numbers]);
 
   const handleAction = async (action, body) => {
     setActionLoading(true);
@@ -356,6 +401,26 @@ export default function CampaignDetail({ campaignId, onBack }) {
   const total = numbers.length;
   const done = (progress.completed || 0) + (progress.failed || 0) + (progress.no_answer || 0) + (progress.voicemail || 0);
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  // Rate stats
+  const attempted = done + (progress.calling || 0);
+  const connectRate = attempted > 0 ? Math.round(((progress.completed || 0) / attempted) * 100) : 0;
+  const completionRate = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  // Lead scoring
+  const hasScoring = campaign.survey_config?.successMetrics?.length > 0;
+  const hotLeads = hasScoring ? numbers.filter(n => n.lead_score >= 80).length : 0;
+
+  // Disposition chart data
+  const dispositionData = Object.entries(progress)
+    .filter(([, v]) => v > 0)
+    .map(([status, count]) => ({
+      name: numberStatusConfig[status]?.label || status,
+      value: count,
+      color: DISPOSITION_COLORS[status] || '#9ca3af',
+    }));
+
+  const isLive = campaign.status === 'running';
 
   const rp = campaign.reminderProgress;
   const canEdit = campaign.status === 'pending' || campaign.status === 'paused';
@@ -502,7 +567,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
 
       {/* Stats */}
       <motion.div
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
@@ -513,24 +578,106 @@ export default function CampaignDetail({ campaignId, onBack }) {
         <StatCard label="Failed" value={progress.failed || 0} accent="bg-red-400" />
         <StatCard label="No Answer" value={progress.no_answer || 0} accent="bg-gray-400" />
         <StatCard label="In Progress" value={progress.calling || 0} accent="bg-yellow-400" />
+        <StatCard label="Connect Rate" value={connectRate} suffix="%" accent="bg-saffron" />
+        <StatCard label="Progress" value={completionRate} suffix="%" accent="bg-gold" />
+        {hasScoring && <StatCard label="Hot Leads" value={hotLeads} accent="bg-green-600" />}
       </motion.div>
 
-      {/* Progress bar */}
-      <div className="bg-white border border-cream-warm rounded-xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-body text-earth-mid">Overall Progress</span>
-          <span className="text-sm font-body font-medium text-earth">{pct}%</span>
+      {/* Progress bar + Donut chart row */}
+      <div className={`grid ${done > 0 ? 'md:grid-cols-3' : ''} gap-4`}>
+        {/* Progress bar */}
+        <div className={`bg-white border border-cream-warm rounded-xl p-5 ${done > 0 ? 'md:col-span-2' : ''}`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-body text-earth-mid">Overall Progress</span>
+            <span className="text-sm font-body font-medium text-earth">{pct}%</span>
+          </div>
+          <div className="h-3 bg-cream-warm rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-saffron to-gold rounded-full transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-xs font-body text-earth-mid">
+            <span>{done} of {total} processed</span>
+            {(progress.pending || 0) > 0 && <span>{progress.pending} remaining</span>}
+          </div>
+
+          {/* Live activity feed */}
+          {isLive && activityLog.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-cream-warm/60">
+              <h4 className="text-xs font-body text-earth-mid uppercase tracking-wider mb-2">Live Activity</h4>
+              <div className="max-h-32 overflow-y-auto space-y-1.5">
+                <AnimatePresence>
+                  {activityLog.map(evt => {
+                    const cfg = numberStatusConfig[evt.to] || numberStatusConfig.pending;
+                    return (
+                      <motion.div
+                        key={evt.id}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="text-xs font-body text-earth-mid flex items-center gap-2"
+                      >
+                        <span className="text-earth-mid/40 tabular-nums">
+                          {evt.time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                        <span className="font-mono">...{evt.phone.slice(-4)}</span>
+                        <span className={`font-medium ${cfg.color}`}>{cfg.label}</span>
+                        {evt.score != null && (
+                          <span className={`ml-auto font-medium ${evt.score >= 80 ? 'text-green-700' : evt.score >= 50 ? 'text-yellow-600' : 'text-gray-400'}`}>
+                            {evt.score}
+                          </span>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="h-3 bg-cream-warm rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-saffron to-gold rounded-full transition-all duration-500"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <div className="flex items-center gap-4 mt-2 text-xs font-body text-earth-mid">
-          <span>{done} of {total} processed</span>
-          {(progress.pending || 0) > 0 && <span>{progress.pending} remaining</span>}
-        </div>
+
+        {/* Disposition donut chart */}
+        {done > 0 && (
+          <div className="bg-white border border-cream-warm rounded-xl p-5">
+            <h4 className="text-xs font-body text-earth-mid uppercase tracking-wider mb-2">Disposition</h4>
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie
+                  data={dispositionData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={65}
+                  dataKey="value"
+                  paddingAngle={2}
+                  strokeWidth={0}
+                >
+                  {dispositionData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#3d2314',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#faf8f5',
+                    fontSize: '12px',
+                    fontFamily: 'DM Sans',
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 justify-center">
+              {dispositionData.map(d => (
+                <div key={d.name} className="flex items-center gap-1.5 text-xs font-body text-earth-mid">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+                  {d.name} ({d.value})
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Phone numbers table */}
@@ -548,6 +695,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
                 <tr className="border-b border-cream-warm">
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Phone Number</th>
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider">Status</th>
+                  {hasScoring && <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider hidden sm:table-cell">Score</th>}
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider hidden sm:table-cell">Attempts</th>
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider hidden md:table-cell">Started</th>
                   <th className="text-left py-3.5 px-5 font-medium text-earth-mid text-xs uppercase tracking-wider hidden md:table-cell">Completed</th>
@@ -555,7 +703,11 @@ export default function CampaignDetail({ campaignId, onBack }) {
                 </tr>
               </thead>
               <tbody>
-                {numbers.map((num) => {
+                {[...numbers].sort((a, b) => {
+                  if (a.status === 'calling' && b.status !== 'calling') return -1;
+                  if (a.status !== 'calling' && b.status === 'calling') return 1;
+                  return 0;
+                }).map((num) => {
                   const cfg = numberStatusConfig[num.status] || numberStatusConfig.pending;
                   return (
                     <tr
@@ -564,8 +716,28 @@ export default function CampaignDetail({ campaignId, onBack }) {
                     >
                       <td className="py-3 px-5 font-mono text-earth">{num.phone_number}</td>
                       <td className="py-3 px-5">
-                        <span className={`font-medium ${cfg.color}`}>{cfg.label}</span>
+                        <span className={`font-medium ${cfg.color} flex items-center gap-1.5`}>
+                          {num.status === 'calling' && (
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500" />
+                            </span>
+                          )}
+                          {cfg.label}
+                        </span>
                       </td>
+                      {hasScoring && (
+                        <td className="py-3 px-5 hidden sm:table-cell">
+                          {num.lead_score != null ? (
+                            <span className={`font-medium text-sm ${
+                              num.lead_score >= 80 ? 'text-green-700' :
+                              num.lead_score >= 50 ? 'text-yellow-600' : 'text-gray-400'
+                            }`}>
+                              {num.lead_score}
+                            </span>
+                          ) : '-'}
+                        </td>
+                      )}
                       <td className="py-3 px-5 text-earth-mid hidden sm:table-cell">
                         {num.attempts || 0}
                       </td>
@@ -583,7 +755,7 @@ export default function CampaignDetail({ campaignId, onBack }) {
                 })}
                 {numbers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-earth-mid text-sm">No phone numbers</td>
+                    <td colSpan={hasScoring ? 7 : 6} className="py-8 text-center text-earth-mid text-sm">No phone numbers</td>
                   </tr>
                 )}
               </tbody>

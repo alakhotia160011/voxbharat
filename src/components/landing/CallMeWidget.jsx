@@ -290,7 +290,7 @@ function FloatingButton({ isOpen, isHovered, isActive, onClick, onHover, onLeave
 export default function CallMeWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('+91');
+  const [countryCode, setCountryCode] = useState('+1');
   const [countryOpen, setCountryOpen] = useState(false);
   const [callState, setCallState] = useState('idle');
   const [error, setError] = useState(null);
@@ -333,7 +333,7 @@ export default function CallMeWidget() {
   const reset = () => {
     setCallState('idle');
     setPhone('');
-    setCountryCode('+91');
+    setCountryCode('+1');
     setError(null);
     setCallDuration(0);
     setIsSpeaking(false);
