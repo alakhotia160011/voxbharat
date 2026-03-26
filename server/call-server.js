@@ -51,7 +51,7 @@ const pdfParse = require('pdf-parse');
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName, generateVerificationGreeting, generateDemoGreeting } from './survey-scripts.js';
 import jwt from 'jsonwebtoken';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { OAuth2Client } from 'google-auth-library';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -70,35 +70,20 @@ const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, '');
 const JWT_SECRET = process.env.JWT_SECRET;
 const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
-const mailTransport = GMAIL_USER && GMAIL_APP_PASSWORD
-  ? nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
-      family: 4, // force IPv4 — Railway cannot reach Gmail over IPv6
-    })
-  : null;
-console.log(`[Email] Mail transport: ${mailTransport ? `configured (user: ${GMAIL_USER}, password length: ${GMAIL_APP_PASSWORD.length})` : 'NOT configured — GMAIL_USER or GMAIL_APP_PASSWORD missing'}`);
-
-// Verify email credentials at startup so bad config is caught early
-if (mailTransport) {
-  mailTransport.verify()
-    .then(() => console.log('[Email] SMTP credentials verified — email sending is working'))
-    .catch(err => console.error(`[Email] SMTP verification FAILED — emails will NOT send. Error: ${err.message}`));
-}
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+const EMAIL_FROM = GMAIL_USER ? `VoxBharat <${GMAIL_USER}>` : 'VoxBharat <noreply@voxbharat.ai>';
+console.log(`[Email] Resend: ${resend ? 'configured' : 'NOT configured — RESEND_API_KEY missing'}`);
 
 async function notifySignup(email, name) {
-  if (!mailTransport || !NOTIFY_EMAIL) return;
+  if (!resend || !NOTIFY_EMAIL) return;
   try {
-    await mailTransport.sendMail({
-      from: `VoxBharat <${GMAIL_USER}>`,
+    await resend.emails.send({
+      from: EMAIL_FROM,
       to: NOTIFY_EMAIL,
       subject: `New VoxBharat signup: ${email}`,
       text: `New user signed up:\n\nEmail: ${email}\nName: ${name || '(not provided)'}\nTime: ${new Date().toISOString()}`,
@@ -223,17 +208,18 @@ const requireAuth = (req, res, next) => {
 
 // Temporary email test endpoint — remove after confirming email works
 app.get('/api/test-email', requireAuth, async (req, res) => {
-  if (!mailTransport) return res.status(500).json({ error: 'Mail transport not configured', GMAIL_USER: !!GMAIL_USER, GMAIL_APP_PASSWORD: !!GMAIL_APP_PASSWORD });
+  if (!resend) return res.status(500).json({ error: 'Resend not configured — RESEND_API_KEY missing' });
   try {
-    const info = await mailTransport.sendMail({
-      from: `VoxBharat <${GMAIL_USER}>`,
-      to: GMAIL_USER,
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: GMAIL_USER || req.user.email,
       subject: 'VoxBharat Email Test',
       text: `Email test at ${new Date().toISOString()}. If you see this, email is working.`,
     });
-    res.json({ success: true, messageId: info.messageId, response: info.response });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true, id: data.id });
   } catch (err) {
-    res.status(500).json({ error: err.message, code: err.code, command: err.command });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -956,13 +942,13 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
     const token = await createPasswordResetToken(user.id);
     const frontendBase = FRONTEND_URL ? FRONTEND_URL.split(',')[0].trim() : 'https://voxbharat.ai';
     const resetLink = `${frontendBase}/reset-password?token=${token}`;
-    if (!mailTransport) {
-      console.error('Password reset email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not configured');
+    if (!resend) {
+      console.error('Password reset email skipped: RESEND_API_KEY not configured');
       return res.status(500).json({ error: 'Email service not configured. Contact support.' });
     }
     try {
-      await mailTransport.sendMail({
-        from: `VoxBharat <${GMAIL_USER}>`,
+      const { error: sendErr } = await resend.emails.send({
+        from: EMAIL_FROM,
         to: email,
         subject: 'Reset your VoxBharat password',
         html: `
@@ -984,6 +970,7 @@ app.post('/api/forgot-password', authLimiter, requireDb, async (req, res) => {
           </div>
         `,
       });
+      if (sendErr) throw new Error(sendErr.message);
       console.log(`[Email] Password reset email sent to ${email}`);
     } catch (emailErr) {
       console.error(`[Email] Password reset email failed for ${email}:`, emailErr.message);
@@ -2384,10 +2371,10 @@ async function handleCallEnd(callId, reason) {
       console.log(`[Call:${callId}] Survey saved to Postgres`);
 
       // Send email notification for demo leads
-      if (call.customSurvey?.type === 'demo' && mailTransport) {
+      if (call.customSurvey?.type === 'demo' && resend && NOTIFY_EMAIL) {
         const lead = data?.lead || {};
-        mailTransport.sendMail({
-          from: `VoxBharat <${GMAIL_USER}>`,
+        resend.emails.send({
+          from: EMAIL_FROM,
           to: NOTIFY_EMAIL,
           subject: `New demo lead: ${lead.name || call.phoneNumber}`,
           text: `New VoxBharat demo call lead:\n\nPhone: ${call.phoneNumber}\nName: ${lead.name || '(not provided)'}\nOrganization: ${lead.organization || '(not provided)'}\nUse Case: ${lead.use_case || '(not provided)'}\nIndustry: ${lead.industry || '(not provided)'}\nInterest: ${lead.interest_level || '(not provided)'}\nLanguage: ${data?.language_used || '(unknown)'}\nSummary: ${data?.summary || '(no summary)'}\nTime: ${new Date().toISOString()}`,
