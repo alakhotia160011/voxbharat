@@ -223,6 +223,22 @@ app.get('/api/test-email', requireAuth, async (req, res) => {
   }
 });
 
+// Test SMS endpoint
+app.get('/api/test-sms', requireAuth, async (req, res) => {
+  const to = req.query.to;
+  if (!to) return res.status(400).json({ error: 'Provide ?to=+1XXXXXXXXXX' });
+  try {
+    const msg = await twilioClient.messages.create({
+      from: TWILIO_PHONE,
+      to,
+      body: 'VoxBharat SMS test — if you see this, SMS is working.',
+    });
+    res.json({ success: true, sid: msg.sid, status: msg.status });
+  } catch (err) {
+    res.status(500).json({ error: err.message, code: err.code });
+  }
+});
+
 // Per-call state: conversation instances, STT sessions, timers
 const callSessions = new Map();
 
