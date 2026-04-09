@@ -94,7 +94,11 @@ async function notifySignup(email, name) {
 }
 
 // Languages supported natively by Deepgram multi-language mode (no STT reconnect needed)
-const MULTI_LANGUAGES = new Set(['en', 'hi', 'es', 'fr', 'de', 'ru', 'pt', 'ja', 'it', 'nl']);
+// Only Indian languages — non-Indian (es, fr, de, etc.) deliberately excluded
+const MULTI_LANGUAGES = new Set(['en', 'hi']);
+
+// Languages we actually support — ignore any detected language outside this set
+const SUPPORTED_LANGUAGES = new Set(['en', 'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa']);
 
 // Validate config
 const missing = [];
@@ -1521,10 +1525,17 @@ async function initSession(callId, call, ws, streamSid) {
 
       // Track STT-detected language for auto-detect mode
       if (detectedLang && sessionObj.call.autoDetectLanguage) {
+        // Ignore non-Indian languages (Spanish, French, etc.) — default to English
+        if (!SUPPORTED_LANGUAGES.has(detectedLang)) {
+          console.log(`[STT:${callId}] Ignoring unsupported language "${detectedLang}" — staying in current language`);
+          detectedLang = null;
+        }
+      }
+      if (detectedLang && sessionObj.call.autoDetectLanguage) {
         sessionObj.sttDetectedLanguage = detectedLang;
         console.log(`[STT:${callId}] Detected language: "${detectedLang}"`);
 
-        // Multi mode (en/hi/es/fr/de/ru/pt/ja/it/nl) handles code-switching natively.
+        // Multi mode (en/hi) handles code-switching natively.
         // For languages NOT in multi (bn, ta, te, gu, kn, ml, pa, mr), reconnect STT
         // to that specific language for accurate transcription.
         if (!MULTI_LANGUAGES.has(detectedLang) && sessionObj.stt.language !== detectedLang) {
@@ -1629,6 +1640,9 @@ async function initSession(callId, call, ws, streamSid) {
         if (partialTrimmed.length >= 2) {
           sessionObj.lastPartialText = partialTrimmed;
           if (sessionObj.partialFallbackTimer) clearTimeout(sessionObj.partialFallbackTimer);
+          // Shorter timeout for short words (e.g. "ok", "yes", "no") — Deepgram
+          // sometimes only produces partials for very short utterances
+          const fallbackMs = partialTrimmed.length <= 5 ? 400 : 800;
           sessionObj.partialFallbackTimer = setTimeout(() => {
             sessionObj.partialFallbackTimer = null;
             if (sessionObj.lastPartialText && !sessionObj.isProcessing && !sessionObj.isAiSpeaking
@@ -1644,7 +1658,7 @@ async function initSession(callId, call, ws, streamSid) {
                 processUserSpeech(callId, fullText);
               }
             }
-          }, 800);
+          }, fallbackMs);
         }
       }
 
@@ -1715,18 +1729,20 @@ async function initSession(callId, call, ws, streamSid) {
         const currentText = sessionObj.accumulatedText.join(' ');
         let silenceMs;
         if (!sessionObj.firstResponseDone) {
-          silenceMs = 150;
+          silenceMs = 100;
+        } else if (currentText.length < 6) {
+          silenceMs = 150; // very short words like "ok", "yes", "no" — respond fast
         } else if (currentText.length < 10) {
-          silenceMs = 300;
+          silenceMs = 250;
         } else if (currentText.length < 30) {
           silenceMs = 400;
         } else {
           silenceMs = 350;
         }
         // Deepgram speech_final = endpointing confirmed user stopped speaking
-        // Use minimal timer since Deepgram already waited 150ms of silence
+        // Use minimal timer since Deepgram already waited 100-150ms of silence
         if (speechFinal) {
-          silenceMs = Math.min(silenceMs, 100);
+          silenceMs = Math.min(silenceMs, 50);
         }
         sessionObj.silenceTimer = setTimeout(() => {
           if (sessionObj.accumulatedText.length > 0 && !sessionObj.isProcessing) {

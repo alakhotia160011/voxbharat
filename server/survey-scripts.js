@@ -516,6 +516,9 @@ REPEAT REQUESTS — [REPEAT_REQUEST] TAG:
 - The [REPEAT_REQUEST] tag is metadata — NEVER read it aloud.
 - Even without the [REPEAT_REQUEST] tag, if the respondent says anything that sounds like "repeat that", "what?", "phir se bolo", "kya bola", you should still re-ask your last question.
 
+LANGUAGE RESTRICTION:
+You ONLY speak Indian languages: English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi. NEVER respond in Spanish, French, German, or any non-Indian language. If a non-Indian language is detected, default to English or Hindi.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
 - Interpret the transcription generously — the text may be a rough phonetic approximation
@@ -1015,6 +1018,9 @@ REPEAT REQUESTS — [REPEAT_REQUEST] TAG:
 - The [REPEAT_REQUEST] tag is metadata — NEVER read it aloud.
 - Even without the [REPEAT_REQUEST] tag, if the respondent says anything that sounds like "repeat that", "what?", "phir se bolo", "kya bola", you should still re-ask your last question.
 
+LANGUAGE RESTRICTION:
+You ONLY speak Indian languages: English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi. NEVER respond in Spanish, French, German, or any non-Indian language. If a non-Indian language is detected, default to English or Hindi.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which often produces inaccurate or garbled text. You MUST:
 - Interpret the transcription generously
@@ -1344,6 +1350,9 @@ REPEAT REQUESTS — [REPEAT_REQUEST] TAG:
 - The [REPEAT_REQUEST] tag is metadata — NEVER read it aloud.
 - Even without the [REPEAT_REQUEST] tag, if the respondent says anything that sounds like "repeat that", "what?", "phir se bolo", "kya bola", you should still re-ask your last question.
 
+LANGUAGE RESTRICTION:
+You ONLY speak Indian languages: English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi. NEVER respond in Spanish, French, German, or any non-Indian language. If a non-Indian language is detected, default to English or Hindi.
+
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which may produce garbled text. You MUST:
 - Interpret the transcription generously
@@ -1640,6 +1649,9 @@ REPEAT REQUESTS — [REPEAT_REQUEST] TAG:
 - Rephrase it slightly so it sounds natural (e.g., "So what I was asking is..." or "Basically, I wanted to know..."), but it must be the SAME question.
 - The [REPEAT_REQUEST] tag is metadata — NEVER read it aloud.
 - Even without the [REPEAT_REQUEST] tag, if the respondent says anything that sounds like "repeat that", "what?", "phir se bolo", "kya bola", you should still re-ask your last question.
+
+LANGUAGE RESTRICTION:
+You ONLY speak Indian languages: English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi. NEVER respond in Spanish, French, German, or any non-Indian language. If a non-Indian language is detected, default to English or Hindi.
 
 IMPORTANT - SPEECH RECOGNITION CONTEXT:
 The user's speech is being transcribed by speech-to-text software, which may produce garbled text. You MUST:
@@ -2067,8 +2079,11 @@ HANDLING INTERRUPTIONS:
 - CRITICAL: "hi" or a greeting while you are mid-pitch does NOT mean skip the intro. Acknowledge warmly and finish what you were saying.
 - The [USER_INTERRUPTED] tag is metadata — NEVER read it aloud.
 
+LANGUAGE RESTRICTION:
+You ONLY speak Indian languages: English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi. NEVER respond in Spanish, French, German, or any non-Indian language, even if [spoken_language:xx] suggests one. If a non-Indian language is detected, default to English or Hindi.
+
 SPEECH RECOGNITION CONTEXT:
-The user's speech is being transcribed by speech-to-text software, which may produce garbled text. Interpret generously. If unclear, ask them to repeat.
+The user's speech is being transcribed by speech-to-text software, which may produce garbled text. Interpret generously. If unclear, ask them to repeat. Short responses like "ok", "yes", "haan", "sure" are valid answers — treat them as consent or acknowledgment and continue the conversation.
 
 ${getEmotionInstructions(true)}`;
 }
