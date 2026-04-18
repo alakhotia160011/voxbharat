@@ -1472,7 +1472,7 @@ app.post('/api/upload-context-doc', requireAuth, express.raw({ type: ['applicati
 // WebSocket - Twilio Media Stream
 // ============================================
 
-const wss = new WebSocketServer({ server, path: '/call/media-stream' });
+const wss = new WebSocketServer({ noServer: true });
 
 // Ping/pong heartbeat to keep Railway proxy connection alive
 setInterval(() => {
@@ -1648,7 +1648,7 @@ wss.on('connection', (ws) => {
 // Vobiz WebSocket Media Stream
 // ============================================
 
-const vobizWss = new WebSocketServer({ server, path: '/call/vobiz-media-stream' });
+const vobizWss = new WebSocketServer({ noServer: true });
 
 // Ping/pong heartbeat for Vobiz connections
 setInterval(() => {
@@ -3325,6 +3325,19 @@ initDb().then(async () => {
       .then(() => console.log(`[Twilio] Inbound webhook configured: ${PUBLIC_URL}/call/inbound`))
       .catch(err => console.warn(`[Twilio] Auto-config failed (set manually): ${err.message}`));
   }
+
+  // Manual WebSocket upgrade routing — needed because two WSS instances
+  // (Twilio + Vobiz) share the same HTTP server.
+  server.on('upgrade', (request, socket, head) => {
+    const { pathname } = new URL(request.url, `http://${request.headers.host}`);
+    if (pathname === '/call/media-stream') {
+      wss.handleUpgrade(request, socket, head, (ws) => { wss.emit('connection', ws, request); });
+    } else if (pathname === '/call/vobiz-media-stream') {
+      vobizWss.handleUpgrade(request, socket, head, (ws) => { vobizWss.emit('connection', ws, request); });
+    } else {
+      socket.destroy();
+    }
+  });
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`
