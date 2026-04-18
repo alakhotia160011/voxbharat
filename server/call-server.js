@@ -15,7 +15,7 @@ import twilio from 'twilio';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mulawToPcm16k, pcm16kToMulaw } from './audio-convert.js';
-import { generateSpeech, chunkAudio, CartesiaTTSStream, VOICES } from './cartesia-tts.js';
+import { generateSpeech, generateSpeechPcm, chunkAudio, chunkPcmAudio, CartesiaTTSStream, VOICES } from './cartesia-tts.js';
 import { CartesiaSTT } from './cartesia-stt.js';
 import { DeepgramSTT, DEEPGRAM_SUPPORTED_LANGUAGES } from './deepgram-stt.js';
 import { ClaudeConversation } from './claude-conversation.js';
@@ -41,6 +41,8 @@ import {
 } from './db.js';
 import { CampaignRunner } from './campaign-runner.js';
 import { WhatsAppSender, isOptOutMessage } from './whatsapp-sender.js';
+import { VobizClient } from './vobiz-client.js';
+import { VobizSmsSender } from './vobiz-sms-sender.js';
 import { createApiV1Router } from './routes/api-v1.js';
 import { startIdempotencyCleanup } from './middleware/idempotency.js';
 import { dispatchWebhook } from './webhook-dispatcher.js';
@@ -64,6 +66,9 @@ const PORT = parseInt(process.env.PORT, 10) || 3002;
 const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE = process.env.TWILIO_PHONE_NUMBER;
+const VOBIZ_AUTH_ID = process.env.VOBIZ_AUTH_ID;
+const VOBIZ_AUTH_TOKEN = process.env.VOBIZ_AUTH_TOKEN;
+const VOBIZ_PHONE = process.env.VOBIZ_PHONE_NUMBER;
 const CARTESIA_KEY = process.env.CARTESIA_API_KEY;
 const DEEPGRAM_KEY = process.env.DEEPGRAM_KEY;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
@@ -116,6 +121,20 @@ if (missing.length) {
 
 // Initialize
 const twilioClient = twilio(TWILIO_SID, TWILIO_AUTH);
+const vobizClient = (VOBIZ_AUTH_ID && VOBIZ_AUTH_TOKEN)
+  ? new VobizClient(VOBIZ_AUTH_ID, VOBIZ_AUTH_TOKEN) : null;
+if (vobizClient) {
+  console.log(`[Vobiz] Client initialized (phone: ${VOBIZ_PHONE || 'not set'})`);
+} else {
+  console.log('[Vobiz] Not configured — India calls will use Twilio');
+}
+
+/** Select telephony provider based on phone number prefix */
+function getProvider(phoneNumber) {
+  if (vobizClient && VOBIZ_PHONE && phoneNumber.startsWith('+91')) return 'vobiz';
+  return 'twilio';
+}
+
 const app = express();
 const server = createServer(app);
 
@@ -240,6 +259,34 @@ app.get('/api/test-sms', requireAuth, async (req, res) => {
     res.json({ success: true, sid: msg.sid, status: msg.status });
   } catch (err) {
     res.status(500).json({ error: err.message, code: err.code });
+  }
+});
+
+// Test Vobiz SMS
+app.get('/api/test-vobiz-sms', requireAuth, async (req, res) => {
+  if (!vobizClient || !VOBIZ_PHONE) {
+    return res.status(400).json({ error: 'Vobiz not configured. Set VOBIZ_AUTH_ID, VOBIZ_AUTH_TOKEN, VOBIZ_PHONE_NUMBER.' });
+  }
+  const to = req.query.to;
+  if (!to) return res.status(400).json({ error: 'Provide ?to=+91XXXXXXXXXX' });
+  try {
+    const result = await vobizClient.sendSms({ from: VOBIZ_PHONE, to, text: 'VoxBharat SMS test (Vobiz) — if you see this, India SMS is working.' });
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Test Vobiz account (check balance/credentials)
+app.get('/api/test-vobiz', requireAuth, async (req, res) => {
+  if (!vobizClient) {
+    return res.status(400).json({ error: 'Vobiz not configured. Set VOBIZ_AUTH_ID and VOBIZ_AUTH_TOKEN.' });
+  }
+  try {
+    const account = await vobizClient.getAccount();
+    res.json({ success: true, account });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -438,25 +485,43 @@ app.post('/call/clear-stale', requireAuth, (req, res) => {
 
 // Core call initiation logic — used by both HTTP endpoint and campaign runner
 async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', customSurvey = null, autoDetectLanguage = false, campaignId = null, userId = null }) {
-  const call = createCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage, campaignId, userId });
+  const provider = getProvider(phoneNumber);
+  const call = createCall({ phoneNumber, language, gender, customSurvey, autoDetectLanguage, campaignId, userId, provider });
 
-  const twilioCall = await twilioClient.calls.create({
-    to: phoneNumber,
-    from: TWILIO_PHONE,
-    url: `${PUBLIC_URL}/call/twilio-webhook?callId=${call.id}`,
-    statusCallback: `${PUBLIC_URL}/call/twilio-status?callId=${call.id}`,
-    statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
-    record: true,
-    recordingStatusCallback: `${PUBLIC_URL}/call/recording-callback?callId=${call.id}`,
-    recordingStatusCallbackMethod: 'POST',
-    recordingStatusCallbackEvent: ['completed'],
-    machineDetection: 'DetectMessageEnd',
-    asyncAmdStatusCallback: `${PUBLIC_URL}/call/amd-callback?callId=${call.id}`,
-    asyncAmdStatusCallbackMethod: 'POST',
-  });
+  if (provider === 'vobiz') {
+    // --- Vobiz path (India +91 calls) ---
+    const vobizCall = await vobizClient.createCall({
+      to: phoneNumber,
+      from: VOBIZ_PHONE,
+      answerUrl: `${PUBLIC_URL}/call/vobiz-answer?callId=${call.id}`,
+      ringUrl: `${PUBLIC_URL}/call/vobiz-ring?callId=${call.id}`,
+      hangupUrl: `${PUBLIC_URL}/call/vobiz-hangup?callId=${call.id}`,
+      record: true,
+    });
 
-  updateCall(call.id, { twilioCallSid: twilioCall.sid, status: 'ringing' });
-  console.log(`[Call] Initiated: ${call.id} -> ${phoneNumber} (${language}/${gender})${campaignId ? ` [campaign:${campaignId}]` : ''}`);
+    const callUuid = vobizCall.request_uuid;
+    updateCall(call.id, { providerCallId: callUuid, status: 'ringing' });
+    console.log(`[Call] Initiated (Vobiz): ${call.id} -> ${phoneNumber} (${language}/${gender})${campaignId ? ` [campaign:${campaignId}]` : ''}`);
+  } else {
+    // --- Twilio path (US/international calls) ---
+    const twilioCall = await twilioClient.calls.create({
+      to: phoneNumber,
+      from: TWILIO_PHONE,
+      url: `${PUBLIC_URL}/call/twilio-webhook?callId=${call.id}`,
+      statusCallback: `${PUBLIC_URL}/call/twilio-status?callId=${call.id}`,
+      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+      record: true,
+      recordingStatusCallback: `${PUBLIC_URL}/call/recording-callback?callId=${call.id}`,
+      recordingStatusCallbackMethod: 'POST',
+      recordingStatusCallbackEvent: ['completed'],
+      machineDetection: 'DetectMessageEnd',
+      asyncAmdStatusCallback: `${PUBLIC_URL}/call/amd-callback?callId=${call.id}`,
+      asyncAmdStatusCallbackMethod: 'POST',
+    });
+
+    updateCall(call.id, { twilioCallSid: twilioCall.sid, providerCallId: twilioCall.sid, status: 'ringing' });
+    console.log(`[Call] Initiated (Twilio): ${call.id} -> ${phoneNumber} (${language}/${gender})${campaignId ? ` [campaign:${campaignId}]` : ''}`);
+  }
 
   // Pre-generate greeting TTS while phone is ringing
   const sttProvider = customSurvey?.sttProvider || 'cartesia';
@@ -495,7 +560,7 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
     });
   greetingAudioCache.set(call.id, greetingPromise);
 
-  return { callId: call.id, twilioSid: twilioCall.sid, status: 'ringing' };
+  return { callId: call.id, provider, providerCallId: call.providerCallId, twilioSid: call.twilioCallSid, status: 'ringing' };
 }
 
 // Initiate an outbound call (HTTP endpoint)
@@ -600,6 +665,182 @@ app.post('/call/twilio-webhook', validateTwilioSignature, (req, res) => {
 </Response>`;
 
   res.type('text/xml').send(twiml);
+});
+
+// ============================================
+// Vobiz Callback Endpoints (India calls)
+// ============================================
+
+// Vobiz answer webhook — returns XML with <Stream> for bidirectional audio
+app.post('/call/vobiz-answer', (req, res) => {
+  const callId = req.query.callId;
+  if (!callId) {
+    return res.type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>');
+  }
+
+  const call = getCall(callId);
+  if (!call) {
+    console.error(`[Vobiz] Answer webhook — call not found: ${callId}`);
+    return res.type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>');
+  }
+
+  const wsUrl = PUBLIC_URL.replace('http', 'ws');
+  const safeCallId = escapeXml(callId);
+
+  console.log(`[Vobiz] Answer webhook for callId=${callId}`);
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Stream bidirectional="true" keepCallAlive="true"
+    contentType="audio/x-l16;rate=16000"
+    statusCallbackUrl="${PUBLIC_URL}/call/vobiz-stream-status?callId=${safeCallId}"
+    statusCallbackMethod="POST">
+    ${wsUrl}/call/vobiz-media-stream?callId=${safeCallId}
+  </Stream>
+</Response>`;
+
+  res.type('text/xml').send(xml);
+});
+
+// Vobiz ring callback — call is ringing
+app.post('/call/vobiz-ring', (req, res) => {
+  const callId = req.query.callId;
+  if (callId) {
+    console.log(`[Vobiz] Ring callback: ${callId}`);
+    updateCall(callId, { status: 'ringing' });
+  }
+  res.status(200).send('OK');
+});
+
+// Vobiz hangup callback — call ended
+app.post('/call/vobiz-hangup', (req, res) => {
+  const callId = req.query.callId;
+  if (callId) {
+    const cause = req.body.HangupCause || req.body.hangup_cause || 'unknown';
+    console.log(`[Vobiz] Hangup callback: ${callId} (cause: ${cause})`);
+    handleCallEnd(callId, cause === 'NORMAL_CLEARING' ? 'completed' : cause);
+  }
+  res.status(200).send('OK');
+});
+
+// Vobiz stream status callback
+app.post('/call/vobiz-stream-status', (req, res) => {
+  const callId = req.query.callId;
+  console.log(`[Vobiz] Stream status for ${callId}:`, req.body);
+  res.status(200).send('OK');
+});
+
+// Vobiz inbound call webhook — Vobiz sends POST here when someone calls our Vobiz number
+app.post('/call/vobiz-inbound', async (req, res) => {
+  const callerNumber = req.body.From || req.body.from;
+  const vobizNumber = req.body.To || req.body.to;
+  const callUuid = req.body.CallUUID || req.body.call_uuid;
+
+  console.log(`[VobizInbound] Incoming call from ${callerNumber} to ${vobizNumber} (UUID: ${callUuid})`);
+
+  // Capacity check
+  if (getActiveCalls().length >= 2) {
+    console.log(`[VobizInbound] Rejecting — at capacity`);
+    return res.type('text/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak>All our agents are currently busy. Please try again in a few minutes. Thank you.</Speak>
+  <Hangup/>
+</Response>`);
+  }
+
+  let surveyConfig = null;
+  let language = 'hi';
+  let gender = 'female';
+  let autoDetectLanguage = false;
+  let campaignId = null;
+  let customGreeting = null;
+  let inboundConfigId = null;
+
+  // 1. Check if caller is a campaign callback
+  const campaignMatch = await findCallerInCampaigns(callerNumber);
+  if (campaignMatch) {
+    console.log(`[VobizInbound] Campaign callback detected — campaign: ${campaignMatch.campaign_id}`);
+    surveyConfig = campaignMatch.survey_config;
+    language = campaignMatch.language || 'hi';
+    gender = campaignMatch.gender || 'female';
+    autoDetectLanguage = campaignMatch.auto_detect_language || false;
+    campaignId = campaignMatch.campaign_id;
+  } else {
+    // 2. Check for standalone inbound config on this number
+    const config = await getInboundConfigByNumber(vobizNumber);
+    if (config && config.enabled) {
+      console.log(`[VobizInbound] Standalone config found: "${config.name}" (id: ${config.id})`);
+      surveyConfig = config.survey_config;
+      language = config.language || 'hi';
+      gender = config.gender || 'female';
+      autoDetectLanguage = config.auto_detect_language || false;
+      customGreeting = config.greeting_text || null;
+      inboundConfigId = config.id;
+    } else {
+      console.log(`[VobizInbound] No inbound config for ${vobizNumber} — rejecting`);
+      return res.type('text/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Speak>This number is not currently configured to receive calls. Thank you for calling.</Speak>
+  <Hangup/>
+</Response>`);
+    }
+  }
+
+  // Create call record
+  const call = createCall({
+    phoneNumber: callerNumber,
+    language,
+    gender,
+    customSurvey: surveyConfig,
+    autoDetectLanguage,
+    campaignId,
+    direction: 'inbound',
+    provider: 'vobiz',
+  });
+
+  updateCall(call.id, {
+    providerCallId: callUuid,
+    status: 'ringing',
+    customGreeting,
+    inboundConfigId,
+  });
+
+  // Pre-generate greeting TTS
+  const greetingLang = autoDetectLanguage ? 'hi' : language;
+  const surveyName = surveyConfig?.name || 'our survey';
+  let greetingText;
+  if (campaignId) {
+    greetingText = generateCallbackGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName, surveyConfig?.greetingTopic);
+  } else {
+    greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName, surveyConfig?.greetingTopic);
+  }
+
+  const greetingPromise = generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
+    .then(mulawBase64 => {
+      console.log(`[VobizInbound:${call.id}] Greeting audio pre-cached`);
+      return { mulawBase64, language: greetingLang };
+    })
+    .catch(err => {
+      console.warn(`[VobizInbound:${call.id}] Greeting pre-cache failed: ${err.message}`);
+      return null;
+    });
+  greetingAudioCache.set(call.id, greetingPromise);
+
+  // Return XML with Stream for Vobiz
+  const wsUrl = PUBLIC_URL.replace('http', 'ws');
+  const safeCallId = escapeXml(call.id);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Stream bidirectional="true" keepCallAlive="true"
+    contentType="audio/x-l16;rate=16000"
+    statusCallbackUrl="${PUBLIC_URL}/call/vobiz-stream-status?callId=${safeCallId}"
+    statusCallbackMethod="POST">
+    ${wsUrl}/call/vobiz-media-stream?callId=${safeCallId}
+  </Stream>
+</Response>`;
+
+  console.log(`[VobizInbound] Call ${call.id} — returning Stream XML`);
+  res.type('text/xml').send(xml);
 });
 
 // Inbound call webhook — Twilio sends POST here when someone calls our number
@@ -769,12 +1010,7 @@ app.post('/call/amd-callback', validateTwilioSignature, async (req, res) => {
   session.isProcessing = false;
 
   // Clear any queued audio (stop AI greeting/response)
-  if (session.ws.readyState === 1) {
-    session.ws.send(JSON.stringify({
-      event: 'clear',
-      streamSid: session.streamSid,
-    }));
-  }
+  clearAudioBuffer(session);
 
   // Generate and stream voicemail message
   const language = session.currentLanguage || call.language;
@@ -787,13 +1023,7 @@ app.post('/call/amd-callback', validateTwilioSignature, async (req, res) => {
     await speakSentence(session, voicemailText, language);
 
     // Mark when voicemail audio finishes playing — triggers hangup in WS handler
-    if (session.ws.readyState === 1) {
-      session.ws.send(JSON.stringify({
-        event: 'mark',
-        streamSid: session.streamSid,
-        mark: { name: 'voicemail-done' },
-      }));
-    }
+    sendMark(session, 'voicemail-done');
 
     updateCall(callId, { voicemailLeft: true, status: 'voicemail' });
 
@@ -802,9 +1032,7 @@ app.post('/call/amd-callback', validateTwilioSignature, async (req, res) => {
       if (!session.isEnding) {
         console.log(`[AMD:${callId}] Fallback hangup (mark event not received)`);
         try {
-          if (call.twilioCallSid) {
-            await twilioClient.calls(call.twilioCallSid).update({ status: 'completed' });
-          }
+          await hangupProviderCall(call);
         } catch (e) { /* ignore */ }
         handleCallEnd(callId, 'voicemail');
       }
@@ -861,9 +1089,7 @@ app.post('/call/:id/end', requireAuth, async (req, res) => {
   if (!call) return res.status(404).json({ error: 'Call not found' });
 
   try {
-    if (call.twilioCallSid) {
-      await twilioClient.calls(call.twilioCallSid).update({ status: 'completed' });
-    }
+    await hangupProviderCall(call);
     await handleCallEnd(call.id, 'force-ended');
     res.json({ success: true });
   } catch (error) {
@@ -1387,9 +1613,7 @@ wss.on('connection', (ws) => {
               if (session.isEnding) return;
               try {
                 const vmCall = getCall(callId);
-                if (vmCall?.twilioCallSid) {
-                  await twilioClient.calls(vmCall.twilioCallSid).update({ status: 'completed' });
-                }
+                if (vmCall) await hangupProviderCall(vmCall);
               } catch (e) {
                 console.error(`[WS] Voicemail hangup error:`, e.message);
               }
@@ -1417,6 +1641,181 @@ wss.on('connection', (ws) => {
 
   ws.on('error', (err) => {
     console.error(`[WS] Error: ${err.message}`);
+  });
+});
+
+// ============================================
+// Vobiz WebSocket Media Stream
+// ============================================
+
+const vobizWss = new WebSocketServer({ server, path: '/call/vobiz-media-stream' });
+
+// Ping/pong heartbeat for Vobiz connections
+setInterval(() => {
+  vobizWss.clients.forEach(ws => {
+    if (ws.isAlive === false) {
+      console.log('[VobizWS] Terminating stale connection');
+      return ws.terminate();
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30_000);
+
+vobizWss.on('connection', (ws, req) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
+  // Extract callId from query params (we put it in the WebSocket URL)
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  let callId = url.searchParams.get('callId');
+  let streamId = null;
+  let session = null;
+  let mediaPackets = 0;
+
+  console.log(`[VobizWS] New Vobiz media stream connection (callId from URL: ${callId})`);
+
+  ws.on('message', async (data) => {
+    try {
+      const msg = JSON.parse(data.toString());
+
+      switch (msg.event) {
+        case 'connected':
+          console.log('[VobizWS] Media stream connected');
+          break;
+
+        case 'start':
+          streamId = msg.start?.streamId || msg.start?.stream_id || null;
+          // callId might also come from start event params
+          if (!callId && msg.start?.customParameters?.callId) {
+            callId = msg.start.customParameters.callId;
+          }
+
+          if (!callId) {
+            console.error('[VobizWS] No callId available');
+            ws.close();
+            return;
+          }
+
+          const call = getCall(callId);
+          if (!call) {
+            console.error(`[VobizWS] Call not found: ${callId}`);
+            ws.close();
+            return;
+          }
+
+          updateCall(callId, {
+            streamSid: streamId,
+            status: 'connected',
+            connectedAt: new Date().toISOString(),
+          });
+
+          // Initialize session (same as Twilio, but mark as Vobiz provider)
+          session = await initSession(callId, call, ws, streamId);
+          session.provider = 'vobiz'; // Mark for audio output branching
+          callSessions.set(callId, session);
+
+          // Send greeting
+          await sendGreeting(session);
+          break;
+
+        case 'media':
+          if (!session || session.isEnding || session.isVoicemail) break;
+          mediaPackets++;
+          if (mediaPackets % 500 === 1) {
+            console.log(`[VobizWS] Media packets: ${mediaPackets}, isAiSpeaking: ${session.isAiSpeaking}, STT connected: ${session.stt.isConnected}`);
+          }
+
+          // Vobiz sends PCM 16kHz directly — no mulaw conversion needed!
+          const pcmAudio = Buffer.from(msg.media.payload, 'base64');
+
+          // During greeting: forward audio to STT for early speech capture
+          if (session.isAiSpeaking && !session.greetingDone) {
+            if (session.stt?.isConnected) {
+              session.stt.sendAudio(pcmAudio);
+            }
+            break;
+          }
+
+          if (!session.stt.isConnected) {
+            session.preConnectAudioBuffer.push(pcmAudio);
+            if (session.preConnectAudioBuffer.length > 250) session.preConnectAudioBuffer.shift();
+          } else {
+            session.stt.sendAudio(pcmAudio);
+          }
+
+          // VAD-based flush (same logic as Twilio handler)
+          if (session.greetingDone && !session.isAiSpeaking && session.sttProvider !== 'deepgram') {
+            const samples = new Int16Array(pcmAudio.buffer, pcmAudio.byteOffset, pcmAudio.length / 2);
+            let sumSq = 0;
+            for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
+            const rms = Math.sqrt(sumSq / samples.length);
+
+            if (rms > 300) {
+              session.lastSpeechTime = Date.now();
+              session.hasFlushedSinceLastFinal = false;
+              if (session.flushTimer) {
+                clearTimeout(session.flushTimer);
+                session.flushTimer = null;
+              }
+            } else if (session.lastSpeechTime && !session.hasFlushedSinceLastFinal) {
+              const silenceMs = Date.now() - session.lastSpeechTime;
+              if (silenceMs > 150 && !session.flushTimer) {
+                session.flushTimer = setTimeout(() => {
+                  session.flushTimer = null;
+                  if (!session.hasFlushedSinceLastFinal && session.stt?.isConnected) {
+                    console.log(`[STT:${callId}] VAD flush after ${Date.now() - session.lastSpeechTime}ms silence`);
+                    session.stt.flush();
+                    session.hasFlushedSinceLastFinal = true;
+                  }
+                }, 100);
+              }
+            }
+          }
+          break;
+
+        case 'checkpoint':
+          // Vobiz equivalent of Twilio's 'mark' event
+          console.log(`[VobizWS] Checkpoint received: ${msg.name}`);
+          if (session && msg.name === 'tts-done') {
+            session.isAiSpeaking = false;
+            session.lastAiSpeechEnd = Date.now();
+            console.log('[VobizWS] AI done speaking, now listening for user');
+          }
+          if (session && msg.name === 'voicemail-done') {
+            console.log(`[VobizWS] Voicemail played, hanging up in 2s...`);
+            setTimeout(async () => {
+              if (session.isEnding) return;
+              try {
+                const vmCall = getCall(callId);
+                if (vmCall) await hangupProviderCall(vmCall);
+              } catch (e) {
+                console.error(`[VobizWS] Voicemail hangup error:`, e.message);
+              }
+              handleCallEnd(callId, 'voicemail');
+            }, 2000);
+          }
+          break;
+
+        case 'stop':
+          console.log(`[VobizWS] Stream stopped: ${callId}`);
+          if (callId) handleCallEnd(callId, 'stream-stopped');
+          break;
+      }
+    } catch (error) {
+      console.error('[VobizWS] Error processing message:', error);
+    }
+  });
+
+  ws.on('close', () => {
+    console.log(`[VobizWS] Connection closed: ${callId}`);
+    if (callId) {
+      cleanupSession(callId);
+    }
+  });
+
+  ws.on('error', (err) => {
+    console.error(`[VobizWS] Error: ${err.message}`);
   });
 });
 
@@ -1486,6 +1885,8 @@ async function initSession(callId, call, ws, streamSid) {
     userSpeechFinalizedAt: null,
     firstClaudeDeltaAt: null,
     firstTtsChunkAt: null,
+    // Provider: 'twilio' or 'vobiz' — determines audio format for WS output
+    provider: call.provider || 'twilio',
   };
 
   // Select STT provider — default to cartesia, fallback for unsupported Deepgram languages
@@ -1599,13 +2000,8 @@ async function initSession(callId, call, ws, streamSid) {
         // Real user speech during AI playback — trigger barge-in
         console.log(`[Barge-in:${callId}] User interrupted (${isFinal ? 'final' : 'partial'}): "${bargeText}"`);
 
-        // Clear Twilio audio buffer to stop playback immediately
-        if (sessionObj.ws.readyState === 1) {
-          sessionObj.ws.send(JSON.stringify({
-            event: 'clear',
-            streamSid: sessionObj.streamSid,
-          }));
-        }
+        // Clear audio buffer to stop playback immediately
+        clearAudioBuffer(sessionObj);
         sessionObj.isAiSpeaking = false;
         sessionObj.interrupted = true;
         // Clear echo tracking since we stopped playback
@@ -1812,7 +2208,10 @@ async function sendGreeting(session) {
     console.warn(`[Call:${callId}] Cached greeting audio too small (${cached.mulawBase64.length} chars), regenerating`);
   }
 
-  if (cached && cached.mulawBase64.length >= 8000) {
+  // Cached greeting is mulaw (Twilio format) — only usable for Twilio calls
+  const canUseCache = cached && cached.mulawBase64.length >= 8000 && session.provider !== 'vobiz';
+
+  if (canUseCache) {
     console.log(`[Call:${callId}] Using pre-cached greeting audio (${cached.mulawBase64.length} chars)`);
 
     session.isAiSpeaking = true;
@@ -1824,24 +2223,14 @@ async function sendGreeting(session) {
     const chunks = chunkAudio(cached.mulawBase64);
     for (let i = 0; i < chunks.length; i++) {
       if (session.ws.readyState !== 1 || session.isEnding) break;
-      session.ws.send(JSON.stringify({
-        event: 'media',
-        streamSid: session.streamSid,
-        media: { payload: chunks[i] },
-      }));
+      sendAudioChunk(session, chunks[i]);
       if ((i + 1) % 40 === 0) {
         await new Promise(r => setImmediate(r));
       }
     }
 
     // Send mark to know when playback is done
-    if (session.ws.readyState === 1) {
-      session.ws.send(JSON.stringify({
-        event: 'mark',
-        streamSid: session.streamSid,
-        mark: { name: 'tts-done' },
-      }));
-    }
+    sendMark(session, 'tts-done');
   } else {
     // Fallback: generate TTS now (pre-generation failed)
     console.log(`[Call:${callId}] No cached greeting, generating TTS now`);
@@ -2136,13 +2525,7 @@ async function processUserSpeech(callId, text) {
   }
 
   // Send final mark to know when all audio finishes playing
-  if (session.ws.readyState === 1) {
-    session.ws.send(JSON.stringify({
-      event: 'mark',
-      streamSid: session.streamSid,
-      mark: { name: 'tts-done' },
-    }));
-  }
+  sendMark(session, 'tts-done');
 
   // Finalize conversation history
   const cleanResponse = session.conversation.finalizeStreamedResponse(fullResponse);
@@ -2208,14 +2591,82 @@ const EMOTION_SPEED = {
 const DEFAULT_TTS_SPEED = 0.95;
 const INDIC_LANGUAGES = new Set(['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'pa']);
 
+/**
+ * Send an audio chunk over the WebSocket in the right format for the provider.
+ * Twilio: { event: "media", streamSid, media: { payload } }
+ * Vobiz:  { event: "playAudio", media: { contentType: "audio/x-l16;rate=16000", payload } }
+ */
+function sendAudioChunk(session, chunkBase64) {
+  if (session.ws.readyState !== 1) return;
+  if (session.provider === 'vobiz') {
+    session.ws.send(JSON.stringify({
+      event: 'playAudio',
+      media: { contentType: 'audio/x-l16;rate=16000', payload: chunkBase64 },
+    }));
+  } else {
+    session.ws.send(JSON.stringify({
+      event: 'media',
+      streamSid: session.streamSid,
+      media: { payload: chunkBase64 },
+    }));
+  }
+}
+
+/**
+ * Send a mark event (Twilio) or checkpoint (Vobiz) for playback-complete tracking.
+ */
+function sendMark(session, name) {
+  if (session.ws.readyState !== 1) return;
+  if (session.provider === 'vobiz') {
+    // Vobiz uses checkpoint events; also track locally with a timer
+    // since Vobiz doesn't guarantee checkpoint delivery like Twilio marks
+    session.ws.send(JSON.stringify({ event: 'checkpoint', name }));
+  } else {
+    session.ws.send(JSON.stringify({
+      event: 'mark',
+      streamSid: session.streamSid,
+      mark: { name },
+    }));
+  }
+}
+
+/**
+ * Hang up a call via the appropriate provider.
+ */
+async function hangupProviderCall(call) {
+  if (call.provider === 'vobiz' && vobizClient && call.providerCallId) {
+    await vobizClient.hangupCall(call.providerCallId);
+  } else if (call.twilioCallSid) {
+    await twilioClient.calls(call.twilioCallSid).update({ status: 'completed' });
+  }
+}
+
+/**
+ * Clear the audio buffer for barge-in (interrupt AI speaking).
+ * Twilio: { event: "clear", streamSid }
+ * Vobiz:  { event: "clearAudio" }
+ */
+function clearAudioBuffer(session) {
+  if (session.ws.readyState !== 1) return;
+  if (session.provider === 'vobiz') {
+    session.ws.send(JSON.stringify({ event: 'clearAudio' }));
+  } else {
+    session.ws.send(JSON.stringify({
+      event: 'clear',
+      streamSid: session.streamSid,
+    }));
+  }
+}
+
 async function speakSentence(session, text, language, emotion = null) {
   if (!session || session.isEnding || session.interrupted) return;
 
   const gender = session.call.gender;
+  const isVobiz = session.provider === 'vobiz';
   // Validate emotion — fall back to 'content' if unrecognized
   const safeEmotion = emotion && VALID_EMOTIONS.has(emotion) ? emotion : null;
   const speed = safeEmotion ? (EMOTION_SPEED[safeEmotion] || DEFAULT_TTS_SPEED) : DEFAULT_TTS_SPEED;
-  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, emotion=${safeEmotion || 'none'}, speed=${speed}, "${text.substring(0, 50)}..."`);
+  console.log(`[TTS] Sentence: lang=${language}, gender=${gender}, emotion=${safeEmotion || 'none'}, speed=${speed}, provider=${session.provider}, "${text.substring(0, 50)}..."`);
 
   // Track for echo detection (keep last 5 sentences)
   session.recentTtsTexts.push(text);
@@ -2228,13 +2679,9 @@ async function speakSentence(session, text, language, emotion = null) {
   if (session.ttsStream?.connected) {
     try {
       let chunkCount = 0;
-      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed, voiceId: session.originalVoiceId })) {
+      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed, voiceId: session.originalVoiceId, pcmMode: isVobiz })) {
         if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
-        session.ws.send(JSON.stringify({
-          event: 'media',
-          streamSid: session.streamSid,
-          media: { payload: chunk },
-        }));
+        sendAudioChunk(session, chunk);
         chunkCount++;
         // Record first TTS audio chunk for latency tracking
         if (chunkCount === 1 && !session.firstTtsChunkAt && session.userSpeechFinalizedAt) {
@@ -2259,16 +2706,18 @@ async function speakSentence(session, text, language, emotion = null) {
 
   // Fallback: HTTP POST (used if WebSocket not connected or streaming failed)
   try {
-    const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
-    const chunks = chunkAudio(mulawBase64);
+    let chunks;
+    if (isVobiz) {
+      const pcmBuffer = await generateSpeechPcm(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
+      chunks = chunkPcmAudio(pcmBuffer);
+    } else {
+      const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
+      chunks = chunkAudio(mulawBase64);
+    }
 
     for (let i = 0; i < chunks.length; i++) {
       if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
-      session.ws.send(JSON.stringify({
-        event: 'media',
-        streamSid: session.streamSid,
-        media: { payload: chunks[i] },
-      }));
+      sendAudioChunk(session, chunks[i]);
       if ((i + 1) % 40 === 0) {
         await new Promise(r => setImmediate(r));
       }
@@ -2277,15 +2726,17 @@ async function speakSentence(session, text, language, emotion = null) {
     console.error(`[TTS] HTTP error (${language}/${gender}): ${error.message}`);
     if (language !== 'en') {
       try {
-        const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
-        const chunks = chunkAudio(fallbackBase64);
+        let chunks;
+        if (isVobiz) {
+          const pcmBuffer = await generateSpeechPcm(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
+          chunks = chunkPcmAudio(pcmBuffer);
+        } else {
+          const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
+          chunks = chunkAudio(fallbackBase64);
+        }
         for (let i = 0; i < chunks.length; i++) {
           if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
-          session.ws.send(JSON.stringify({
-            event: 'media',
-            streamSid: session.streamSid,
-            media: { payload: chunks[i] },
-          }));
+          sendAudioChunk(session, chunks[i]);
           if ((i + 1) % 40 === 0) {
             await new Promise(r => setImmediate(r));
           }
@@ -2306,13 +2757,7 @@ async function speakAndStream(session, text) {
   await speakSentence(session, text, ttsLanguage);
 
   // Send mark to know when playback is done
-  if (session.ws.readyState === 1) {
-    session.ws.send(JSON.stringify({
-      event: 'mark',
-      streamSid: session.streamSid,
-      mark: { name: 'tts-done' },
-    }));
-  }
+  sendMark(session, 'tts-done');
 }
 
 // ============================================
@@ -2838,15 +3283,22 @@ app.post('/api/inbound-configs/:id/toggle', requireAuth, requireDb, async (req, 
 
 // Initialize Postgres + Campaign Runner, then start server
 initDb().then(async () => {
-  // Initialize campaign runner
+  // Initialize campaign runner with dual SMS senders
   const smsSender = new WhatsAppSender(twilioClient, TWILIO_PHONE, {
     statusCallbackUrl: PUBLIC_URL && !PUBLIC_URL.includes('localhost') ? `${PUBLIC_URL}/sms/status` : null,
   });
+  const vobizSmsSenderInstance = vobizClient && VOBIZ_PHONE
+    ? new VobizSmsSender(vobizClient, VOBIZ_PHONE) : null;
+  if (vobizSmsSenderInstance) {
+    console.log(`[Vobiz] SMS sender initialized (from: ${VOBIZ_PHONE})`);
+  }
   campaignRunner = new CampaignRunner({
     initiateCallFn: initiateCall,
     getActiveCallsFn: getActiveCalls,
     whatsappSender: smsSender,
+    vobizSmsSender: vobizSmsSenderInstance,
     callingNumber: TWILIO_PHONE,
+    vobizCallingNumber: VOBIZ_PHONE || '',
     onCampaignCompleted: (userId, campaignId, counts) => {
       dispatchWebhook(userId, 'campaign.completed', {
         campaignId,

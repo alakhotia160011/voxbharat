@@ -88,14 +88,28 @@ function randomRetryMinutes(callTiming) {
 const RETRYABLE_STATUSES = ['no_answer', 'failed', 'voicemail'];
 
 export class CampaignRunner {
-  constructor({ initiateCallFn, getActiveCallsFn, onCampaignCompleted, whatsappSender, callingNumber }) {
+  constructor({ initiateCallFn, getActiveCallsFn, onCampaignCompleted, whatsappSender, vobizSmsSender, callingNumber, vobizCallingNumber }) {
     this.initiateCall = initiateCallFn;
     this.getActiveCalls = getActiveCallsFn;
     this.onCampaignCompleted = onCampaignCompleted || null;
     this.whatsappSender = whatsappSender || null;
+    this.vobizSmsSender = vobizSmsSender || null;
     this.callingNumber = callingNumber || '';
+    this.vobizCallingNumber = vobizCallingNumber || '';
     this.activeCampaigns = new Map(); // campaignId -> { config, activeCallIds: Set, isPaused }
     this._timers = new Map(); // campaignId -> timeout ID (for scheduling)
+  }
+
+  /** Pick SMS sender based on phone number prefix */
+  _getSmsSender(phoneNumber) {
+    if (this.vobizSmsSender && phoneNumber.startsWith('+91')) return this.vobizSmsSender;
+    return this.whatsappSender;
+  }
+
+  /** Pick calling number based on phone number prefix */
+  _getCallingNumber(phoneNumber) {
+    if (this.vobizCallingNumber && phoneNumber.startsWith('+91')) return this.vobizCallingNumber;
+    return this.callingNumber;
   }
 
   /**
@@ -307,8 +321,9 @@ export class CampaignRunner {
         continue;
       }
 
-      // Staggered WhatsApp reminder: send before calling, then delay
-      if (waConfig?.enabled && waConfig.mode === 'staggered' && this.whatsappSender) {
+      // Staggered SMS reminder: send before calling, then delay
+      const smsSender = this._getSmsSender(num.phone_number);
+      if (waConfig?.enabled && waConfig.mode === 'staggered' && smsSender) {
         const alreadySent = await hasReminderBeenSent(num.id);
         if (!alreadySent) {
           const templateVars = {
@@ -316,9 +331,9 @@ export class CampaignRunner {
             company: waConfig.company || state.config.name,
             topic: waConfig.topic || 'a brief survey',
             duration: waConfig.duration || '2-3',
-            callingNumber: this.callingNumber,
+            callingNumber: this._getCallingNumber(num.phone_number),
           };
-          await this.whatsappSender.sendSingleReminder(
+          await smsSender.sendSingleReminder(
             campaignId, num.id, num.phone_number, waConfig.message, templateVars
           );
 

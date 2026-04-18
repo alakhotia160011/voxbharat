@@ -24,7 +24,9 @@ export function createCall(options = {}) {
     answeredBy: null,       // 'human' | 'machine_end_beep' | etc. (from Twilio AMD)
     voicemailLeft: false,   // true if voicemail message was played
     status: 'initiating',
-    twilioCallSid: null,
+    provider: options.provider || 'twilio',  // 'twilio' | 'vobiz'
+    providerCallId: null,   // Twilio Call SID or Vobiz CallUUID
+    twilioCallSid: null,    // kept for backward compatibility
     streamSid: null,
     recordingSid: null,
     recordingUrl: null,

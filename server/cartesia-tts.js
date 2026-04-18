@@ -71,6 +71,46 @@ export async function generateSpeech(text, language, gender, apiKey, options = {
 }
 
 /**
+ * Generate TTS audio as raw PCM 16kHz buffer (for Vobiz — no mulaw conversion)
+ */
+export async function generateSpeechPcm(text, language, gender, apiKey, options = {}) {
+  const voiceId = options.voiceId || VOICES[`${language}_${gender}`];
+  if (!voiceId) {
+    throw new Error(`No voice found for ${language}_${gender}`);
+  }
+
+  const speed = options.speed ?? 1.0;
+
+  const response = await fetch(CARTESIA_TTS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'Cartesia-Version': '2025-11-04',
+    },
+    body: JSON.stringify({
+      model_id: 'sonic-3',
+      transcript: text,
+      voice: { mode: 'id', id: voiceId },
+      language: language,
+      output_format: {
+        container: 'raw',
+        encoding: 'pcm_s16le',
+        sample_rate: 16000,
+      },
+      generation_config: { speed },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Cartesia TTS error ${response.status}: ${errorText}`);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
+
+/**
  * Split mulaw base64 audio into Twilio-sized chunks (160 bytes = 20ms at 8kHz)
  */
 export function chunkAudio(mulawBase64, chunkSize = 160) {
@@ -82,6 +122,18 @@ export function chunkAudio(mulawBase64, chunkSize = 160) {
     chunks.push(rawBuf.subarray(i, end).toString('base64'));
   }
 
+  return chunks;
+}
+
+/**
+ * Split raw PCM buffer into base64 chunks for Vobiz (640 bytes = 20ms at 16kHz 16-bit)
+ */
+export function chunkPcmAudio(pcmBuffer, chunkSize = 640) {
+  const chunks = [];
+  for (let i = 0; i < pcmBuffer.length; i += chunkSize) {
+    const end = Math.min(i + chunkSize, pcmBuffer.length);
+    chunks.push(pcmBuffer.subarray(i, end).toString('base64'));
+  }
   return chunks;
 }
 
@@ -126,13 +178,21 @@ export class CartesiaTTSStream {
           if (!pending) return;
 
           if (msg.type === 'chunk' && msg.data) {
-            // PCM s16le 16kHz chunk from Cartesia → convert to mulaw 8kHz for Twilio
-            const pcmBuffer = Buffer.from(msg.data, 'base64');
-            const mulawBase64 = pcm16kToMulaw(pcmBuffer);
-            // Split into 160-byte Twilio chunks and push
-            const twilioChunks = chunkAudio(mulawBase64);
-            for (const chunk of twilioChunks) {
-              pending.chunks.push(chunk);
+            if (pending.pcmMode) {
+              // PCM mode (Vobiz): split raw PCM into 640-byte chunks (20ms at 16kHz 16-bit)
+              const pcmBuffer = Buffer.from(msg.data, 'base64');
+              const pcmChunks = chunkPcmAudio(pcmBuffer);
+              for (const chunk of pcmChunks) {
+                pending.chunks.push(chunk);
+              }
+            } else {
+              // Mulaw mode (Twilio): PCM s16le 16kHz → mulaw 8kHz → 160-byte chunks
+              const pcmBuffer = Buffer.from(msg.data, 'base64');
+              const mulawBase64 = pcm16kToMulaw(pcmBuffer);
+              const twilioChunks = chunkAudio(mulawBase64);
+              for (const chunk of twilioChunks) {
+                pending.chunks.push(chunk);
+              }
             }
             // Signal that new chunks are available
             if (pending.onChunk) pending.onChunk();
@@ -189,7 +249,8 @@ export class CartesiaTTSStream {
     const speed = options.speed ?? 1.0;
     const contextId = `ctx_${++this.contextCounter}_${Date.now()}`;
 
-    const pending = { chunks: [], done: false, error: null, onChunk: null };
+    const pcmMode = options.pcmMode || false;
+    const pending = { chunks: [], done: false, error: null, onChunk: null, pcmMode };
     this.pendingRequests.set(contextId, pending);
 
     // Send TTS request
