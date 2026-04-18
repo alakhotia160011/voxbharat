@@ -1679,13 +1679,19 @@ vobizWss.on('connection', (ws, req) => {
     try {
       const msg = JSON.parse(data.toString());
 
+      // Debug: log first few messages and all non-media events
+      if (msg.event !== 'media' || mediaPackets < 3) {
+        console.log(`[VobizWS] Event: ${msg.event}`, msg.event === 'media' ? '(audio)' : JSON.stringify(msg).substring(0, 300));
+      }
+
       switch (msg.event) {
         case 'connected':
           console.log('[VobizWS] Media stream connected');
           break;
 
         case 'start':
-          streamId = msg.start?.streamId || msg.start?.stream_id || null;
+          streamId = msg.start?.streamId || msg.start?.stream_id || msg.start?.StreamID || null;
+          console.log(`[VobizWS] Start event — streamId=${streamId}, keys=${JSON.stringify(Object.keys(msg.start || msg))}`);
           // callId might also come from start event params
           if (!callId && msg.start?.customParameters?.callId) {
             callId = msg.start.customParameters.callId;
@@ -1714,9 +1720,11 @@ vobizWss.on('connection', (ws, req) => {
           session = await initSession(callId, call, ws, streamId);
           session.provider = 'vobiz'; // Mark for audio output branching
           callSessions.set(callId, session);
+          console.log(`[VobizWS] Session initialized, provider=${session.provider}, sending greeting...`);
 
           // Send greeting
           await sendGreeting(session);
+          console.log(`[VobizWS] Greeting sent, greetingDone=${session.greetingDone}`);
           break;
 
         case 'media':
@@ -1775,25 +1783,29 @@ vobizWss.on('connection', (ws, req) => {
           break;
 
         case 'checkpoint':
-          // Vobiz equivalent of Twilio's 'mark' event
-          console.log(`[VobizWS] Checkpoint received: ${msg.name}`);
-          if (session && msg.name === 'tts-done') {
-            session.isAiSpeaking = false;
-            session.lastAiSpeechEnd = Date.now();
-            console.log('[VobizWS] AI done speaking, now listening for user');
-          }
-          if (session && msg.name === 'voicemail-done') {
-            console.log(`[VobizWS] Voicemail played, hanging up in 2s...`);
-            setTimeout(async () => {
-              if (session.isEnding) return;
-              try {
-                const vmCall = getCall(callId);
-                if (vmCall) await hangupProviderCall(vmCall);
-              } catch (e) {
-                console.error(`[VobizWS] Voicemail hangup error:`, e.message);
-              }
-              handleCallEnd(callId, 'voicemail');
-            }, 2000);
+        case 'playedStream':
+          // Vobiz playback-complete: may arrive as 'checkpoint' or 'playedStream'
+          console.log(`[VobizWS] Playback event (${msg.event}): name=${msg.name || msg.Name || 'none'}`);
+          {
+            const markName = msg.name || msg.Name;
+            if (session && markName === 'tts-done') {
+              session.isAiSpeaking = false;
+              session.lastAiSpeechEnd = Date.now();
+              console.log('[VobizWS] AI done speaking, now listening for user');
+            }
+            if (session && markName === 'voicemail-done') {
+              console.log(`[VobizWS] Voicemail played, hanging up in 2s...`);
+              setTimeout(async () => {
+                if (session.isEnding) return;
+                try {
+                  const vmCall = getCall(callId);
+                  if (vmCall) await hangupProviderCall(vmCall);
+                } catch (e) {
+                  console.error(`[VobizWS] Voicemail hangup error:`, e.message);
+                }
+                handleCallEnd(callId, 'voicemail');
+              }, 2000);
+            }
           }
           break;
 
@@ -2596,12 +2608,17 @@ const INDIC_LANGUAGES = new Set(['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml',
  * Twilio: { event: "media", streamSid, media: { payload } }
  * Vobiz:  { event: "playAudio", media: { contentType: "audio/x-l16;rate=16000", payload } }
  */
+let _vobizAudioSent = 0;
 function sendAudioChunk(session, chunkBase64) {
   if (session.ws.readyState !== 1) return;
   if (session.provider === 'vobiz') {
+    _vobizAudioSent++;
+    if (_vobizAudioSent <= 3 || _vobizAudioSent % 200 === 0) {
+      console.log(`[VobizWS] Sending playAudio chunk #${_vobizAudioSent}, payload length=${chunkBase64.length}`);
+    }
     session.ws.send(JSON.stringify({
       event: 'playAudio',
-      media: { contentType: 'audio/x-l16;rate=16000', payload: chunkBase64 },
+      media: { contentType: 'audio/x-l16', sampleRate: '16000', payload: chunkBase64 },
     }));
   } else {
     session.ws.send(JSON.stringify({
@@ -2618,9 +2635,19 @@ function sendAudioChunk(session, chunkBase64) {
 function sendMark(session, name) {
   if (session.ws.readyState !== 1) return;
   if (session.provider === 'vobiz') {
-    // Vobiz uses checkpoint events; also track locally with a timer
-    // since Vobiz doesn't guarantee checkpoint delivery like Twilio marks
+    // Vobiz uses checkpoint events for playback tracking
     session.ws.send(JSON.stringify({ event: 'checkpoint', name }));
+    // Fallback timer: Vobiz may not echo checkpoint back via WebSocket
+    // (it uses HTTP callback instead). Set a timer so isAiSpeaking doesn't stay stuck.
+    if (name === 'tts-done') {
+      setTimeout(() => {
+        if (session.isAiSpeaking && !session.isEnding) {
+          console.log('[VobizWS] Fallback: marking AI done speaking (no checkpoint received)');
+          session.isAiSpeaking = false;
+          session.lastAiSpeechEnd = Date.now();
+        }
+      }, 500); // 500ms grace period for checkpoint to arrive
+    }
   } else {
     session.ws.send(JSON.stringify({
       event: 'mark',
