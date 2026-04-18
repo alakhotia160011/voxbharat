@@ -126,13 +126,28 @@ export function chunkAudio(mulawBase64, chunkSize = 160) {
 }
 
 /**
- * Split raw PCM buffer into base64 chunks for Vobiz (640 bytes = 20ms at 16kHz 16-bit)
+ * Swap PCM s16le (little-endian) to s16be (big-endian / network byte order).
+ * Vobiz audio/x-l16 is big-endian per RFC 3551.
+ */
+function pcmLeToBe(buffer) {
+  const out = Buffer.alloc(buffer.length);
+  for (let i = 0; i < buffer.length - 1; i += 2) {
+    out[i] = buffer[i + 1];
+    out[i + 1] = buffer[i];
+  }
+  return out;
+}
+
+/**
+ * Split raw PCM buffer into base64 chunks for Vobiz (640 bytes = 20ms at 16kHz 16-bit).
+ * Converts from Cartesia's s16le to big-endian (audio/x-l16) format.
  */
 export function chunkPcmAudio(pcmBuffer, chunkSize = 640) {
+  const beBuffer = pcmLeToBe(pcmBuffer);
   const chunks = [];
-  for (let i = 0; i < pcmBuffer.length; i += chunkSize) {
-    const end = Math.min(i + chunkSize, pcmBuffer.length);
-    chunks.push(pcmBuffer.subarray(i, end).toString('base64'));
+  for (let i = 0; i < beBuffer.length; i += chunkSize) {
+    const end = Math.min(i + chunkSize, beBuffer.length);
+    chunks.push(beBuffer.subarray(i, end).toString('base64'));
   }
   return chunks;
 }

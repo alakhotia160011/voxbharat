@@ -1734,8 +1734,13 @@ vobizWss.on('connection', (ws, req) => {
             console.log(`[VobizWS] Media packets: ${mediaPackets}, isAiSpeaking: ${session.isAiSpeaking}, STT connected: ${session.stt.isConnected}`);
           }
 
-          // Vobiz sends PCM 16kHz directly — no mulaw conversion needed!
-          const pcmAudio = Buffer.from(msg.media.payload, 'base64');
+          // Vobiz sends audio/x-l16 (big-endian PCM 16kHz) — swap to little-endian for STT
+          const rawAudio = Buffer.from(msg.media.payload, 'base64');
+          const pcmAudio = Buffer.alloc(rawAudio.length);
+          for (let i = 0; i < rawAudio.length - 1; i += 2) {
+            pcmAudio[i] = rawAudio[i + 1];
+            pcmAudio[i + 1] = rawAudio[i];
+          }
 
           // During greeting: forward audio to STT for early speech capture
           if (session.isAiSpeaking && !session.greetingDone) {
