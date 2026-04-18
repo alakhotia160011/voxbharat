@@ -40,9 +40,12 @@ export class VobizClient {
    * Returns { request_uuid, api_id, message } on success.
    */
   async createCall({ to, from, answerUrl, answerMethod = 'POST', ringUrl, hangupUrl, record = false, machineDetection }) {
+    // Vobiz expects E.164 without the '+' prefix (e.g., 912271263974)
+    const cleanTo = to.replace(/^\+/, '');
+    const cleanFrom = from.replace(/^\+/, '');
     const body = {
-      from,
-      to: `<${to}>`,  // Vobiz expects angle-bracket format for single numbers
+      from: cleanFrom,
+      to: cleanTo,
       answer_url: answerUrl,
       answer_method: answerMethod,
     };
@@ -79,8 +82,8 @@ export class VobizClient {
    */
   async sendSms({ from, to, text }) {
     return this._request('POST', '/Message/', {
-      src: from,
-      dst: to,
+      src: from.replace(/^\+/, ''),
+      dst: to.replace(/^\+/, ''),
       text,
     });
   }
