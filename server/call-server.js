@@ -15,7 +15,7 @@ import twilio from 'twilio';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mulawToPcm16k, pcm16kToMulaw } from './audio-convert.js';
-import { generateSpeech, generateSpeechPcm, chunkAudio, chunkPcmAudio, CartesiaTTSStream, VOICES } from './cartesia-tts.js';
+import { generateSpeech, chunkAudio, CartesiaTTSStream, VOICES } from './cartesia-tts.js';
 import { CartesiaSTT } from './cartesia-stt.js';
 import { DeepgramSTT, DEEPGRAM_SUPPORTED_LANGUAGES } from './deepgram-stt.js';
 import { ClaudeConversation } from './claude-conversation.js';
@@ -692,7 +692,7 @@ app.post('/call/vobiz-answer', (req, res) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Stream bidirectional="true" keepCallAlive="true"
-    contentType="audio/x-l16;rate=16000"
+    contentType="audio/x-mulaw;rate=8000"
     statusCallbackUrl="${PUBLIC_URL}/call/vobiz-stream-status?callId=${safeCallId}"
     statusCallbackMethod="POST">
     ${wsUrl}/call/vobiz-media-stream?callId=${safeCallId}
@@ -832,7 +832,7 @@ app.post('/call/vobiz-inbound', async (req, res) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Stream bidirectional="true" keepCallAlive="true"
-    contentType="audio/x-l16;rate=16000"
+    contentType="audio/x-mulaw;rate=8000"
     statusCallbackUrl="${PUBLIC_URL}/call/vobiz-stream-status?callId=${safeCallId}"
     statusCallbackMethod="POST">
     ${wsUrl}/call/vobiz-media-stream?callId=${safeCallId}
@@ -1730,17 +1730,18 @@ vobizWss.on('connection', (ws, req) => {
         case 'media':
           if (!session || session.isEnding || session.isVoicemail) break;
           mediaPackets++;
+          // Capture streamId from media events if missed from start
+          if (!streamId && msg.streamId) {
+            streamId = msg.streamId;
+            if (session) session.streamSid = streamId;
+            console.log(`[VobizWS] Got streamId from media event: ${streamId}`);
+          }
           if (mediaPackets % 500 === 1) {
             console.log(`[VobizWS] Media packets: ${mediaPackets}, isAiSpeaking: ${session.isAiSpeaking}, STT connected: ${session.stt.isConnected}`);
           }
 
-          // Vobiz sends audio/x-l16 (big-endian PCM 16kHz) — swap to little-endian for STT
-          const rawAudio = Buffer.from(msg.media.payload, 'base64');
-          const pcmAudio = Buffer.alloc(rawAudio.length);
-          for (let i = 0; i < rawAudio.length - 1; i += 2) {
-            pcmAudio[i] = rawAudio[i + 1];
-            pcmAudio[i + 1] = rawAudio[i];
-          }
+          // Vobiz sends mulaw 8kHz (same as Twilio) — convert to PCM s16le 16kHz for STT
+          const pcmAudio = mulawToPcm16k(msg.media.payload);
 
           // During greeting: forward audio to STT for early speech capture
           if (session.isAiSpeaking && !session.greetingDone) {
@@ -2225,8 +2226,8 @@ async function sendGreeting(session) {
     console.warn(`[Call:${callId}] Cached greeting audio too small (${cached.mulawBase64.length} chars), regenerating`);
   }
 
-  // Cached greeting is mulaw (Twilio format) — only usable for Twilio calls
-  const canUseCache = cached && cached.mulawBase64.length >= 8000 && session.provider !== 'vobiz';
+  // Cached greeting is mulaw — usable for both Twilio and Vobiz (both use mulaw 8kHz now)
+  const canUseCache = cached && cached.mulawBase64.length >= 8000;
 
   if (canUseCache) {
     console.log(`[Call:${callId}] Using pre-cached greeting audio (${cached.mulawBase64.length} chars)`);
@@ -2623,7 +2624,8 @@ function sendAudioChunk(session, chunkBase64) {
     }
     session.ws.send(JSON.stringify({
       event: 'playAudio',
-      media: { contentType: 'audio/x-l16', sampleRate: '16000', payload: chunkBase64 },
+      media: { contentType: 'audio/x-mulaw', sampleRate: 8000, payload: chunkBase64 },
+      streamId: session.streamSid,
     }));
   } else {
     session.ws.send(JSON.stringify({
@@ -2681,7 +2683,7 @@ async function hangupProviderCall(call) {
 function clearAudioBuffer(session) {
   if (session.ws.readyState !== 1) return;
   if (session.provider === 'vobiz') {
-    session.ws.send(JSON.stringify({ event: 'clearAudio' }));
+    session.ws.send(JSON.stringify({ event: 'clearAudio', streamId: session.streamSid }));
   } else {
     session.ws.send(JSON.stringify({
       event: 'clear',
@@ -2694,7 +2696,6 @@ async function speakSentence(session, text, language, emotion = null) {
   if (!session || session.isEnding || session.interrupted) return;
 
   const gender = session.call.gender;
-  const isVobiz = session.provider === 'vobiz';
   // Validate emotion — fall back to 'content' if unrecognized
   const safeEmotion = emotion && VALID_EMOTIONS.has(emotion) ? emotion : null;
   const speed = safeEmotion ? (EMOTION_SPEED[safeEmotion] || DEFAULT_TTS_SPEED) : DEFAULT_TTS_SPEED;
@@ -2708,10 +2709,11 @@ async function speakSentence(session, text, language, emotion = null) {
   const emotionText = safeEmotion ? `<emotion value="${safeEmotion}"/> ${text}` : text;
 
   // Try streaming TTS first (lowest latency)
+  // Both Twilio and Vobiz use mulaw 8kHz — no pcmMode branching needed
   if (session.ttsStream?.connected) {
     try {
       let chunkCount = 0;
-      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed, voiceId: session.originalVoiceId, pcmMode: isVobiz })) {
+      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed, voiceId: session.originalVoiceId })) {
         if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
         sendAudioChunk(session, chunk);
         chunkCount++;
@@ -2737,15 +2739,10 @@ async function speakSentence(session, text, language, emotion = null) {
   }
 
   // Fallback: HTTP POST (used if WebSocket not connected or streaming failed)
+  // Both Twilio and Vobiz use mulaw 8kHz
   try {
-    let chunks;
-    if (isVobiz) {
-      const pcmBuffer = await generateSpeechPcm(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
-      chunks = chunkPcmAudio(pcmBuffer);
-    } else {
-      const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
-      chunks = chunkAudio(mulawBase64);
-    }
+    const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
+    const chunks = chunkAudio(mulawBase64);
 
     for (let i = 0; i < chunks.length; i++) {
       if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
@@ -2758,14 +2755,8 @@ async function speakSentence(session, text, language, emotion = null) {
     console.error(`[TTS] HTTP error (${language}/${gender}): ${error.message}`);
     if (language !== 'en') {
       try {
-        let chunks;
-        if (isVobiz) {
-          const pcmBuffer = await generateSpeechPcm(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
-          chunks = chunkPcmAudio(pcmBuffer);
-        } else {
-          const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
-          chunks = chunkAudio(fallbackBase64);
-        }
+        const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
+        const chunks = chunkAudio(fallbackBase64);
         for (let i = 0; i < chunks.length; i++) {
           if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
           sendAudioChunk(session, chunks[i]);
