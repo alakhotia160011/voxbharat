@@ -11,7 +11,9 @@
     "call": "node call-server.js",
     "call:dev": "node --watch call-server.js",
     "lint": "eslint *.js routes/ middleware/",
-    "lint:fix": "eslint *.js routes/ middleware/ --fix"
+    "lint:fix": "eslint *.js routes/ middleware/ --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
@@ -36,6 +38,7 @@
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "vitest": "^4.1.6"
   }
 }
