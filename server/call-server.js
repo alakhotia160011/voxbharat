@@ -550,12 +550,19 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
   }
 
   // Store the promise itself so sendGreeting can await it even if TTS hasn't finished yet
-  const greetingPromise = generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
-    .then(mulawBase64 => {
-      console.log(`[Call:${call.id}] Greeting audio pre-cached`);
-      return { mulawBase64, language: greetingLang };
-    })
-    .catch(err => {
+  // Vobiz uses PCM, Twilio uses mulaw — pre-cache in the right format
+  const greetingPromise = (provider === 'vobiz'
+    ? generateSpeechPcm(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
+        .then(pcmBuffer => {
+          console.log(`[Call:${call.id}] Greeting PCM audio pre-cached (${pcmBuffer.length} bytes)`);
+          return { pcmBuffer, language: greetingLang };
+        })
+    : generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
+        .then(mulawBase64 => {
+          console.log(`[Call:${call.id}] Greeting mulaw audio pre-cached`);
+          return { mulawBase64, language: greetingLang };
+        })
+  ).catch(err => {
       console.warn(`[Call:${call.id}] Greeting pre-cache failed (will generate on pickup): ${err.message}`);
       return null;
     });
@@ -1692,11 +1699,16 @@ vobizWss.on('connection', (ws, req) => {
           break;
 
         case 'start':
-          streamId = msg.start?.streamId || msg.start?.stream_id || msg.start?.StreamID || null;
-          console.log(`[VobizWS] Start event — streamId=${streamId}, keys=${JSON.stringify(Object.keys(msg.start || msg))}`);
+          // streamId can be at top level (Plivo style) or nested in msg.start
+          streamId = msg.streamId || msg.stream_id || msg.StreamID
+            || msg.start?.streamId || msg.start?.stream_id || msg.start?.StreamID || null;
+          console.log(`[VobizWS] Start event — streamId=${streamId}, full msg keys=${JSON.stringify(Object.keys(msg))}, start keys=${JSON.stringify(Object.keys(msg.start || {}))}`);
           // callId might also come from start event params
           if (!callId && msg.start?.customParameters?.callId) {
             callId = msg.start.customParameters.callId;
+          }
+          if (!callId && msg.customParameters?.callId) {
+            callId = msg.customParameters.callId;
           }
 
           if (!callId) {
@@ -1730,6 +1742,21 @@ vobizWss.on('connection', (ws, req) => {
           break;
 
         case 'media':
+          // If no 'start' event was received, initialize session from first media event
+          if (!session && callId) {
+            console.log(`[VobizWS] No start event received — initializing from media event`);
+            streamId = msg.streamId || msg.stream_id || streamId;
+            const mediaCall = getCall(callId);
+            if (mediaCall) {
+              updateCall(callId, { streamSid: streamId, status: 'connected', connectedAt: new Date().toISOString() });
+              session = await initSession(callId, mediaCall, ws, streamId);
+              session.provider = 'vobiz';
+              callSessions.set(callId, session);
+              sendGreeting(session).then(() => {
+                console.log(`[VobizWS] Late greeting sent, greetingDone=${session.greetingDone}`);
+              });
+            }
+          }
           if (!session || session.isEnding || session.isVoicemail) break;
           mediaPackets++;
           // Capture streamId from media events if missed from start
@@ -2821,6 +2848,14 @@ async function handleCallEnd(callId, reason) {
 
   const call = getCall(callId);
   if (!call) return;
+
+  // Hang up the call via provider API (prevents zombie calls on Vobiz/Twilio)
+  try {
+    await hangupProviderCall(call);
+  } catch (err) {
+    // Ignore — call may already be hung up by the user
+    console.log(`[Call:${callId}] Hangup during cleanup: ${err.message}`);
+  }
 
   // Voicemail calls — no survey data to extract
   if (reason === 'voicemail' || reason === 'voicemail-failed') {
