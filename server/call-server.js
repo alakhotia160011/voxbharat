@@ -15,7 +15,7 @@ import twilio from 'twilio';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mulawToPcm16k, pcm16kToMulaw } from './audio-convert.js';
-import { generateSpeech, chunkAudio, CartesiaTTSStream, VOICES } from './cartesia-tts.js';
+import { generateSpeech, generateSpeechPcm, chunkAudio, chunkPcmAudio, CartesiaTTSStream, VOICES } from './cartesia-tts.js';
 import { CartesiaSTT } from './cartesia-stt.js';
 import { DeepgramSTT, DEEPGRAM_SUPPORTED_LANGUAGES } from './deepgram-stt.js';
 import { ClaudeConversation } from './claude-conversation.js';
@@ -51,6 +51,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
 import { getVoicemailMessage, SURVEY_SCRIPTS, generateCustomGreeting, generateInboundGreeting, generateCallbackGreeting, getVoiceName, generateVerificationGreeting, generateDemoGreeting } from './survey-scripts.js';
+import { computeLeadScore } from './lead-scoring.js';
 import jwt from 'jsonwebtoken';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Resend } from 'resend';
@@ -692,7 +693,7 @@ app.post('/call/vobiz-answer', (req, res) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Stream bidirectional="true" keepCallAlive="true"
-    contentType="audio/x-mulaw;rate=8000"
+    contentType="audio/x-l16;rate=16000"
     statusCallbackUrl="${PUBLIC_URL}/call/vobiz-stream-status?callId=${safeCallId}"
     statusCallbackMethod="POST">
     ${wsUrl}/call/vobiz-media-stream?callId=${safeCallId}
@@ -832,7 +833,7 @@ app.post('/call/vobiz-inbound', async (req, res) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Stream bidirectional="true" keepCallAlive="true"
-    contentType="audio/x-mulaw;rate=8000"
+    contentType="audio/x-l16;rate=16000"
     statusCallbackUrl="${PUBLIC_URL}/call/vobiz-stream-status?callId=${safeCallId}"
     statusCallbackMethod="POST">
     ${wsUrl}/call/vobiz-media-stream?callId=${safeCallId}
@@ -1740,8 +1741,8 @@ vobizWss.on('connection', (ws, req) => {
             console.log(`[VobizWS] Media packets: ${mediaPackets}, isAiSpeaking: ${session.isAiSpeaking}, STT connected: ${session.stt.isConnected}`);
           }
 
-          // Vobiz sends mulaw 8kHz (same as Twilio) — convert to PCM s16le 16kHz for STT
-          const pcmAudio = mulawToPcm16k(msg.media.payload);
+          // Vobiz sends PCM s16le 16kHz (audio/x-l16;rate=16000) — use directly for STT
+          const pcmAudio = Buffer.from(msg.media.payload, 'base64');
 
           // During greeting: forward audio to STT for early speech capture
           if (session.isAiSpeaking && !session.greetingDone) {
@@ -2226,8 +2227,8 @@ async function sendGreeting(session) {
     console.warn(`[Call:${callId}] Cached greeting audio too small (${cached.mulawBase64.length} chars), regenerating`);
   }
 
-  // Cached greeting is mulaw — usable for both Twilio and Vobiz (both use mulaw 8kHz now)
-  const canUseCache = cached && cached.mulawBase64.length >= 8000;
+  // Cached greeting is mulaw (Twilio format) — Vobiz uses PCM so skip cache for Vobiz
+  const canUseCache = cached && cached.mulawBase64.length >= 8000 && session.provider !== 'vobiz';
 
   if (canUseCache) {
     console.log(`[Call:${callId}] Using pre-cached greeting audio (${cached.mulawBase64.length} chars)`);
@@ -2611,8 +2612,8 @@ const INDIC_LANGUAGES = new Set(['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml',
 
 /**
  * Send an audio chunk over the WebSocket in the right format for the provider.
- * Twilio: { event: "media", streamSid, media: { payload } }
- * Vobiz:  { event: "playAudio", media: { contentType: "audio/x-l16;rate=16000", payload } }
+ * Twilio: { event: "media", streamSid, media: { payload } } — mulaw 8kHz
+ * Vobiz: { event: "playAudio", streamId, media: { contentType, sampleRate, payload } } — PCM s16le 16kHz
  */
 let _vobizAudioSent = 0;
 function sendAudioChunk(session, chunkBase64) {
@@ -2624,8 +2625,8 @@ function sendAudioChunk(session, chunkBase64) {
     }
     session.ws.send(JSON.stringify({
       event: 'playAudio',
-      media: { contentType: 'audio/x-mulaw', sampleRate: 8000, payload: chunkBase64 },
       streamId: session.streamSid,
+      media: { contentType: 'audio/x-l16', sampleRate: 16000, payload: chunkBase64 },
     }));
   } else {
     session.ws.send(JSON.stringify({
@@ -2696,6 +2697,7 @@ async function speakSentence(session, text, language, emotion = null) {
   if (!session || session.isEnding || session.interrupted) return;
 
   const gender = session.call.gender;
+  const isVobiz = session.provider === 'vobiz';
   // Validate emotion — fall back to 'content' if unrecognized
   const safeEmotion = emotion && VALID_EMOTIONS.has(emotion) ? emotion : null;
   const speed = safeEmotion ? (EMOTION_SPEED[safeEmotion] || DEFAULT_TTS_SPEED) : DEFAULT_TTS_SPEED;
@@ -2709,11 +2711,11 @@ async function speakSentence(session, text, language, emotion = null) {
   const emotionText = safeEmotion ? `<emotion value="${safeEmotion}"/> ${text}` : text;
 
   // Try streaming TTS first (lowest latency)
-  // Both Twilio and Vobiz use mulaw 8kHz — no pcmMode branching needed
+  // Twilio: mulaw 8kHz (pcmMode=false), Vobiz: PCM s16le 16kHz (pcmMode=true)
   if (session.ttsStream?.connected) {
     try {
       let chunkCount = 0;
-      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed, voiceId: session.originalVoiceId })) {
+      for await (const chunk of session.ttsStream.streamSpeech(emotionText, language, gender, { speed, voiceId: session.originalVoiceId, pcmMode: isVobiz })) {
         if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
         sendAudioChunk(session, chunk);
         chunkCount++;
@@ -2739,10 +2741,15 @@ async function speakSentence(session, text, language, emotion = null) {
   }
 
   // Fallback: HTTP POST (used if WebSocket not connected or streaming failed)
-  // Both Twilio and Vobiz use mulaw 8kHz
   try {
-    const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
-    const chunks = chunkAudio(mulawBase64);
+    let chunks;
+    if (isVobiz) {
+      const pcmBuffer = await generateSpeechPcm(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
+      chunks = chunkPcmAudio(pcmBuffer);
+    } else {
+      const mulawBase64 = await generateSpeech(emotionText, language, gender, CARTESIA_KEY, { speed, voiceId: session.originalVoiceId });
+      chunks = chunkAudio(mulawBase64);
+    }
 
     for (let i = 0; i < chunks.length; i++) {
       if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
@@ -2755,8 +2762,14 @@ async function speakSentence(session, text, language, emotion = null) {
     console.error(`[TTS] HTTP error (${language}/${gender}): ${error.message}`);
     if (language !== 'en') {
       try {
-        const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
-        const chunks = chunkAudio(fallbackBase64);
+        let chunks;
+        if (isVobiz) {
+          const pcmBuffer = await generateSpeechPcm(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
+          chunks = chunkPcmAudio(pcmBuffer);
+        } else {
+          const fallbackBase64 = await generateSpeech(emotionText, 'en', gender, CARTESIA_KEY, { speed: 0.85, voiceId: session.originalVoiceId });
+          chunks = chunkAudio(fallbackBase64);
+        }
         for (let i = 0; i < chunks.length; i++) {
           if (session.ws.readyState !== 1 || session.isEnding || session.interrupted) break;
           sendAudioChunk(session, chunks[i]);
@@ -2848,19 +2861,8 @@ async function handleCallEnd(callId, reason) {
       // Compute lead score from custom metrics
       const customMetrics = data.customMetrics || {};
       const successMetrics = call.customSurvey?.successMetrics || [];
-      if (successMetrics.length > 0 && Object.keys(customMetrics).length > 0) {
-        let weightedScore = 0;
-        let totalWeight = 0;
-        for (const metric of successMetrics) {
-          if (!metric.name || !metric.prompt) continue;
-          const key = metric.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-          const weight = metric.weight || 3;
-          totalWeight += weight;
-          if (customMetrics[key]?.pass) {
-            weightedScore += weight;
-          }
-        }
-        const leadScore = totalWeight > 0 ? Math.round((weightedScore / totalWeight) * 100) : null;
+      const leadScore = computeLeadScore(customMetrics, successMetrics);
+      if (leadScore !== null) {
         updateCall(callId, { leadScore });
         console.log(`[Call:${callId}] Lead score: ${leadScore} (${Object.keys(customMetrics).length} metrics)`);
       }
