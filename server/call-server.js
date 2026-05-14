@@ -816,10 +816,11 @@ app.post('/call/vobiz-inbound', async (req, res) => {
     greetingText = customGreeting || generateInboundGreeting(greetingLang, gender, surveyName, surveyConfig?.companyName, surveyConfig?.greetingTopic);
   }
 
-  const greetingPromise = generateSpeech(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
-    .then(mulawBase64 => {
-      console.log(`[VobizInbound:${call.id}] Greeting audio pre-cached`);
-      return { mulawBase64, language: greetingLang };
+  // Pre-cache as PCM for Vobiz (not mulaw like Twilio)
+  const greetingPromise = generateSpeechPcm(greetingText, greetingLang, gender, CARTESIA_KEY, { speed: 0.95 })
+    .then(pcmBuffer => {
+      console.log(`[VobizInbound:${call.id}] Greeting PCM audio pre-cached (${pcmBuffer.length} bytes)`);
+      return { pcmBuffer, language: greetingLang };
     })
     .catch(err => {
       console.warn(`[VobizInbound:${call.id}] Greeting pre-cache failed: ${err.message}`);
@@ -1791,10 +1792,11 @@ vobizWss.on('connection', (ws, req) => {
 
         case 'checkpoint':
         case 'playedStream':
-          // Vobiz playback-complete: may arrive as 'checkpoint' or 'playedStream'
-          console.log(`[VobizWS] Playback event (${msg.event}): name=${msg.name || msg.Name || 'none'}`);
+        case 'PlayedStream':
+          // Vobiz playback-complete: may arrive in various event names/field casings
+          console.log(`[VobizWS] Playback event (${msg.event}): ${JSON.stringify(msg).substring(0, 200)}`);
           {
-            const markName = msg.name || msg.Name;
+            const markName = msg.name || msg.Name || msg.checkpoint_name || msg.checkpointName;
             if (session && markName === 'tts-done') {
               session.isAiSpeaking = false;
               session.lastAiSpeechEnd = Date.now();
@@ -2221,21 +2223,15 @@ async function sendGreeting(session) {
   const cached = cachedPromise ? await cachedPromise : null;
   greetingAudioCache.delete(callId);
 
-  // Sanity check: greeting audio should be at least ~1 second of mulaw (8000 bytes base64 ≈ 6000 raw bytes ≈ 0.75s)
-  // If the cached audio is suspiciously small, it was likely truncated — regenerate
-  if (cached && cached.mulawBase64.length < 8000) {
-    console.warn(`[Call:${callId}] Cached greeting audio too small (${cached.mulawBase64.length} chars), regenerating`);
-  }
+  // Check for cached greeting — Twilio caches mulaw, Vobiz caches PCM
+  const isVobiz = session.provider === 'vobiz';
+  const canUseMulawCache = cached && cached.mulawBase64 && cached.mulawBase64.length >= 8000 && !isVobiz;
+  const canUsePcmCache = cached && cached.pcmBuffer && cached.pcmBuffer.length >= 16000 && isVobiz;
 
-  // Cached greeting is mulaw (Twilio format) — Vobiz uses PCM so skip cache for Vobiz
-  const canUseCache = cached && cached.mulawBase64.length >= 8000 && session.provider !== 'vobiz';
-
-  if (canUseCache) {
-    console.log(`[Call:${callId}] Using pre-cached greeting audio (${cached.mulawBase64.length} chars)`);
+  if (canUseMulawCache) {
+    console.log(`[Call:${callId}] Using pre-cached mulaw greeting (${cached.mulawBase64.length} chars)`);
 
     session.isAiSpeaking = true;
-
-    // Track for echo detection
     session.recentTtsTexts.push(greeting);
     if (session.recentTtsTexts.length > 5) session.recentTtsTexts.shift();
 
@@ -2248,10 +2244,26 @@ async function sendGreeting(session) {
       }
     }
 
-    // Send mark to know when playback is done
+    sendMark(session, 'tts-done');
+  } else if (canUsePcmCache) {
+    console.log(`[Call:${callId}] Using pre-cached PCM greeting (${cached.pcmBuffer.length} bytes)`);
+
+    session.isAiSpeaking = true;
+    session.recentTtsTexts.push(greeting);
+    if (session.recentTtsTexts.length > 5) session.recentTtsTexts.shift();
+
+    const chunks = chunkPcmAudio(cached.pcmBuffer);
+    for (let i = 0; i < chunks.length; i++) {
+      if (session.ws.readyState !== 1 || session.isEnding) break;
+      sendAudioChunk(session, chunks[i]);
+      if ((i + 1) % 40 === 0) {
+        await new Promise(r => setImmediate(r));
+      }
+    }
+
     sendMark(session, 'tts-done');
   } else {
-    // Fallback: generate TTS now (pre-generation failed)
+    // No usable cache — generate TTS now
     console.log(`[Call:${callId}] No cached greeting, generating TTS now`);
     await speakAndStream(session, greeting);
   }
@@ -2647,14 +2659,14 @@ function sendMark(session, name) {
     session.ws.send(JSON.stringify({ event: 'checkpoint', name }));
     // Fallback timer: Vobiz may not echo checkpoint back via WebSocket
     // (it uses HTTP callback instead). Set a timer so isAiSpeaking doesn't stay stuck.
-    if (name === 'tts-done') {
+    if (name === 'tts-done' || name === 'voicemail-done') {
       setTimeout(() => {
-        if (session.isAiSpeaking && !session.isEnding) {
+        if (name === 'tts-done' && session.isAiSpeaking && !session.isEnding) {
           console.log('[VobizWS] Fallback: marking AI done speaking (no checkpoint received)');
           session.isAiSpeaking = false;
           session.lastAiSpeechEnd = Date.now();
         }
-      }, 500); // 500ms grace period for checkpoint to arrive
+      }, 1500); // 1.5s grace — enough for Vobiz to finish playing buffered audio
     }
   } else {
     session.ws.send(JSON.stringify({

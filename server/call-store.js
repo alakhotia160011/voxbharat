@@ -63,6 +63,16 @@ export function getCallByTwilioSid(twilioCallSid) {
 }
 
 /**
+ * Find a call by provider call ID (Twilio SID or Vobiz CallUUID)
+ */
+export function getCallByProviderCallId(providerCallId) {
+  for (const call of activeCalls.values()) {
+    if (call.providerCallId === providerCallId || call.twilioCallSid === providerCallId) return call;
+  }
+  return null;
+}
+
+/**
  * Find a call by Stream SID
  */
 export function getCallByStreamSid(streamSid) {
