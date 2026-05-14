@@ -9,7 +9,9 @@
     "start": "node call-server.js",
     "dev": "node --watch index.js",
     "call": "node call-server.js",
-    "call:dev": "node --watch call-server.js"
+    "call:dev": "node --watch call-server.js",
+    "lint": "eslint *.js routes/ middleware/",
+    "lint:fix": "eslint *.js routes/ middleware/ --fix"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
@@ -28,5 +30,12 @@
     "twilio": "^5.12.1",
     "uuid": "^13.0.0",
     "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3"
   }
 }
