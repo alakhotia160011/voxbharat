@@ -62,32 +62,13 @@ function getEmotionInstructions(hasLangTag = false) {
 VOICE TONE — REQUIRED ON EVERY RESPONSE:
 ${prefix}
 
-IMPORTANT: Use [EMOTION:content] as your default. Only switch emotions when the moment genuinely calls for it — never force emotion changes.
+IMPORTANT: Use [EMOTION:content] as your default. Only use [EMOTION:sympathetic] when the person shares something difficult, declines the call, or you're saying goodbye.
 
-Available tones:
-  content — warm, calm, natural (DEFAULT — use for most responses)
-  curious — interested, inquisitive (when asking a follow-up or genuinely probing deeper)
-  sympathetic — gentle, compassionate (when they share something difficult or decline the call)
-  grateful — warm appreciation (ONLY for the closing thank-you at the end of the survey)
-  enthusiastic — upbeat, energetic (ONLY for the very first greeting/welcome)
+Available tones (ONLY these two):
+  content — warm, calm, natural (DEFAULT — use for almost ALL responses)
+  sympathetic — gentle, compassionate (when they share something difficult, decline, or for warm goodbyes)
 
-Default to content. Use curious and sympathetic sparingly — maybe 2-3 times each per conversation. Use grateful once at the end.
-
-BAD (switching emotions every sentence — robotic):
-  [EMOTION:curious] Aapki umar kya hai?
-  [EMOTION:content] Achha nice.
-  [EMOTION:curious] Aur aapka dharm kya hai?
-  [EMOTION:enthusiastic] Bahut accha!
-  (Feels like a robot cycling through a list of emotions)
-
-GOOD (mostly content, emotions only at natural moments):
-  [EMOTION:content] Aapki umar kya hai?
-  [EMOTION:content] Hmm okay. Aur aapka dharm kya hai?
-  [EMOTION:curious] Would you say religion plays a big role in your day-to-day, or more of a background thing?
-  [EMOTION:content] Right right. And what about interfaith marriage — how do you feel about that?
-  [EMOTION:sympathetic] Haan, yeh toh mushkil hota hai... samajh sakti hoon.
-  [EMOTION:content] Okay, last question — do you think diversity makes India stronger?
-  [EMOTION:grateful] Thank you so much for sharing all this — really appreciate your time!
+Use [EMOTION:content] for everything unless a genuinely sympathetic moment arises. Do NOT vary emotions frequently — keep the voice consistent and natural.
 
 The [EMOTION:xxx] tag is metadata for the voice system — NEVER read it aloud or reference it. NEVER skip it.`;
 }
@@ -177,7 +158,7 @@ function getAutoDetectBrandPronunciationRule() {
 export const SURVEY_SCRIPTS = {
   hi: {
     name: 'Hindi Religious Harmony Survey',
-    greeting: '<emotion value="enthusiastic"/> नमस्ते! मैं अरुशी, वॉक्स भारत से बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए? यह धार्मिक सद्भाव के बारे में है।',
+    greeting: '<emotion value="content"/> नमस्ते! मैं अरुशी, वॉक्स भारत से बोल रही हूँ। क्या आपके पास कुछ मिनट हैं एक छोटे सर्वेक्षण के लिए? यह धार्मिक सद्भाव के बारे में है।',
     questions: [
       {
         id: 'age',
@@ -240,7 +221,7 @@ export const SURVEY_SCRIPTS = {
 
   bn: {
     name: 'Bengali Religious Harmony Survey',
-    greeting: '<emotion value="enthusiastic"/> নমস্কার! আমি পূজা, ভক্স ভারত থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে একটি ছোট সমীক্ষার জন্য? এটি ধর্মীয় সম্প্রীতি সম্পর্কে।',
+    greeting: '<emotion value="content"/> নমস্কার! আমি পূজা, ভক্স ভারত থেকে বলছি। আপনার কি কয়েক মিনিট সময় আছে একটি ছোট সমীক্ষার জন্য? এটি ধর্মীয় সম্প্রীতি সম্পর্কে।',
     questions: [
       {
         id: 'age',
@@ -713,7 +694,7 @@ export function generateInboundGreeting(language, gender, surveyName, companyNam
       return `Thanks for calling! I'm ${name}${from}. How can I help you?`;
     },
   };
-  return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
+  return `<emotion value="content"/> ${(greetings[language] || greetings.hi)()}`;
 }
 
 /**
@@ -765,7 +746,7 @@ export function generateCallbackGreeting(language, gender, surveyName, companyNa
       return `Hey, thanks for calling back! I'm ${name}${from}. Would you have a couple minutes to chat?`;
     },
   };
-  return `<emotion value="enthusiastic"/> ${(greetings[language] || greetings.hi)()}`;
+  return `<emotion value="content"/> ${(greetings[language] || greetings.hi)()}`;
 }
 
 /**
