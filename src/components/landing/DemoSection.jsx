@@ -25,7 +25,7 @@ import SectionHeading from '../shared/SectionHeading';
 import { fadeInUp, sectionViewport } from '../../styles/animations';
 
 const CARTESIA_VOICES = [
-  { id: '86d3b948-5a63-49e4-98c5-b67da63aba50', name: 'Hindi Female', gender: 'Female', lang: 'hi' },
+  { id: '95d51f79-c397-46f9-b49a-23763d3eaa2d', name: 'Hindi Female', gender: 'Female', lang: 'hi' },
   { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', gender: 'Male', lang: 'hi' },
   { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', gender: 'Female', lang: 'bn' },
   { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', gender: 'Male', lang: 'bn' },
@@ -33,8 +33,10 @@ const CARTESIA_VOICES = [
   { id: '91925fe5-42ee-4ebe-96c1-c84b12a85a32', name: 'Gujarati Male', gender: 'Male', lang: 'gu' },
   { id: '5c32dce6-936a-4892-b131-bafe474afe5f', name: 'Marathi Female', gender: 'Female', lang: 'mr' },
   { id: 'f227bc18-3704-47fe-b759-8c78a450fdfa', name: 'Marathi Male', gender: 'Male', lang: 'mr' },
-  { id: '25d2c432-139c-4035-bfd6-9baaabcdd006', name: 'Tamil Female', gender: 'Female', lang: 'ta' },
-  { id: '07bc462a-c644-49f1-baf7-82d5599131be', name: 'Telugu Female', gender: 'Female', lang: 'te' },
+  { id: '4014f0c9-d3eb-4eca-af2b-fd6004f526be', name: 'Tamil Female', gender: 'Female', lang: 'ta' },
+  { id: 'd2870b91-1b4c-47ab-81a8-3718d8e9c222', name: 'Tamil Male', gender: 'Male', lang: 'ta' },
+  { id: 'cf061d8b-a752-4865-81a2-57570a6e0565', name: 'Telugu Female', gender: 'Female', lang: 'te' },
+  { id: '38bded0a-3ab4-42d1-8e47-2e0b6b10ced9', name: 'Telugu Male', gender: 'Male', lang: 'te' },
   { id: '991c62ce-631f-48b0-8060-2a0ebecbd15b', name: 'Punjabi Female', gender: 'Female', lang: 'pa' },
   { id: '8bacd442-a107-4ec1-b6f1-2fcb3f6f4d56', name: 'Punjabi Male', gender: 'Male', lang: 'pa' },
   { id: '7c6219d2-e8d2-462c-89d8-7ecba7c75d65', name: 'Kannada Female', gender: 'Female', lang: 'kn' },
@@ -68,7 +70,7 @@ const VOICE_LABELS = {
 
 
 export default function DemoSection({ onShowSampleReport, onShowSampleCallLog }) {
-  const [selectedVoice, setSelectedVoice] = useState('86d3b948-5a63-49e4-98c5-b67da63aba50');
+  const [selectedVoice, setSelectedVoice] = useState('95d51f79-c397-46f9-b49a-23763d3eaa2d');
   const [demoActive, setDemoActive] = useState(false);
   const [demoStep, setDemoStep] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);

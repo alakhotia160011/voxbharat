@@ -43,10 +43,10 @@ app.post('/api/tts', async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CARTESIA_API_KEY}`,
-        'Cartesia-Version': '2025-11-04',
+        'Cartesia-Version': '2026-03-01',
       },
       body: JSON.stringify({
-        model_id: 'sonic-3',
+        model_id: 'sonic-3.5',
         transcript: text,
         voice: { mode: 'id', id: voiceId },
         language: language || 'hi',
@@ -164,7 +164,7 @@ Call the generate_survey_questions tool with all the questions.`;
     };
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       tools: [questionTool],
       tool_choice: { type: 'tool', name: 'generate_survey_questions' },

@@ -9,14 +9,16 @@ import { CALL_SERVER } from '../../utils/config';
 // ============================================
 
 const PREVIEW_VOICES = [
-  { id: '86d3b948-5a63-49e4-98c5-b67da63aba50', name: 'Hindi Female', lang: 'hi' },
+  { id: '95d51f79-c397-46f9-b49a-23763d3eaa2d', name: 'Hindi Female', lang: 'hi' },
   { id: '7e8cb11d-37af-476b-ab8f-25da99b18644', name: 'Hindi Male', lang: 'hi' },
   { id: '59ba7dee-8f9a-432f-a6c0-ffb33666b654', name: 'Bengali Female', lang: 'bn' },
   { id: '2ba861ea-7cdc-43d1-8608-4045b5a41de5', name: 'Bengali Male', lang: 'bn' },
-  { id: '07bc462a-c644-49f1-baf7-82d5599131be', name: 'Telugu Female', lang: 'te' },
+  { id: 'cf061d8b-a752-4865-81a2-57570a6e0565', name: 'Telugu Female', lang: 'te' },
+  { id: '38bded0a-3ab4-42d1-8e47-2e0b6b10ced9', name: 'Telugu Male', lang: 'te' },
   { id: '5c32dce6-936a-4892-b131-bafe474afe5f', name: 'Marathi Female', lang: 'mr' },
   { id: 'f227bc18-3704-47fe-b759-8c78a450fdfa', name: 'Marathi Male', lang: 'mr' },
-  { id: '25d2c432-139c-4035-bfd6-9baaabcdd006', name: 'Tamil Female', lang: 'ta' },
+  { id: '4014f0c9-d3eb-4eca-af2b-fd6004f526be', name: 'Tamil Female', lang: 'ta' },
+  { id: 'd2870b91-1b4c-47ab-81a8-3718d8e9c222', name: 'Tamil Male', lang: 'ta' },
   { id: '4590a461-bc68-4a50-8d14-ac04f5923d22', name: 'Gujarati Female', lang: 'gu' },
   { id: '91925fe5-42ee-4ebe-96c1-c84b12a85a32', name: 'Gujarati Male', lang: 'gu' },
   { id: '7c6219d2-e8d2-462c-89d8-7ecba7c75d65', name: 'Kannada Female', lang: 'kn' },
@@ -36,7 +38,7 @@ const FullSurveyBuilder = ({ onClose, onLaunch, initialSurvey }) => {
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [playingQuestionId, setPlayingQuestionId] = useState(null);
-  const [selectedPreviewVoice, setSelectedPreviewVoice] = useState('86d3b948-5a63-49e4-98c5-b67da63aba50');
+  const [selectedPreviewVoice, setSelectedPreviewVoice] = useState('95d51f79-c397-46f9-b49a-23763d3eaa2d');
   const [previewLanguage, setPreviewLanguage] = useState('hi');
   const [showCustomQuestionInput, setShowCustomQuestionInput] = useState(false);
   const [customTestText, setCustomTestText] = useState('');

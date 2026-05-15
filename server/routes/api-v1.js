@@ -292,7 +292,7 @@ export function createApiV1Router({ initiateCallFn, campaignRunnerRef, getActive
       return res.status(500).json({ error: { code: 'CONFIGURATION_ERROR', message: 'Anthropic API key not configured' } });
     }
 
-    const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-5-20250929';
+    const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-6';
     const MAX_FIELD_LENGTH = 5000;
 
     const autoDetect = config.autoDetectLanguage || false;

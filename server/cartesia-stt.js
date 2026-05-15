@@ -31,7 +31,7 @@ export class CartesiaSTT {
         encoding: 'pcm_s16le',
         sample_rate: '16000',
         api_key: this.apiKey,
-        cartesia_version: '2025-11-04',
+        cartesia_version: '2026-03-01',
       };
       // Omit language for auto-detection mode
       if (this.language && this.language !== 'auto') {

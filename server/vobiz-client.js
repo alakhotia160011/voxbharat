@@ -39,7 +39,7 @@ export class VobizClient {
    * Make an outbound call.
    * Returns { request_uuid, api_id, message } on success.
    */
-  async createCall({ to, from, answerUrl, answerMethod = 'POST', ringUrl, hangupUrl, record = false, machineDetection }) {
+  async createCall({ to, from, answerUrl, answerMethod = 'POST', ringUrl, hangupUrl, record = false, machineDetection, machineDetectionUrl, machineDetectionTime }) {
     // Vobiz expects E.164 without the '+' prefix (e.g., 912271263974)
     const cleanTo = to.replace(/^\+/, '');
     const cleanFrom = from.replace(/^\+/, '');
@@ -64,6 +64,13 @@ export class VobizClient {
     }
     if (machineDetection) {
       body.machine_detection = machineDetection;
+    }
+    if (machineDetectionUrl) {
+      body.machine_detection_url = machineDetectionUrl;
+      body.machine_detection_method = 'POST';
+    }
+    if (machineDetectionTime) {
+      body.machine_detection_time = machineDetectionTime;
     }
 
     return this._request('POST', '/Call/', body);

@@ -8,7 +8,7 @@ const CARTESIA_TTS_WS_URL = 'wss://api.cartesia.ai/tts/websocket';
 
 // Voice IDs — Ananya is the default Hindi female voice
 const VOICES = {
-  hi_female: '86d3b948-5a63-49e4-98c5-b67da63aba50',
+  hi_female: '95d51f79-c397-46f9-b49a-23763d3eaa2d',
   hi_male: '7e8cb11d-37af-476b-ab8f-25da99b18644',
   bn_female: '59ba7dee-8f9a-432f-a6c0-ffb33666b654',
   bn_male: '2ba861ea-7cdc-43d1-8608-4045b5a41de5',
@@ -16,15 +16,17 @@ const VOICES = {
   gu_male: '91925fe5-42ee-4ebe-96c1-c84b12a85a32',
   mr_female: '5c32dce6-936a-4892-b131-bafe474afe5f',
   mr_male: 'f227bc18-3704-47fe-b759-8c78a450fdfa',
-  ta_female: '25d2c432-139c-4035-bfd6-9baaabcdd006',
-  te_female: '07bc462a-c644-49f1-baf7-82d5599131be',
+  ta_female: '4014f0c9-d3eb-4eca-af2b-fd6004f526be',
+  ta_male: 'd2870b91-1b4c-47ab-81a8-3718d8e9c222',
+  te_female: 'cf061d8b-a752-4865-81a2-57570a6e0565',
+  te_male: '38bded0a-3ab4-42d1-8e47-2e0b6b10ced9',
   pa_female: '991c62ce-631f-48b0-8060-2a0ebecbd15b',
   pa_male: '8bacd442-a107-4ec1-b6f1-2fcb3f6f4d56',
   kn_female: '7c6219d2-e8d2-462c-89d8-7ecba7c75d65',
   kn_male: '6baae46d-1226-45b5-a976-c7f9b797aae2',
   ml_female: 'b426013c-002b-4e89-8874-8cd20b68373a',
   ml_male: '374b80da-e622-4dfc-90f6-1eeb13d331c9',
-  en_female: '86d3b948-5a63-49e4-98c5-b67da63aba50',
+  en_female: '95d51f79-c397-46f9-b49a-23763d3eaa2d',
   en_male: '1259b7e3-cb8a-43df-9446-30971a46b8b0',
 };
 
@@ -45,10 +47,10 @@ export async function generateSpeech(text, language, gender, apiKey, options = {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
-      'Cartesia-Version': '2025-11-04',
+      'Cartesia-Version': '2026-03-01',
     },
     body: JSON.stringify({
-      model_id: 'sonic-3',
+      model_id: 'sonic-3.5',
       transcript: text,
       voice: { mode: 'id', id: voiceId },
       language: language,
@@ -86,10 +88,10 @@ export async function generateSpeechPcm(text, language, gender, apiKey, options 
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
-      'Cartesia-Version': '2025-11-04',
+      'Cartesia-Version': '2026-03-01',
     },
     body: JSON.stringify({
-      model_id: 'sonic-3',
+      model_id: 'sonic-3.5',
       transcript: text,
       voice: { mode: 'id', id: voiceId },
       language: language,
@@ -161,7 +163,7 @@ export class CartesiaTTSStream {
     }
     this.connected = false;
 
-    const url = `${CARTESIA_TTS_WS_URL}?api_key=${this.apiKey}&cartesia_version=2025-11-04`;
+    const url = `${CARTESIA_TTS_WS_URL}?api_key=${this.apiKey}&cartesia_version=2026-03-01`;
 
     return new Promise((resolve, reject) => {
       this.ws = new WebSocket(url);
@@ -256,7 +258,7 @@ export class CartesiaTTSStream {
 
     // Send TTS request
     this.ws.send(JSON.stringify({
-      model_id: 'sonic-3',
+      model_id: 'sonic-3.5',
       transcript: text,
       voice: { mode: 'id', id: voiceId },
       language: language,

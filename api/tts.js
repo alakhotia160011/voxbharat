@@ -10,10 +10,10 @@ const ALLOWED_ORIGINS = new Set([
 const MAX_TEXT_LENGTH = 2000;
 
 const VALID_VOICE_IDS = new Set([
-  '86d3b948-5a63-49e4-98c5-b67da63aba50', '7e8cb11d-37af-476b-ab8f-25da99b18644',
+  '95d51f79-c397-46f9-b49a-23763d3eaa2d', '7e8cb11d-37af-476b-ab8f-25da99b18644',
   '59ba7dee-8f9a-432f-a6c0-ffb33666b654', '2ba861ea-7cdc-43d1-8608-4045b5a41de5',
-  '07bc462a-c644-49f1-baf7-82d5599131be', '5c32dce6-936a-4892-b131-bafe474afe5f',
-  'f227bc18-3704-47fe-b759-8c78a450fdfa', '25d2c432-139c-4035-bfd6-9baaabcdd006',
+  'cf061d8b-a752-4865-81a2-57570a6e0565', '38bded0a-3ab4-42d1-8e47-2e0b6b10ced9', '5c32dce6-936a-4892-b131-bafe474afe5f',
+  'f227bc18-3704-47fe-b759-8c78a450fdfa', '4014f0c9-d3eb-4eca-af2b-fd6004f526be', 'd2870b91-1b4c-47ab-81a8-3718d8e9c222',
   '4590a461-bc68-4a50-8d14-ac04f5923d22', '91925fe5-42ee-4ebe-96c1-c84b12a85a32',
   '7c6219d2-e8d2-462c-89d8-7ecba7c75d65', '6baae46d-1226-45b5-a976-c7f9b797aae2',
   'b426013c-002b-4e89-8874-8cd20b68373a', '374b80da-e622-4dfc-90f6-1eeb13d331c9',
@@ -71,10 +71,10 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CARTESIA_API_KEY}`,
-        'Cartesia-Version': '2025-11-04',
+        'Cartesia-Version': '2026-03-01',
       },
       body: JSON.stringify({
-        model_id: 'sonic-3',
+        model_id: 'sonic-3.5',
         transcript: text,
         voice: { mode: 'id', id: voiceId },
         language: lang,

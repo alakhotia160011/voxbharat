@@ -9,7 +9,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://voxbharat.vercel.app',
   ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL.replace(/\/+$/, '')] : []),
 ]);
-const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-5-20250929';
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-6';
 
 const VALID_TYPES = new Set(['political', 'market', 'customer', 'employee', 'social', 'custom', 'verification']);
 const VALID_GEOGRAPHIES = new Set(['national', 'state', 'urban', 'rural', 'metro']);
