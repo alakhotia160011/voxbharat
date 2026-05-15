@@ -498,9 +498,6 @@ async function initiateCall({ phoneNumber, language = 'hi', gender = 'female', c
       ringUrl: `${PUBLIC_URL}/call/vobiz-ring?callId=${call.id}`,
       hangupUrl: `${PUBLIC_URL}/call/vobiz-hangup?callId=${call.id}`,
       record: true,
-      machineDetection: true,
-      machineDetectionUrl: `${PUBLIC_URL}/call/vobiz-amd-callback?callId=${call.id}`,
-      machineDetectionTime: 5000,
     });
 
     const callUuid = vobizCall.request_uuid;
@@ -2444,12 +2441,12 @@ async function processUserSpeech(callId, text) {
     console.log(`[Call:${callId}] Injecting move-on hint (${session.repeatCount} repeats)`);
   }
 
-  // Consent-phase time cap: if 30+ seconds have passed and we're still in the first
-  // few exchanges (consent not clearly obtained), hint Claude to wrap up (skip for demo/widget calls)
+  // Consent-phase time cap: if 90+ seconds have passed and consent not obtained,
+  // hint Claude to wrap up (skip for demo/widget calls)
   if (!session.consentObtained && call.customSurvey?.type !== 'demo') {
     const elapsedSec = (Date.now() - session.callStartedAt) / 1000;
     const userMsgCount = session.conversation.messages.filter(m => m.role === 'user').length;
-    if (elapsedSec >= 30 && userMsgCount <= 3) {
+    if (elapsedSec >= 90) {
       textForClaude = `[SYSTEM: The respondent seems disengaged — thank them for their time in the language they were speaking and wrap up the call politely.] ${textForClaude}`;
       console.log(`[Call:${callId}] Consent phase timeout (${Math.round(elapsedSec)}s, ${userMsgCount} user msgs) — injecting wrap-up hint`);
     }
