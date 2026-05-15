@@ -1700,7 +1700,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log(`[WS] Connection closed: ${callId}`);
     if (callId) {
-      cleanupSession(callId);
+      handleCallEnd(callId, 'ws-closed');
     }
   });
 
@@ -1914,7 +1914,7 @@ vobizWss.on('connection', (ws, req) => {
   ws.on('close', () => {
     console.log(`[VobizWS] Connection closed: ${callId}`);
     if (callId) {
-      cleanupSession(callId);
+      handleCallEnd(callId, 'ws-closed');
     }
   });
 
@@ -2377,6 +2377,7 @@ async function processUserSpeech(callId, text) {
   session.interrupted = false;
   if (session.maxWaitTimer) { clearTimeout(session.maxWaitTimer); session.maxWaitTimer = null; }
 
+  try {
   // In auto-detect mode, prepend STT-detected language hint for Claude
   const sttLang = session.sttDetectedLanguage;
   const langHint = (session.call.autoDetectLanguage && sttLang) ? sttLang : null;
@@ -2665,6 +2666,11 @@ async function processUserSpeech(callId, text) {
     const queuedText = session.accumulatedText.join(' ');
     session.accumulatedText = [];
     setTimeout(() => processUserSpeech(callId, queuedText), 200);
+  }
+  } catch (err) {
+    console.error(`[Call:${callId}] FATAL processUserSpeech error:`, err);
+    session.isProcessing = false;
+    session.isAiSpeaking = false;
   }
 }
 

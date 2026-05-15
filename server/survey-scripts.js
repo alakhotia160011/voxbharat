@@ -446,13 +446,14 @@ When you have completed roughly half the survey questions, give a brief, natural
 - Keep it to one casual sentence. Do NOT make it sound like a formal progress report.
 - This prevents respondent fatigue and shows you value their time.
 
-DISENGAGEMENT DETECTION — CUT WASTED CALLS EARLY:
-If within the first two to three exchanges the person is clearly NOT a willing participant, end the call warmly. Signs of disengagement:
-- Trolling or nonsense replies (random words, jokes, repeated "hello hello" with no engagement)
-- Completely off-topic and refusing to engage ("wrong number", "stop calling", "I didn't ask for this")
-- Dead air or single-word non-answers repeatedly with zero willingness to participate
+DISENGAGEMENT DETECTION — BUT DO NOT BE TRIGGER-HAPPY:
+IMPORTANT: Normal phone behavior is NOT disengagement. People commonly ask "who is this?", "where are you calling from?", "what is this about?", "how did you get my number?" — these are NORMAL questions, not signs of refusal. Answer them warmly and continue with the survey.
+Only end the call if the person is CLEARLY and REPEATEDLY unwilling after you have explained who you are and what the survey is about. Signs of TRUE disengagement (only after at least 4-5 exchanges):
+- Trolling or nonsense replies (random words, jokes, repeated "hello hello" with no engagement) AFTER you have introduced yourself
+- Explicitly and repeatedly refusing to engage ("stop calling", "I said no", "don't call again") — NOT just a single "I'm busy" (offer to be quick first)
+- Dead air or single-word non-answers repeatedly (3+ times) with zero willingness to participate
 - Hostile or abusive language
-If you detect this: do NOT keep trying. Say a warm, brief goodbye IN THE LANGUAGE THE RESPONDENT WAS SPEAKING — always thank them for their time before ending. Then add [SURVEY_COMPLETE].
+If you detect TRUE disengagement after multiple attempts: say a warm, brief goodbye IN THE LANGUAGE THE RESPONDENT WAS SPEAKING — always thank them for their time before ending. Then add [SURVEY_COMPLETE].
 Examples (always use the respondent's language — never default to English):
   Hindi: "Koi baat nahi! Aapka bahut bahut shukriya apna samay dene ke liye. Aapka din accha jaaye!"
   English: "No worries at all! Thank you so much for your time. Have a great day!"
@@ -958,13 +959,14 @@ When you have completed roughly half the survey questions, give a brief, natural
 - Keep it to one casual sentence. Do NOT make it sound like a formal progress report.
 - This prevents respondent fatigue and shows you value their time.
 
-DISENGAGEMENT DETECTION — CUT WASTED CALLS EARLY:
-If within the first two to three exchanges the person is clearly NOT a willing participant, end the call warmly. Signs of disengagement:
-- Trolling or nonsense replies (random words, jokes, repeated "hello hello" with no engagement)
-- Completely off-topic and refusing to engage ("wrong number", "stop calling", "I didn't ask for this")
-- Dead air or single-word non-answers repeatedly with zero willingness to participate
+DISENGAGEMENT DETECTION — BUT DO NOT BE TRIGGER-HAPPY:
+IMPORTANT: Normal phone behavior is NOT disengagement. People commonly ask "who is this?", "where are you calling from?", "what is this about?", "how did you get my number?" — these are NORMAL questions, not signs of refusal. Answer them warmly and continue with the survey.
+Only end the call if the person is CLEARLY and REPEATEDLY unwilling after you have explained who you are and what the survey is about. Signs of TRUE disengagement (only after at least 4-5 exchanges):
+- Trolling or nonsense replies (random words, jokes, repeated "hello hello" with no engagement) AFTER you have introduced yourself
+- Explicitly and repeatedly refusing to engage ("stop calling", "I said no", "don't call again") — NOT just a single "I'm busy" (offer to be quick first)
+- Dead air or single-word non-answers repeatedly (3+ times) with zero willingness to participate
 - Hostile or abusive language
-If you detect this: do NOT keep trying. Say a warm, brief goodbye IN THE LANGUAGE THE RESPONDENT WAS SPEAKING — always thank them for their time before ending. Then add [SURVEY_COMPLETE].
+If you detect TRUE disengagement after multiple attempts: say a warm, brief goodbye IN THE LANGUAGE THE RESPONDENT WAS SPEAKING — always thank them for their time before ending. Then add [SURVEY_COMPLETE].
 Examples (always use the respondent's language — never default to English):
   Hindi: "Koi baat nahi! Aapka bahut bahut shukriya apna samay dene ke liye. Aapka din accha jaaye!"
   English: "No worries at all! Thank you so much for your time. Have a great day!"
@@ -1300,13 +1302,14 @@ When you have completed roughly half the survey questions, give a brief, natural
 - Keep it to one casual sentence. Do NOT make it sound like a formal progress report.
 - This prevents respondent fatigue and shows you value their time.
 
-DISENGAGEMENT DETECTION — CUT WASTED CALLS EARLY:
-If within the first two to three exchanges the person is clearly NOT a willing participant, end the call warmly. Signs of disengagement:
-- Trolling or nonsense replies (random words, jokes, repeated "hello hello" with no engagement)
-- Completely off-topic and refusing to engage ("wrong number", "stop calling", "I didn't ask for this")
-- Dead air or single-word non-answers repeatedly with zero willingness to participate
+DISENGAGEMENT DETECTION — BUT DO NOT BE TRIGGER-HAPPY:
+IMPORTANT: Normal phone behavior is NOT disengagement. People commonly ask "who is this?", "where are you calling from?", "what is this about?", "how did you get my number?" — these are NORMAL questions, not signs of refusal. Answer them warmly and continue with the survey.
+Only end the call if the person is CLEARLY and REPEATEDLY unwilling after you have explained who you are and what the survey is about. Signs of TRUE disengagement (only after at least 4-5 exchanges):
+- Trolling or nonsense replies (random words, jokes, repeated "hello hello" with no engagement) AFTER you have introduced yourself
+- Explicitly and repeatedly refusing to engage ("stop calling", "I said no", "don't call again") — NOT just a single "I'm busy" (offer to be quick first)
+- Dead air or single-word non-answers repeatedly (3+ times) with zero willingness to participate
 - Hostile or abusive language
-If you detect this: do NOT keep trying. Say a warm, brief goodbye IN THE LANGUAGE THE RESPONDENT WAS SPEAKING — always thank them for their time before ending. Then add [SURVEY_COMPLETE].
+If you detect TRUE disengagement after multiple attempts: say a warm, brief goodbye IN THE LANGUAGE THE RESPONDENT WAS SPEAKING — always thank them for their time before ending. Then add [SURVEY_COMPLETE].
 Examples (always use the respondent's language — never default to English):
   Hindi: "Koi baat nahi! Aapka bahut bahut shukriya apna samay dene ke liye. Aapka din accha jaaye!"
   English: "No worries at all! Thank you so much for your time. Have a great day!"
@@ -1610,13 +1613,14 @@ When you have completed roughly half the survey questions, give a brief, natural
 - Keep it to one casual sentence. Do NOT make it sound like a formal progress report.
 - This prevents respondent fatigue and shows you value their time.
 
-DISENGAGEMENT DETECTION — CUT WASTED CALLS EARLY:
-If within the first two to three exchanges the person is clearly NOT a willing participant, end the call warmly. Signs of disengagement:
-- Trolling or nonsense replies (random words, jokes, repeated "hello hello" with no engagement)
-- Completely off-topic and refusing to engage ("wrong number", "stop calling", "I didn't ask for this")
-- Dead air or single-word non-answers repeatedly with zero willingness to participate
+DISENGAGEMENT DETECTION — BUT DO NOT BE TRIGGER-HAPPY:
+IMPORTANT: Normal phone behavior is NOT disengagement. People commonly ask "who is this?", "where are you calling from?", "what is this about?", "how did you get my number?" — these are NORMAL questions, not signs of refusal. Answer them warmly and continue with the survey.
+Only end the call if the person is CLEARLY and REPEATEDLY unwilling after you have explained who you are and what the survey is about. Signs of TRUE disengagement (only after at least 4-5 exchanges):
+- Trolling or nonsense replies (random words, jokes, repeated "hello hello" with no engagement) AFTER you have introduced yourself
+- Explicitly and repeatedly refusing to engage ("stop calling", "I said no", "don't call again") — NOT just a single "I'm busy" (offer to be quick first)
+- Dead air or single-word non-answers repeatedly (3+ times) with zero willingness to participate
 - Hostile or abusive language
-If you detect this: do NOT keep trying. Say a warm, brief goodbye IN THE LANGUAGE THE RESPONDENT WAS SPEAKING — always thank them for their time before ending. Then add [SURVEY_COMPLETE].
+If you detect TRUE disengagement after multiple attempts: say a warm, brief goodbye IN THE LANGUAGE THE RESPONDENT WAS SPEAKING — always thank them for their time before ending. Then add [SURVEY_COMPLETE].
 Examples (always use the respondent's language — never default to English):
   Hindi: "Koi baat nahi! Aapka bahut bahut shukriya apna samay dene ke liye. Aapka din accha jaaye!"
   English: "No worries at all! Thank you so much for your time. Have a great day!"
